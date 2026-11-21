@@ -1,0 +1,99 @@
+{
+  "items": [
+    {
+      "id": "brf_67ad223a-11c4-4d8e-9f02-3a7b5e1c0d21",
+      "channelId": "chn_c7e81f00-3a2f-4f7b-9a1e-0d5c2b7e4a11",
+      "title": "模型竞赛进入下半场：三家同时放出长上下文版本",
+      "sections": [
+        {
+          "title": "重点",
+          "items": [
+            {
+              "title": "三家在同一天放出长上下文版本",
+              "summary": "发布时间挤在同一个窗口，上下文长度都跨到百万 token 级，但只有一家公布了显存占用曲线。",
+              "itemIds": [
+                "itm_99d96709-2f41-4b3a-8c7e-1d5a9f0b3c14",
+                "itm_4c81ba27-9e03-4d6f-b2a1-7c8e3f5d0a92",
+                "itm_7f2d51c8-3a94-4e07-9b6d-2f4a8c1e6b73"
+              ]
+            },
+            {
+              "title": "价格没有跟着能力一起降",
+              "summary": "上下文翻倍，输入侧单价维持原样；按实际吞吐折算，单位 token 成本反而上升了约一成。",
+              "itemIds": [
+                "itm_2b93e07a-5c18-4f62-a8d3-9e1b6c4f7a05",
+                "itm_8d4a6f19-1b72-4c39-8e50-3a7d9f2c6b41"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "模型与产品",
+          "items": [
+            {
+              "title": "IDE 侧的接入先于文档更新",
+              "summary": "两家编辑器插件已经切到新模型，官方文档的上下文上限仍写着旧值。",
+              "itemIds": [
+                "itm_1e58c3b7-6d92-4a04-8f71-5b0c3e8d2a96",
+                "itm_6a17f9d4-0c35-4e88-b2a7-3d9c1f5b8e20",
+                "itm_9c02e6f8-4b71-4d3a-8e19-7f2a5c0b6d34",
+                "itm_3f7b1a09-8e2c-4d51-9a60-1c4e8b7f2d58"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "政策与合规",
+          "items": [
+            {
+              "title": "出口管制清单没有变化，但注释更新了",
+              "summary": "清单条目与上一版一致，新增的是一段关于推理用途的说明。",
+              "itemIds": ["itm_5d18a2c4-9f03-4b6e-8d27-2a1c7e5f9b03"]
+            }
+          ]
+        }
+      ],
+      "memorySummary": "本期围绕三家同日发布的长上下文模型展开，涉及显存占用、单价变化、IDE 接入进度与出口管制注释更新四个角度。素材以项目发布说明、HN 讨论与一篇独立实测为主，缺少第三方复现。",
+      "createdAt": "2026-11-20T00:00:12.774Z"
+    },
+    {
+      "id": "brf_2c94a1b7-6d35-4e08-9a72-4f1c8b3d5e06",
+      "channelId": "chn_5e0c8f31-2b6d-4a79-9c04-1d8e7b3a2f66",
+      "title": "算力租赁价格连续第三个月回落",
+      "sections": [
+        {
+          "title": "价格",
+          "items": [
+            {
+              "title": "H100 整机月租较上月下降 8%",
+              "summary": "三家云厂商在同一周内调整报价，降幅集中在长租约。",
+              "itemIds": ["itm_0b47d2e9-8c15-4a63-b9f0-2e7d5c1a8b42"]
+            }
+          ]
+        }
+      ],
+      "memorySummary": "本期记录算力租赁的报价变化与产能投放，未做价格预测。",
+      "createdAt": "2026-11-19T10:00:31.007Z"
+    },
+    {
+      "id": "brf_8e13f7c0-5b29-4d6a-a0c3-7d9e2f4b1c85",
+      "channelId": "chn_a41b9d22-77c0-4e15-8b3d-6f2a1c9e5b02",
+      "title": "vLLM 推理性能翻倍的那次合并",
+      "sections": [
+        {
+          "title": "变更",
+          "items": [
+            {
+              "title": "调度器重写带来的吞吐提升",
+              "summary": "合并请求把连续批处理换成分页调度，在长序列上收益最大。",
+              "itemIds": ["itm_c3d81f47-2a96-4b05-8e17-6f4a9c0d3b28"]
+            }
+          ]
+        }
+      ],
+      "memorySummary": "本期跟踪一次影响推理吞吐的核心合并，记录了改动范围与实测条件。",
+      "createdAt": "2026-11-19T23:30:04.120Z"
+    }
+  ],
+  "nextCursor": "3"
+}

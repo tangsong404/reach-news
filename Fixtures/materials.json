@@ -1,0 +1,101 @@
+{
+  "items": [
+    {
+      "id": "itm_99d96709-2f41-4b3a-8c7e-1d5a9f0b3c14",
+      "title": "Show HN: a 1M-context server that fits on one GPU",
+      "url": "https://news.ycombinator.com/item?id=42100001",
+      "publishedAt": null,
+      "metadata": { "source": "hn", "rawFormat": "json" },
+      "content": "{\"title\":\"Show HN: a 1M-context server that fits on one GPU\",\"points\":214,\"comments\":87}"
+    },
+    {
+      "id": "itm_4c81ba27-9e03-4d6f-b2a1-7c8e3f5d0a92",
+      "title": "Release notes: sliding window attention rewrite",
+      "url": "https://github.com/example/inference/releases/tag/v2.4.0",
+      "publishedAt": null,
+      "metadata": { "source": "github", "rawFormat": "json" },
+      "content": "{\"tag\":\"v2.4.0\",\"body\":\"Rewrite of sliding window attention; peak memory down 38% at 128k.\"}"
+    },
+    {
+      "id": "itm_7f2d51c8-3a94-4e07-9b6d-2f4a8c1e6b73",
+      "title": "长上下文不是免费的：一次实测的显存账",
+      "url": "https://example.org/long-context-memory",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[长上下文不是免费的：一次实测的显存账]]></title><link>https://example.org/long-context-memory</link><description><![CDATA[<p>在 128k 与 1M 两个档位下分别测了峰值显存与吞吐。</p>]]></description></item>"
+    },
+    {
+      "id": "itm_2b93e07a-5c18-4f62-a8d3-9e1b6c4f7a05",
+      "title": "API pricing page",
+      "url": "https://example.com/pricing",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[API pricing page]]></title><link>https://example.com/pricing</link><description><![CDATA[Input $3 / 1M tokens, unchanged.]]></description></item>"
+    },
+    {
+      "id": "itm_8d4a6f19-1b72-4c39-8e50-3a7d9f2c6b41",
+      "title": "吞吐折算表（社区整理）",
+      "url": "https://example.net/throughput-calc",
+      "publishedAt": null,
+      "metadata": { "source": "hn", "rawFormat": "json" },
+      "content": "{\"title\":\"吞吐折算表（社区整理）\",\"points\":61,\"comments\":24}"
+    },
+    {
+      "id": "itm_1e58c3b7-6d92-4a04-8f71-5b0c3e8d2a96",
+      "title": "Editor plugin 3.2 changelog",
+      "url": "https://github.com/example/editor/releases/tag/v3.2.0",
+      "publishedAt": null,
+      "metadata": { "source": "github", "rawFormat": "json" },
+      "content": "{\"tag\":\"v3.2.0\",\"body\":\"Switch default model to the new long-context variant.\"}"
+    },
+    {
+      "id": "itm_6a17f9d4-0c35-4e88-b2a7-3d9c1f5b8e20",
+      "title": "Docs: context window limits",
+      "url": "https://example.com/docs/limits",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[Docs: context window limits]]></title><link>https://example.com/docs/limits</link><description><![CDATA[Max context 200k.]]></description></item>"
+    },
+    {
+      "id": "itm_9c02e6f8-4b71-4d3a-8e19-7f2a5c0b6d34",
+      "title": "HN discussion: editors already switched",
+      "url": "https://news.ycombinator.com/item?id=42100042",
+      "publishedAt": null,
+      "metadata": { "source": "hn", "rawFormat": "json" },
+      "content": "{\"title\":\"HN discussion: editors already switched\",\"points\":133,\"comments\":52}"
+    },
+    {
+      "id": "itm_3f7b1a09-8e2c-4d51-9a60-1c4e8b7f2d58",
+      "title": "Editor plugin 3.2 release notes (mirror)",
+      "url": "https://example.org/editor-3-2",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[Editor plugin 3.2 release notes (mirror)]]></title><link>https://example.org/editor-3-2</link><description><![CDATA[Mirrors the upstream changelog.]]></description></item>"
+    },
+    {
+      "id": "itm_5d18a2c4-9f03-4b6e-8d27-2a1c7e5f9b03",
+      "title": "Export control list revision note",
+      "url": "https://example.gov/export-controls/rev-42",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[Export control list revision note]]></title><link>https://example.gov/export-controls/rev-42</link><description><![CDATA[No item changes; adds a note on inference use.]]></description></item>"
+    },
+    {
+      "id": "itm_0b47d2e9-8c15-4a63-b9f0-2e7d5c1a8b42",
+      "title": "GPU rental price index, November",
+      "url": "https://example.com/gpu-index",
+      "publishedAt": null,
+      "metadata": { "source": "rss", "rawFormat": "xml" },
+      "content": "<item><title><![CDATA[GPU rental price index, November]]></title><link>https://example.com/gpu-index</link><description><![CDATA[H100 monthly lease down 8% m/m.]]></description></item>"
+    },
+    {
+      "id": "itm_c3d81f47-2a96-4b05-8e17-6f4a9c0d3b28",
+      "title": "PR #10922: paged scheduler",
+      "url": "https://github.com/example/vllm/pull/10922",
+      "publishedAt": null,
+      "metadata": { "source": "github", "rawFormat": "json" },
+      "content": "{\"number\":10922,\"title\":\"paged scheduler\",\"body\":\"Replaces continuous batching with paged scheduling.\"}"
+    }
+  ],
+  "nextCursor": null
+}

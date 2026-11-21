@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "write|edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const r=require('node:child_process').spawnSync(process.execPath,JSON.parse(Buffer.from('WyIvdmFyL2xpYi9kc2gvcmVhY2huZXdzLWNsaWVudC8uZHNoL3NraWxscy9jb21ldC9zY3JpcHRzL2NvbWV0LWhvb2stcm91dGVyLm1qcyIsIi0tcGxhdGZvcm0iLCJkc2giLCItLXByb2plY3Qtcm9vdCIsIi92YXIvbGliL2RzaC9yZWFjaG5ld3MtY2xpZW50Il0=','base64').toString()),{stdio:'inherit'});process.exit(r.status??1)\""
+          }
+        ]
+      }
+    ]
+  }
+}

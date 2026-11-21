@@ -26,6 +26,48 @@ jobs:
           name: reach-news-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+  ios-tests:
+    name: iOS Unit Tests
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Run unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available --json | python3 -c "
+          import json,sys
+          data=json.load(sys.stdin)['devices']
+          for runtime, devices in data.items():
+              if 'iOS' not in runtime:
+                  continue
+              for device in devices:
+                  if device.get('isAvailable') and 'iPhone' in device['name']:
+                      print(device['udid'])
+                      raise SystemExit
+          raise SystemExit(1)
+          ")"
+          if [ -z "$UDID" ]; then echo "No available iPhone simulator"; exit 1; fi
+          echo "Using simulator UDID: $UDID"
+          xcodebuild test \
+            -project ReachNews.xcodeproj \
+            -scheme ReachNews \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -resultBundlePath build/TestResults.xcresult \
+            -only-testing:ReachNewsTests \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reach-news-ios-test-results
+          path: build/TestResults.xcresult
+          if-no-files-found: warn
+
   ios:
     name: iOS SwiftUI Device IPA
     runs-on: macos-26
@@ -39,9 +81,6 @@ jobs:
         run: |
           xcodebuild archive -project ReachNews.xcodeproj -scheme ReachNews -destination 'generic/platform=iOS' -archivePath build/ReachNews.xcarchive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           APP_PATH="build/ReachNews.xcarchive/Products/Applications/ReachNews.app"
-          cp ReachNews/Resources/stories.json "$APP_PATH/stories.json"
-          mkdir -p "$APP_PATH/zh-Hans.lproj"
-          cp ReachNews/Resources/zh-Hans.lproj/Localizable.strings "$APP_PATH/zh-Hans.lproj/Localizable.strings"
           mkdir -p build/Payload
           cp -R "$APP_PATH" build/Payload/ReachNews.app
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent build/Payload ReachNews.ipa
@@ -70,9 +109,6 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
           APP_PATH="build/Build/Products/Debug-iphonesimulator/ReachNews.app"
-          cp ReachNews/Resources/stories.json "$APP_PATH/stories.json"
-          mkdir -p "$APP_PATH/zh-Hans.lproj"
-          cp ReachNews/Resources/zh-Hans.lproj/Localizable.strings "$APP_PATH/zh-Hans.lproj/Localizable.strings"
           /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string com.tangsong404.reachnews" "$APP_PATH/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.tangsong404.reachnews" "$APP_PATH/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string ReachNews" "$APP_PATH/Info.plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable ReachNews" "$APP_PATH/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist"
@@ -85,4 +121,3 @@ jobs:
         with:
           name: reach-news-ios-visual-preview
           path: visual-preview/reach-news-briefing.png
-

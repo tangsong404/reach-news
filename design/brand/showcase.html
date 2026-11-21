@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  body{margin:0;background:#FBFAF7;font-family:-apple-system,"PingFang SC",sans-serif;padding:30px 34px;width:max-content}
+  h3{font:600 11px/1 system-ui;color:#8B877E;letter-spacing:.12em;text-transform:uppercase;margin:26px 0 14px}
+  h3:first-child{margin-top:0}
+  .row{display:flex;align-items:flex-end;gap:20px}
+  .item{display:flex;flex-direction:column;align-items:center;gap:7px}
+  .item span{font:500 10px/1.3 ui-monospace,monospace;color:#8B877E}
+  img{display:block}
+  .tile{border-radius:22%;overflow:hidden;display:flex}
+  .onink{background:#14140F;padding:22px 26px;border-radius:12px}
+  .navbar-demo{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FBFAF7;
+    border:1px solid rgba(20,20,15,.10);border-radius:12px}
+  .navbar-demo .nm{font:700 15px/1 -apple-system,"PingFang SC",sans-serif;color:#14140F;letter-spacing:-.02em}
+</style></head>
+<body>
+
+<h3>导航栏标识（纸面）</h3>
+<div class="row">
+  <div class="item">
+    <div class="navbar-demo">
+      <div class="tile" style="width:26px;height:26px"><img src="icon-light.png" width="26" height="26"></div>
+      <span class="nm">Reach News</span>
+    </div>
+    <span>26 · 圆角方块</span>
+  </div>
+  <div class="item">
+    <div class="navbar-demo">
+      <img src="logo-mark-ink.png" width="26" height="26">
+      <span class="nm">Reach News</span>
+    </div>
+    <span>26 · 去底图形</span>
+  </div>
+</div>
+
+<h3>尺寸梯度（去底图形 / 纸面）</h3>
+<div class="row">
+  <div class="item"><img src="logo-mark-ink.png" width="120" height="120"><span>120</span></div>
+  <div class="item"><img src="logo-mark-ink.png" width="64" height="64"><span>64</span></div>
+  <div class="item"><img src="logo-mark-ink.png" width="40" height="40"><span>40</span></div>
+  <div class="item"><img src="logo-mark-ink.png" width="28" height="28"><span>28</span></div>
+  <div class="item"><img src="logo-mark-ink.png" width="20" height="20"><span>20</span></div>
+</div>
+
+<h3>应用图标</h3>
+<div class="row">
+  <div class="item"><div class="tile" style="width:104px;height:104px"><img src="icon-light.png" width="104" height="104"></div><span>亮色</span></div>
+  <div class="onink"><div class="tile" style="width:104px;height:104px"><img src="icon-dark.png" width="104" height="104"></div></div>
+</div>
+
+<h3>深底上的纸色图形</h3>
+<div class="row onink">
+  <div class="item"><img src="logo-mark-paper.png" width="64" height="64"><span style="color:#8B877E">64</span></div>
+  <div class="item"><img src="logo-mark-paper.png" width="28" height="28"><span style="color:#8B877E">28</span></div>
+</div>
+
+</body></html>

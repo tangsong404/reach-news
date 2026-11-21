@@ -2,25 +2,22 @@ import SwiftUI
 
 @main
 struct ReachNewsApp: App {
-    @State private var store = NewsStore()
-    @AppStorage("appLanguage") private var appLanguage = "system"
+    @State private var environment = AppEnvironment.live()
+    @AppStorage("preferences.language") private var languagePreference = LanguagePreference.system.rawValue
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(store)
-                .environment(\.locale, appLocale)
-                .tint(NewsTheme.ink)
+            RootTabView()
+                .environment(environment)
+                .environment(\.appEnvironment, environment)
+                .environment(\.appLocale, appLocale)
+                .tint(Palette.ink)
+                // 稿子只有纸色外观。
                 .preferredColorScheme(.light)
         }
     }
 
     private var appLocale: Locale {
-        switch appLanguage {
-        case "zh-Hans": Locale(identifier: "zh-Hans")
-        case "en": Locale(identifier: "en")
-        default: .current
-        }
+        (LanguagePreference(rawValue: languagePreference) ?? .system).locale
     }
 }
-

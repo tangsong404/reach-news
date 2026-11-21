@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reach News — 客户端视觉稿 v2</title>
+<style>
+  /* 内嵌中文字体：保证在任何机器上打开都按设计稿渲染 */
+  @font-face{
+    font-family:"Noto Sans SC";
+    font-style:normal;font-weight:400;font-display:block;
+    src:url("fonts/NotoSansSC-400.woff2") format("woff2");
+  }
+  @font-face{
+    font-family:"Noto Sans SC";
+    font-style:normal;font-weight:700;font-display:block;
+    src:url("fonts/NotoSansSC-700.woff2") format("woff2");
+  }
+
+  :root{
+    /* 编辑风：日报与频道 */
+    --paper:#FBFAF7;
+    --canvas:#F1EFE9;
+    --card:#FFFFFF;
+    --ink:#14140F;
+    --ink-2:#53514A;
+    --ink-3:#8B877E;
+    --line:rgba(20,20,15,.10);
+    --line-2:rgba(20,20,15,.16);
+
+    /* 追问风：近单色 */
+    --ask-bg:#F6F5F2;
+    --ask-surface:#FFFFFF;
+    --ask-bubble:#EFEDE8;
+    --ask-user:#121211;
+
+    /* 语义色 */
+    --warn:#A5452A;
+    --warn-bg:#FAF0EC;
+    --idle-bg:#EFEDE7;
+    --ok:#3D6B5C;
+
+    --radius-s:8px;
+    --radius-m:12px;
+    --radius-l:16px;
+
+    /* 液态玻璃：与 iOS 26 原生导航栏同构 */
+    --glass:rgba(251,250,247,.72);
+    --glass-line:rgba(20,20,15,.08);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    padding:56px 40px 96px;
+  }
+
+  /* ---------- 页面标题 ---------- */
+  .page-head{max-width:1180px;margin:0 auto 44px}
+  .eyebrow{
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:600;margin-bottom:14px;
+  }
+  .page-head h1{font-size:34px;letter-spacing:-.02em;line-height:1.2;font-weight:700}
+  .page-head p{margin-top:12px;color:var(--ink-2);font-size:15px;line-height:1.7;max-width:70ch}
+  .page-head p + p{margin-top:6px}
+
+  .tokens{display:flex;flex-wrap:wrap;gap:26px;margin-top:30px;padding-top:26px;border-top:1px solid var(--line-2)}
+  .token-group h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;font-weight:600}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .sw{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+  .sw i{display:block;width:44px;height:26px;border-radius:5px;border:1px solid var(--line-2)}
+  .sw span{font-size:10px;color:var(--ink-3);letter-spacing:.02em}
+  .type-sample{font-size:13px;color:var(--ink-2);line-height:1.9}
+  .num{
+    font-family:"Arial Narrow","Helvetica Neue Condensed","DejaVu Sans Condensed",sans-serif;
+    font-stretch:condensed;letter-spacing:.015em;
+  }
+
+  /* ---------- 画廊 ---------- */
+  .gallery{
+    display:flex;flex-wrap:wrap;gap:52px 44px;
+    max-width:1180px;margin:0 auto;align-items:flex-start;
+  }
+  figure{width:392px}
+  figcaption{margin-bottom:16px}
+  .cap-num{font-size:11px;letter-spacing:.14em;color:var(--ink-3);font-weight:600}
+  .cap-title{font-size:15px;font-weight:650;margin-top:5px;letter-spacing:-.01em}
+  .cap-note{font-size:12.5px;color:var(--ink-3);line-height:1.65;margin-top:6px}
+
+  /* ---------- 手机外框 ---------- */
+  .phone{
+    width:392px;height:846px;border-radius:46px;
+    background:var(--paper);border:9px solid #1B1B18;
+    box-shadow:0 24px 48px -20px rgba(20,20,15,.28), 0 2px 6px rgba(20,20,15,.08);
+    overflow:hidden;position:relative;
+  }
+  .screen{
+    position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+    scrollbar-width:none;
+  }
+  .screen::-webkit-scrollbar{display:none}
+
+  /* ---------- 液态玻璃顶栏 ----------
+     状态栏与导航栏合成一个 sticky 容器，内部模糊，内容从其下方滚过。
+     合成单一容器是为了避免两个 sticky 块之间出现接缝。 */
+  .topglass{
+    position:sticky;top:0;z-index:30;
+    background:var(--glass);
+    -webkit-backdrop-filter:blur(22px) saturate(180%);
+    backdrop-filter:blur(22px) saturate(180%);
+    border-bottom:1px solid var(--glass-line);
+  }
+  .topglass.plain{border-bottom:0}
+
+  .statusbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 26px 6px;font-size:13px;font-weight:600;letter-spacing:.01em;
+  }
+  .statusbar .right{display:flex;align-items:center;gap:5px}
+  .bat{width:22px;height:11px;border:1.4px solid currentColor;border-radius:3px;position:relative;opacity:.9}
+  .bat::after{content:"";position:absolute;inset:1.6px;right:5px;background:currentColor;border-radius:1px}
+  .sig{display:flex;align-items:flex-end;gap:1.5px;height:9px}
+  .sig i{width:2.5px;background:currentColor;border-radius:1px;display:block}
+  .sig i:nth-child(1){height:3px}.sig i:nth-child(2){height:5px}
+  .sig i:nth-child(3){height:7px}.sig i:nth-child(4){height:9px}
+
+  /* 导航栏行 */
+  .navbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:2px 16px 10px;min-height:44px;
+  }
+  .navbtn{
+    width:34px;height:34px;border-radius:50%;
+    background:rgba(255,255,255,.62);
+    border:.5px solid rgba(20,20,15,.06);
+    display:flex;align-items:center;justify-content:center;color:var(--ink-2);
+  }
+  .nav-title{font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.01em;display:flex;align-items:center;gap:6px}
+  /* 品牌标识：LOGO + 标题 */
+  .brand{
+    display:flex;align-items:center;gap:8px;min-width:0;
+  }
+  .brandmark{
+    width:26px;height:26px;border-radius:7px;flex:none;
+    background:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .brandmark img{display:block;width:18px;height:18px;object-fit:contain}
+  .navbar-center{justify-content:center;position:relative}
+  .brandname{
+    font-size:15px;font-weight:700;letter-spacing:-.022em;color:var(--ink);
+    white-space:nowrap;
+  }
+  .nav-action{
+    font-size:14.5px;font-weight:650;color:var(--ink);letter-spacing:-.01em;
+    padding:6px 2px;min-width:34px;text-align:right;
+  }
+
+  /* ---------- 顶部大标题 ---------- */
+  .masthead{padding:22px 22px 0}
+  .masthead h2{font-size:31px;font-weight:700;letter-spacing:-.035em;line-height:1.1}
+  .masthead .sub{
+    margin-top:7px;font-size:12.5px;color:var(--ink-3);letter-spacing:.01em;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  }
+  .dot-sep{width:3px;height:3px;border-radius:50%;background:var(--ink-3);display:inline-block;flex:none}
+
+  /* 顶部元信息行（LOGO 标题之下） */
+  .metalines{
+    display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+    padding:14px 22px 0;font-size:11.5px;color:var(--ink-3);letter-spacing:.01em;
+  }
+  .metalines .sort{margin-left:auto;font-weight:600;color:var(--ink-2)}
+
+  /* 当日导语 */
+  .digest-lead{
+    margin:16px 22px 0;font-size:13.5px;line-height:1.68;color:var(--ink-2);
+  }
+  .digest-lead b{color:var(--ink);font-weight:650}
+
+  /* ---------- 主卡：最新一期 ---------- */
+  .lead-card{
+    margin:16px 22px 0;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--radius-l);
+    padding:17px 17px 15px;
+    box-shadow:0 1px 2px rgba(20,20,15,.04);
+  }
+  .lead-card .chanline{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);font-weight:600}
+  .cdot{width:7px;height:7px;border-radius:50%;flex:none}
+  .chanline .time{margin-left:auto;color:var(--ink-3);font-weight:500;font-size:11px}
+  .lead-card h3{
+    font-size:21px;line-height:1.36;letter-spacing:-.028em;font-weight:700;margin-top:10px;
+  }
+  .lead-card .lede{
+    margin-top:9px;font-size:13px;line-height:1.62;color:var(--ink-2);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .section-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+  .schip{
+    font-size:10.5px;font-weight:600;letter-spacing:.01em;
+    padding:4px 8px;border-radius:6px;background:#F2F0EA;color:var(--ink-2);
+  }
+  .lead-foot{
+    display:flex;align-items:center;gap:9px;margin-top:14px;padding-top:12px;
+    border-top:1px solid var(--line);font-size:11px;color:var(--ink-3);
+  }
+  .lead-foot .go{
+    margin-left:auto;display:flex;align-items:center;gap:5px;
+    font-size:11.5px;font-weight:650;color:var(--ink);
+  }
+  .chev-r{width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg)}
+
+  /* ---------- 紧凑列表 ---------- */
+  .dayrule{
+    display:flex;align-items:center;gap:10px;margin:20px 22px 10px;
+    font-size:11px;letter-spacing:.1em;color:var(--ink-3);font-weight:600;text-transform:uppercase;
+  }
+  .dayrule::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .rows{padding:0 22px}
+  .row{
+    display:flex;align-items:flex-start;gap:11px;
+    padding:13px 0;border-bottom:1px solid var(--line);
+  }
+  .rows .row:last-child{border-bottom:0}
+  .row .rl{min-width:0;flex:1}
+  .row .rt{font-size:14.5px;line-height:1.46;letter-spacing:-.012em;font-weight:600}
+  .row .rm{
+    margin-top:5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+    font-size:11px;color:var(--ink-3);
+  }
+  .row .rm .cn{color:var(--ink-2);font-weight:550}
+  .more-btn{
+    margin:6px 22px 0;width:calc(100% - 44px);
+    border:1px solid var(--line);border-radius:var(--radius-m);
+    background:transparent;padding:13px;font:inherit;font-size:12.5px;
+    font-weight:600;color:var(--ink-2);cursor:pointer;
+  }
+
+  /* ---------- 日报页（含搜索筛选） ---------- */
+  .searchwrap{padding:6px 16px 12px}
+  .searchbox{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.72);
+    border:.5px solid rgba(20,20,15,.07);
+    border-radius:10px;padding:9px 11px;
+    font-size:13.5px;color:var(--ink-3);
+  }
+  .chips-scroll{
+    display:flex;gap:7px;padding:0 16px 13px;overflow-x:auto;scrollbar-width:none;
+  }
+  .chips-scroll::-webkit-scrollbar{display:none}
+  .fchip{
+    display:flex;align-items:center;gap:6px;flex:none;
+    font-size:12px;font-weight:600;letter-spacing:.005em;
+    padding:7px 11px;border-radius:8px;
+    background:rgba(255,255,255,.6);color:var(--ink-2);
+    border:.5px solid rgba(20,20,15,.07);
+  }
+  .fchip.on{background:var(--ink);color:#FAF9F5;border-color:var(--ink)}
+  .fchip .cdot{width:6px;height:6px}
+  .allfilter-line{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:2px 22px 10px;font-size:11px;color:var(--ink-3);
+  }
+  .allfilter-line .sort{font-weight:600;color:var(--ink-2)}
+
+  /* 搜索行 + 筛选按钮 */
+  .searchrow{display:flex;align-items:center;gap:9px;padding:6px 16px 12px}
+  .searchrow .searchbox{flex:1}
+  .filter-btn{
+    display:flex;align-items:center;gap:5px;flex:none;
+    font-size:12.5px;font-weight:650;letter-spacing:.01em;
+    padding:9px 12px;border-radius:10px;
+    background:rgba(255,255,255,.72);
+    border:.5px solid rgba(20,20,15,.07);
+    color:var(--ink);
+  }
+  .filter-btn.active{background:var(--ink);color:#FAF9F5;border-color:var(--ink)}
+  .filter-btn .cnt{
+    font-size:9.5px;min-width:15px;height:15px;border-radius:8px;
+    background:rgba(250,249,245,.22);color:inherit;
+    display:inline-flex;align-items:center;justify-content:center;
+    font-weight:700;padding:0 3px;
+  }
+  .filter-btn:not(.active) .cnt{background:#E5E2DA;color:var(--ink-2)}
+
+  /* 已应用的筛选摘要条 */
+  .activefilters{
+    display:flex;gap:6px;padding:0 16px 11px;overflow-x:auto;scrollbar-width:none;
+  }
+  .activefilters::-webkit-scrollbar{display:none}
+  .afchip{
+    display:flex;align-items:center;gap:5px;flex:none;
+    font-size:11px;font-weight:600;padding:5px 9px;border-radius:7px;
+    background:#EDEAE2;color:var(--ink-2);
+  }
+  .afchip .x{font-size:12px;opacity:.5;line-height:1}
+
+  /* 筛选面板 */
+  .sheet-scrim{
+    position:absolute;inset:0;background:rgba(20,20,15,.32);z-index:30;
+  }
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;z-index:31;
+    background:var(--paper);
+    border-radius:22px 22px 0 0;
+    padding:8px 22px 30px;
+    box-shadow:0 -8px 30px -12px rgba(20,20,15,.3);
+  }
+  .sheet .grab{
+    width:34px;height:4px;border-radius:2px;background:#D8D4CB;
+    margin:0 auto 14px;
+  }
+  .sheet h4{
+    font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:650;margin-bottom:10px;
+  }
+  .sheet h4:not(:first-of-type){margin-top:20px}
+  .opt-row{
+    display:flex;align-items:center;gap:9px;
+    padding:11px 0;font-size:14px;font-weight:500;color:var(--ink);
+    border-bottom:1px solid var(--line);
+  }
+  .opt-row:last-child{border-bottom:0}
+  .opt-row .tick{
+    margin-left:auto;width:17px;height:17px;border-radius:50%;
+    border:1.4px solid var(--line-2);flex:none;
+  }
+  .opt-row.on .tick{
+    background:var(--ink);border-color:var(--ink);position:relative;
+  }
+  .opt-row.on .tick::after{
+    content:"";position:absolute;left:5.5px;top:3px;
+    width:4px;height:7.5px;border-right:1.6px solid #FAF9F5;
+    border-bottom:1.6px solid #FAF9F5;transform:rotate(40deg);
+  }
+  .sheet-foot{display:flex;gap:10px;margin-top:22px}
+  .sheet-foot button{
+    flex:1;border:0;border-radius:11px;padding:14px;font:inherit;
+    font-size:14px;font-weight:650;letter-spacing:.01em;cursor:pointer;
+  }
+  .sheet-foot .reset{background:#EAE7DF;color:var(--ink-2);flex:0 0 34%}
+  .sheet-foot .apply{background:var(--ink);color:#FAF9F5}
+
+  /* 自定义日期范围 */
+  .daterange{
+    display:flex;align-items:center;gap:10px;margin-top:12px;
+    background:#F2F0EA;border-radius:10px;padding:11px 13px;
+  }
+  .dr-cell{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+  .dr-label{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+  .dr-val{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .dr-sep{color:var(--ink-3);font-size:12px}
+
+  /* 加载到边界提示 */
+  .loading-line{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:18px 22px;font-size:11.5px;color:var(--ink-3);
+  }
+  .spinner{
+    width:12px;height:12px;border-radius:50%;
+    border:1.6px solid rgba(20,20,15,.15);border-top-color:var(--ink-3);
+  }
+
+  /* ---------- 日报详情 ---------- */
+  .detail-head{padding:16px 22px 18px}
+  .detail-head h2{font-size:25px;line-height:1.3;letter-spacing:-.03em;font-weight:700}
+  .detail-meta{margin-top:11px;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-3);flex-wrap:wrap}
+
+  .section-sticky{
+    position:sticky;top:87px;z-index:9;
+    background:rgba(251,250,247,.94);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    padding:10px 22px 8px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;gap:9px;
+  }
+  .section-sticky h3{font-size:12.5px;font-weight:700;letter-spacing:.02em}
+  .section-sticky .count{font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+  .entries{padding:12px 22px 0}
+
+  .entry{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);
+    padding:14px 15px;margin-bottom:10px;
+  }
+  .entry h4{font-size:15.5px;line-height:1.45;letter-spacing:-.012em;font-weight:650}
+  .entry p{margin-top:7px;font-size:13px;line-height:1.62;color:var(--ink-2)}
+  .entry-foot{
+    display:flex;align-items:center;gap:6px;margin-top:11px;
+    font-size:11.5px;color:var(--ink-3);font-weight:600;
+  }
+  .chev{width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-left:auto;margin-right:2px}
+  .chev.up{transform:rotate(-135deg);margin-top:3px}
+
+  .materials{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
+  .mat{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .mat:last-child{border-bottom:0;padding-bottom:2px}
+  .fav{
+    width:22px;height:22px;border-radius:5px;flex:none;
+    background:#E8E4DB;color:var(--ink-2);
+    font-size:10px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    font-family:"Arial Narrow","Helvetica Neue Condensed",sans-serif;
+  }
+  .mat .body{min-width:0;flex:1}
+  .mat .mt{font-size:12.5px;line-height:1.4;color:var(--ink);font-weight:550;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mat .md{font-size:10.5px;color:var(--ink-3);margin-top:2px;letter-spacing:.01em}
+  .openarrow{width:9px;height:9px;flex:none;opacity:.5}
+
+  /* ---------- 浮动追问胶囊 ---------- */
+  .ask-pill{
+    position:absolute;right:18px;bottom:34px;z-index:25;
+    display:flex;align-items:center;gap:7px;
+    padding:11px 15px 11px 13px;
+    border-radius:24px;
+    background:rgba(20,20,15,.90);
+    -webkit-backdrop-filter:blur(16px) saturate(180%);
+    backdrop-filter:blur(16px) saturate(180%);
+    color:#FAF9F5;font-size:13.5px;font-weight:650;letter-spacing:.005em;
+    box-shadow:0 8px 22px -8px rgba(20,20,15,.5), 0 1px 3px rgba(20,20,15,.2);
+  }
+  .ask-pill.collapsed{
+    padding:0;width:46px;height:46px;border-radius:50%;
+    justify-content:center;gap:0;bottom:34px;right:20px;
+  }
+  .ask-hint{
+    position:absolute;right:18px;bottom:34px;z-index:25;
+    font-size:10px;color:var(--ink-3);
+  }
+
+  /* ---------- 频道列表 ---------- */
+  .chan-rows{padding:20px 22px 30px}
+  .chan-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius-m);
+    padding:14px 15px;margin-bottom:10px;
+  }
+  .chan-card .top{display:flex;align-items:center;gap:8px}
+  .chan-card .cname{font-size:15px;font-weight:650;letter-spacing:-.012em}
+  .chan-card .kind{font-size:9.5px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:4px;padding:1.5px 4px;font-weight:600;letter-spacing:.05em}
+  .chan-card .prompt{
+    margin-top:7px;font-size:12.5px;color:var(--ink-2);line-height:1.55;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .chan-card .foot{margin-top:11px;display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+  .chip{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:10px;font-weight:650;letter-spacing:.03em;
+    padding:2.5px 6px;border-radius:4px;background:var(--idle-bg);color:var(--ink-2);
+  }
+  .chip.run{background:#EAF0EC;color:var(--ok)}
+  .chip.warn{background:var(--warn-bg);color:var(--warn)}
+
+  .switch{
+    margin-left:auto;width:38px;height:22px;border-radius:11px;background:var(--ink);
+    position:relative;flex:none;
+  }
+  .switch::after{
+    content:"";position:absolute;top:2.5px;right:2.5px;width:17px;height:17px;
+    border-radius:50%;background:#fff;
+  }
+  .switch.off{background:#D8D4CB}
+  .switch.off::after{right:auto;left:2.5px}
+
+  /* ---------- 频道编辑 ---------- */
+  .edit-nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:4px 18px 10px;
+  }
+  .edit-nav .cancel{font-size:14px;color:var(--ink-2);font-weight:500}
+  .edit-nav .ttl{font-size:14px;font-weight:650;letter-spacing:-.01em}
+  .edit-nav .save{font-size:14px;color:var(--ink);font-weight:650}
+
+  .form{padding:16px 22px 44px}
+  .field{margin-bottom:20px}
+  .field label{
+    display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:650;margin-bottom:8px;
+  }
+  .input{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;font-size:14px;letter-spacing:-.005em;
+  }
+  .input.area{min-height:92px;line-height:1.6;font-size:13.5px;color:var(--ink-2)}
+  .hint{margin-top:7px;font-size:11px;color:var(--ink-3);line-height:1.6}
+
+  .weekdays{display:flex;gap:6px;margin-bottom:10px}
+  .wd{
+    flex:1;text-align:center;padding:8px 0;border-radius:8px;font-size:12px;font-weight:600;
+    background:var(--card);border:1px solid var(--line);color:var(--ink-2);
+  }
+  .wd.on{background:var(--ink);border-color:var(--ink);color:#FAF9F5}
+  .times{display:flex;gap:7px;flex-wrap:wrap}
+  .time-pill{
+    background:var(--card);border:1px solid var(--line);border-radius:8px;
+    padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  }
+  .time-pill.add{border-style:dashed;color:var(--ink-3)}
+
+  .readonly{
+    background:#F4F2EC;border:1px solid var(--line);border-radius:10px;padding:12px 13px;
+  }
+  .ro-row{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2);padding:5px 0}
+  .ro-row .lock{margin-left:auto;font-size:10px;color:var(--ink-3);letter-spacing:.05em}
+
+  .notice{
+    display:flex;gap:9px;background:var(--warn-bg);border-radius:10px;
+    padding:11px 12px;margin-bottom:18px;font-size:12px;line-height:1.6;color:var(--warn);
+  }
+  .notice b{font-weight:650}
+
+  /* ---------- 追问（Grok Bot 风） ---------- */
+  .screen.ask{background:var(--ask-bg);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",system-ui,sans-serif}
+  .screen.ask .topglass{background:rgba(246,245,242,.72);border-bottom:0}
+  .ask-nav{display:flex;align-items:center;gap:11px;padding:2px 16px 10px}
+  .ask-circle{
+    width:34px;height:34px;border-radius:50%;
+    background:rgba(255,255,255,.72);
+    border:.5px solid rgba(20,20,15,.06);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .ask-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .ask-id .nm{font-size:13.5px;font-weight:650;letter-spacing:-.01em}
+  .ask-id .sb{font-size:10.5px;color:var(--ink-3)}
+  .ask-nav .spacer{flex:1}
+
+  .ask-body{padding:6px 18px 150px}
+  .ask-date{text-align:center;font-size:10.5px;color:var(--ink-3);margin:10px 0 16px;letter-spacing:.02em}
+
+  .bubble{
+    max-width:80%;padding:13px 15px;border-radius:19px;
+    font-size:13.5px;line-height:1.6;letter-spacing:-.005em;
+  }
+  .bubble.bot{background:var(--ask-bubble);border-bottom-left-radius:6px;margin-bottom:10px}
+  .bubble.me{background:var(--ask-user);color:#F7F6F4;margin-left:auto;border-bottom-right-radius:6px;margin-bottom:16px}
+
+  .inbubble-card{
+    background:var(--ask-surface);border-radius:13px;padding:12px;margin-top:10px;
+    box-shadow:0 1px 2px rgba(20,20,15,.06);
+  }
+  .inbubble-card .hd{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-3);font-weight:600;letter-spacing:.02em;margin-bottom:8px}
+  .inbubble-card .row{
+    display:flex;gap:9px;padding:7px 0;border-top:1px solid rgba(20,20,15,.07);
+  }
+  .inbubble-card .row:first-of-type{border-top:0;padding-top:0}
+  .inbubble-card .row .idx{
+    font-size:10px;color:var(--ink-3);width:11px;flex:none;padding-top:2px;
+    font-family:"Arial Narrow","Helvetica Neue Condensed",sans-serif;font-weight:700;
+  }
+  .inbubble-card .row .tx{font-size:12.5px;line-height:1.5;color:var(--ink)}
+  .inbubble-card .row .dom{font-size:10px;color:var(--ink-3);margin-top:2px}
+
+  .ask-actions{display:flex;gap:7px;margin:-6px 0 18px}
+  .mini{
+    font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:20px;
+    background:var(--ask-surface);color:var(--ink-2);border:1px solid rgba(20,20,15,.09);
+  }
+
+  .ask-input{
+    position:sticky;bottom:0;padding:12px 14px 26px;
+    background:var(--ask-bg);
+    display:flex;align-items:center;gap:9px;
+  }
+  .round-btn{
+    width:36px;height:36px;border-radius:50%;
+    background:var(--ask-surface);
+    display:flex;align-items:center;justify-content:center;flex:none;
+    box-shadow:0 1px 3px rgba(20,20,15,.08);color:var(--ink-2);
+  }
+  .field-pill{
+    flex:1;background:var(--ask-surface);border-radius:20px;padding:10px 15px;
+    font-size:13px;color:var(--ink-3);
+    box-shadow:0 1px 3px rgba(20,20,15,.06);
+  }
+
+  /* ---------- Tab 栏（液态玻璃） ---------- */
+  .tabbar{
+    position:absolute;left:0;right:0;bottom:0;z-index:20;
+    display:flex;align-items:flex-start;justify-content:space-around;
+    padding:9px 12px 22px;
+    background:rgba(251,250,247,.80);
+    -webkit-backdrop-filter:blur(22px) saturate(180%);
+    backdrop-filter:blur(22px) saturate(180%);
+    border-top:.5px solid var(--glass-line);
+  }
+  .tab{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    font-size:10px;letter-spacing:.01em;color:var(--ink-3);font-weight:500;
+    width:72px;
+  }
+  .tab.on{color:var(--ink);font-weight:650}
+  .tab svg{opacity:.55}
+  .tab.on svg{opacity:1}
+  .screen.has-tabs{padding-bottom:96px}
+
+  .home-ind{
+    position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    width:128px;height:4.5px;border-radius:3px;background:rgba(20,20,15,.22);z-index:40;
+  }
+  .home-ind.light{background:rgba(20,20,15,.18)}
+
+  footer.page-foot{max-width:1180px;margin:64px auto 0;padding-top:26px;border-top:1px solid var(--line-2);
+    font-size:12.5px;color:var(--ink-3);line-height:1.8}
+  footer.page-foot b{color:var(--ink-2);font-weight:650}
+</style>
+</head>
+<body>
+
+<header class="page-head">
+  <div class="eyebrow">Reach News · 视觉稿 v2</div>
+  <h1>日报页即全部，搜索筛选内联其中</h1>
+  <p>取消了独立的「全部」页：日报页本身就是完整历史，按日期分组倒序铺开，搜索常驻、时间与频道筛选取自「筛选」按钮。首页不显示导览大卡，也不区分「今天/更早」之外的层级——日期分组已经承担了节奏。</p>
+  <p>导航栏与标签栏改为 iOS 26 原生液态玻璃：半透明 + 背景模糊，内容从其下方滚过。所有屏幕内容均已按真实滚动位置渲染。</p>
+
+  <div class="tokens">
+    <div class="token-group">
+      <h4>底色与层次</h4>
+      <div class="swatches">
+        <div class="sw"><i style="background:#FBFAF7"></i><span>canvas</span></div>
+        <div class="sw"><i style="background:#FFFFFF"></i><span>surface</span></div>
+        <div class="sw"><i style="background:#F1EFE9"></i><span>page</span></div>
+        <div class="sw"><i style="background:#F2F0EA"></i><span>chip</span></div>
+      </div>
+    </div>
+    <div class="token-group">
+      <h4>文字</h4>
+      <div class="swatches">
+        <div class="sw"><i style="background:#14140F"></i><span>primary</span></div>
+        <div class="sw"><i style="background:#53514A"></i><span>secondary</span></div>
+        <div class="sw"><i style="background:#8B877E"></i><span>tertiary</span></div>
+      </div>
+    </div>
+    <div class="token-group">
+      <h4>状态</h4>
+      <div class="swatches">
+        <div class="sw"><i style="background:#EAF0EC"></i><span>running</span></div>
+        <div class="sw"><i style="background:#EFEDE7"></i><span>missed</span></div>
+        <div class="sw"><i style="background:#FAF0EC"></i><span>failed</span></div>
+      </div>
+    </div>
+    <div class="token-group">
+      <h4>频道标识</h4>
+      <div class="swatches">
+        <div class="sw"><i style="background:#4E6E8E"></i><span>steel</span></div>
+        <div class="sw"><i style="background:#3D6B5C"></i><span>moss</span></div>
+        <div class="sw"><i style="background:#A9714B"></i><span>clay</span></div>
+        <div class="sw"><i style="background:#7A5A78"></i><span>plum</span></div>
+      </div>
+    </div>
+    <div class="token-group">
+      <h4>字体</h4>
+      <div class="type-sample">
+        中文标题 600/700 苹方／思源黑，字距 <span class="num">-0.02em</span><br>
+        Latin 数字 <span class="num" style="font-size:16px;font-weight:700">08:00 · 3 · 12</span> 用压缩体
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="gallery">
+
+  <!-- ══════════════ 1 · 日报（即全部） ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">01</div>
+      <div class="cap-title">日报 — 首页即全部</div>
+      <div class="cap-note">没有独立的「全部」页了。顶部 masthead 之下直接是搜索与筛选入口，列表按日期倒序铺全部历史。今天的最新一期不加特殊主卡，靠日期分组建立节奏；「筛选」收纳时间与频道两个维度。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen has-tabs">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="navbar navbar-center">
+            <div class="brand">
+              <span class="brandmark"><img src="../brand/logo-mark-paper.png" width="18" height="18" alt=""></span>
+              <span class="brandname">Reach News</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metalines">
+          <span class="num">11月20日 星期四</span><span class="dot-sep"></span><span>4 个频道</span><span class="dot-sep"></span><span>共 47 期</span>
+          <span class="sort">最新优先</span>
+        </div>
+
+        <div class="searchrow" style="padding-top:14px">
+            <div class="searchbox">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6.2" cy="6.2" r="4.4" stroke="currentColor" stroke-width="1.4"/><path d="M9.6 9.6L12.4 12.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              搜索日报标题
+            </div>
+            <div class="filter-btn">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M4 7h6M5.6 10h2.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              筛选
+            </div>
+        </div>
+
+        <div class="dayrule" style="margin-top:2px">今天</div>
+        <div class="rows">
+          <div class="row">
+            <div class="rl">
+              <div class="rt">模型竞赛进入下半场：三家同时放出长上下文版本</div>
+              <div class="rm"><span class="cdot" style="background:#4E6E8E"></span><span class="cn">AI 前沿</span><span class="dot-sep"></span><span class="num">08:00</span><span class="dot-sep"></span><span>3 个分组</span><span class="dot-sep"></span><span><span class="num">12</span> 条素材</span></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rl">
+              <div class="rt">vLLM 推理性能翻倍的那次合并</div>
+              <div class="rm"><span class="cdot" style="background:#3D6B5C"></span><span class="cn">开源动态</span><span class="dot-sep"></span><span class="num">07:30</span><span class="dot-sep"></span><span>2 个分组</span></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rl">
+              <div class="rt">当设置页开始承担 onboarding</div>
+              <div class="rm"><span class="cdot" style="background:#7A5A78"></span><span class="cn">产品与设计</span><span class="dot-sep"></span><span class="num">09:00</span><span class="dot-sep"></span><span>2 个分组</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dayrule">昨天</div>
+        <div class="rows">
+          <div class="row">
+            <div class="rl">
+              <div class="rt">算力租赁价格连续第三个月回落</div>
+              <div class="rm"><span class="cdot" style="background:#A9714B"></span><span class="cn">财经与市场</span><span class="dot-sep"></span><span class="num">18:00</span><span class="dot-sep"></span><span>4 个分组</span></div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="rl">
+              <div class="rt">端侧推理的功耗账：这轮宣传略过了什么</div>
+              <div class="rm"><span class="cdot" style="background:#4E6E8E"></span><span class="cn">AI 前沿</span><span class="dot-sep"></span><span class="num">08:00</span><span class="dot-sep"></span><span>3 个分组</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dayrule">11月18日</div>
+        <div class="rows">
+          <div class="row">
+            <div class="rl">
+              <div class="rt">开源模型的许可证正在收紧</div>
+              <div class="rm"><span class="cdot" style="background:#3D6B5C"></span><span class="cn">开源动态</span><span class="dot-sep"></span><span class="num">07:30</span><span class="dot-sep"></span><span>3 个分组</span></div>
+            </div>
+          </div>
+        </div>
+
+        <nav class="tabbar">
+          <div class="tab on">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2.6" y="3.2" width="14.8" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="2.6" y="8.6" width="14.8" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="2.6" y="14" width="9.4" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/></svg>
+            日报
+          </div>
+          <div class="tab">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="5.4" r="2.1" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="14.6" r="2.1" stroke="currentColor" stroke-width="1.5"/><path d="M10 7.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            频道
+          </div>
+          <div class="tab">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 16.4c.9-2.9 3.2-4.4 6-4.4s5.1 1.5 6 4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            我的
+          </div>
+        </nav>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 2 · 筛选面板 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">02</div>
+      <div class="cap-title">筛选面板</div>
+      <div class="cap-note">从底部升起，覆盖在日报页之上。时间单选（预设 + 自定义起止日期），频道多选。选具体范围时客户端会持续加载到该范围起点为止再显示，避免「只筛已加载的 N 期」这种错觉。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen" style="overflow:hidden">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="navbar">
+            <div class="navbtn">
+              <svg width="9" height="14" viewBox="0 0 9 14" fill="none"><path d="M7.5 1L1.5 7l6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="nav-title">今天 · 星期四</div>
+            <div style="width:34px"></div>
+          </div>
+          <div class="searchrow">
+            <div class="searchbox">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6.2" cy="6.2" r="4.4" stroke="currentColor" stroke-width="1.4"/><path d="M9.6 9.6L12.4 12.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              搜索日报标题
+            </div>
+            <div class="filter-btn active">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M4 7h6M5.6 10h2.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              筛选<span class="cnt">2</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="allfilter-line" style="padding-top:10px">
+          <span><span class="num">47</span> 期</span>
+          <span class="sort">最新优先</span>
+        </div>
+
+        <div class="sheet-scrim"></div>
+
+        <div class="sheet">
+          <div class="grab"></div>
+
+          <h4>时间</h4>
+          <div class="opt-row"><span>全部时间</span><span class="tick"></span></div>
+          <div class="opt-row"><span>本周</span><span class="tick"></span></div>
+          <div class="opt-row"><span>本月</span><span class="tick"></span></div>
+          <div class="opt-row"><span>近三个月</span><span class="tick"></span></div>
+          <div class="opt-row on"><span>自定义范围</span><span class="tick"></span></div>
+
+          <div class="daterange">
+            <div class="dr-cell"><span class="dr-label">开始</span><span class="dr-val num">11月1日</span></div>
+            <span class="dr-sep">–</span>
+            <div class="dr-cell"><span class="dr-label">结束</span><span class="dr-val num">11月15日</span></div>
+          </div>
+
+          <h4>频道</h4>
+          <div class="opt-row on"><span class="cdot" style="background:#4E6E8E"></span><span>AI 前沿</span><span class="tick"></span></div>
+          <div class="opt-row"><span class="cdot" style="background:#3D6B5C"></span><span>开源动态</span><span class="tick"></span></div>
+          <div class="opt-row"><span class="cdot" style="background:#A9714B"></span><span>财经与市场</span><span class="tick"></span></div>
+          <div class="opt-row"><span class="cdot" style="background:#7A5A78"></span><span>产品与设计</span><span class="tick"></span></div>
+
+          <div class="sheet-foot">
+            <button class="reset">重置</button>
+            <button class="apply">显示 12 期</button>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 3 · 日报详情 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">03</div>
+      <div class="cap-title">日报详情</div>
+      <div class="cap-note">分组标题吸顶并带模糊，条目内联展开素材。追问改为右下角浮动胶囊，滚到底时收成圆形图标（见下一屏）。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="navbar">
+            <div class="navbtn">
+              <svg width="9" height="14" viewBox="0 0 9 14" fill="none"><path d="M7.5 1L1.5 7l6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="nav-title"><span class="cdot" style="background:#4E6E8E"></span>AI 前沿</div>
+            <div class="navbtn">
+              <svg width="15" height="4" viewBox="0 0 15 4" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="7.5" cy="2" r="1.5"/><circle cx="13" cy="2" r="1.5"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-head">
+          <h2>模型竞赛进入下半场：三家同时放出长上下文版本</h2>
+          <div class="detail-meta">
+            <span class="num">11月20日 08:00</span><span class="dot-sep"></span>
+            <span>3 个分组</span><span class="dot-sep"></span>
+            <span><span class="num">12</span> 条素材</span>
+          </div>
+        </div>
+
+        <div class="section-sticky">
+          <h3>重点</h3>
+          <span class="count"><span class="num">2</span> 条</span>
+        </div>
+        <div class="entries">
+          <div class="entry">
+            <h4>三家在同一天放出长上下文版本</h4>
+            <p>发布时间挤在同一个窗口，上下文长度都跨到百万 token 级，但只有一家公布了显存占用曲线。</p>
+            <div class="entry-foot">
+              <span><span class="num">3</span> 条素材</span>
+              <span class="chev up"></span>
+            </div>
+            <div class="materials">
+              <div class="mat">
+                <div class="fav">HN</div>
+                <div class="body">
+                  <div class="mt">Show HN: a 1M-context server that fits on one GPU</div>
+                  <div class="md num">news.ycombinator.com</div>
+                </div>
+                <svg class="openarrow" viewBox="0 0 10 10" fill="none"><path d="M2 8L8 2M8 2H3.4M8 2v4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="mat">
+                <div class="fav">GH</div>
+                <div class="body">
+                  <div class="mt">Release notes: sliding window attention rewrite</div>
+                  <div class="md num">github.com</div>
+                </div>
+                <svg class="openarrow" viewBox="0 0 10 10" fill="none"><path d="M2 8L8 2M8 2H3.4M8 2v4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="mat">
+                <div class="fav">RS</div>
+                <div class="body">
+                  <div class="mt">长上下文不是免费的：一次实测的显存账</div>
+                  <div class="md num">example.org</div>
+                </div>
+                <svg class="openarrow" viewBox="0 0 10 10" fill="none"><path d="M2 8L8 2M8 2H3.4M8 2v4.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="entry">
+            <h4>价格没有跟着能力一起降</h4>
+            <p>上下文翻倍，输入侧单价维持原样；按实际吞吐折算，单位 token 成本反而上升了约一成。</p>
+            <div class="entry-foot">
+              <span><span class="num">2</span> 条素材</span>
+              <span class="chev"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-sticky">
+          <h3>模型与产品</h3>
+          <span class="count"><span class="num">1</span> 条</span>
+        </div>
+        <div class="entries" style="padding-bottom:96px">
+          <div class="entry">
+            <h4>IDE 侧的接入先于文档更新</h4>
+            <p>两家编辑器插件已经切到新模型，官方文档的上下文上限仍写着旧值。</p>
+            <div class="entry-foot">
+              <span><span class="num">4</span> 条素材</span>
+              <span class="chev"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ask-pill">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2.4 3.6a2 2 0 0 1 2-2h7.2a2 2 0 0 1 2 2v5.2a2 2 0 0 1-2 2H6.8L3.4 13.4v-2.6h-1a1 1 0 0 1-1-1V3.6Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          追问
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 4 · 频道列表 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">04</div>
+      <div class="cap-title">频道列表</div>
+      <div class="cap-note"><span class="num">enabled</span> 行上直接切换、即时生效（失败则回滚）。运行状态用中性 chip；「错过」是灰色而非错误色。新建入口常驻。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen has-tabs">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="navbar">
+            <div style="width:34px"></div>
+            <div class="nav-title">频道</div>
+            <div class="nav-action" style="font-size:22px;font-weight:500;line-height:1">+</div>
+          </div>
+        </div>
+
+        <div class="masthead" style="padding-top:14px">
+          <h2>频道</h2>
+          <div class="sub"><span>4 个频道</span><span class="dot-sep"></span><span>按 Asia/Shanghai 触发</span></div>
+        </div>
+
+        <div class="chan-rows">
+          <div class="chan-card">
+            <div class="top">
+              <span class="cdot" style="background:#4E6E8E"></span>
+              <span class="cname">AI 前沿</span>
+              <span class="switch"></span>
+            </div>
+            <div class="prompt">总结今天与 AI 模型、算力和政策相关的进展，优先一手来源，不转述二手评论。</div>
+            <div class="foot">
+              <span class="chip run">写作中</span>
+              <span class="num">周一、三、五 08:00</span>
+            </div>
+          </div>
+
+          <div class="chan-card">
+            <div class="top">
+              <span class="cdot" style="background:#3D6B5C"></span>
+              <span class="cname">开源动态</span>
+              <span class="kind">跟踪</span>
+              <span class="switch"></span>
+            </div>
+            <div class="prompt">Follow：vLLM 推理性能翻倍的那次合并</div>
+            <div class="foot">
+              <span class="chip">今天 07:30</span>
+              <span class="num">每天 07:30</span>
+            </div>
+          </div>
+
+          <div class="chan-card">
+            <div class="top">
+              <span class="cdot" style="background:#A9714B"></span>
+              <span class="cname">财经与市场</span>
+              <span class="switch"></span>
+            </div>
+            <div class="prompt">跟踪算力、芯片与云厂商的价格与产能变化，不预测涨跌。</div>
+            <div class="foot">
+              <span class="chip warn">运行失败</span>
+              <span class="num">每天 18:00</span>
+            </div>
+          </div>
+
+          <div class="chan-card">
+            <div class="top">
+              <span class="cdot" style="background:#7A5A78"></span>
+              <span class="cname">产品与设计</span>
+              <span class="switch off"></span>
+            </div>
+            <div class="prompt">关注交互模式与信息架构的变化，少一些视觉点评。</div>
+            <div class="foot">
+              <span class="chip">未启用</span>
+              <span class="num">每周二 09:00</span>
+            </div>
+          </div>
+
+        </div>
+
+        <nav class="tabbar">
+          <div class="tab">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2.6" y="3.2" width="14.8" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="2.6" y="8.6" width="14.8" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="2.6" y="14" width="9.4" height="2.8" rx="1.2" stroke="currentColor" stroke-width="1.5"/></svg>
+            日报
+          </div>
+          <div class="tab on">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="5.4" r="2.1" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="14.6" r="2.1" stroke="currentColor" stroke-width="1.5"/><path d="M10 7.5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            频道
+          </div>
+          <div class="tab">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 16.4c.9-2.9 3.2-4.4 6-4.4s5.1 1.5 6 4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            我的
+          </div>
+        </nav>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 5 · 频道编辑 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">05</div>
+      <div class="cap-title">频道编辑</div>
+      <div class="cap-note">整页一次保存。连接器只读并注明「需在管理后台调整」，为将来枚举接口预留位置。运行中 <span class="num">409</span> 在顶部提示，已填内容全部保留。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="edit-nav">
+            <span class="cancel">取消</span>
+            <span class="ttl">编辑频道</span>
+            <span class="save">保存</span>
+          </div>
+        </div>
+
+        <div class="form">
+          <div class="notice">
+            <span>⚠</span>
+            <div><b>频道正在运行，暂时无法保存。</b>结束后可修改，已填写的内容不会丢失。</div>
+          </div>
+
+          <div class="field">
+            <label>名称</label>
+            <div class="input">AI 前沿</div>
+          </div>
+
+          <div class="field">
+            <label>提示词</label>
+            <div class="input area">总结今天与 AI 模型、算力和政策相关的进展，优先一手来源，不转述二手评论。</div>
+            <div class="hint">决定这个频道产出什么，写作者按它取舍素材。</div>
+          </div>
+
+          <div class="field">
+            <label>口吻</label>
+            <div class="input">简洁中文，不吹不黑</div>
+          </div>
+
+          <div class="field">
+            <label>采集时间表</label>
+            <div class="weekdays">
+              <span class="wd on">一</span>
+              <span class="wd">二</span>
+              <span class="wd on">三</span>
+              <span class="wd">四</span>
+              <span class="wd on">五</span>
+              <span class="wd">六</span>
+              <span class="wd">日</span>
+            </div>
+            <div class="times">
+              <span class="time-pill num">08:00</span>
+              <span class="time-pill add">+ 时间</span>
+            </div>
+            <div class="hint">统一按 Asia/Shanghai 解释；同一分钟只入队一次。</div>
+          </div>
+
+          <div class="field">
+            <label>连接器</label>
+            <div class="readonly">
+              <div class="ro-row"><span class="cdot" style="background:#A9714B"></span>HN 首页<span class="lock">只读</span></div>
+              <div class="ro-row"><span class="cdot" style="background:#7A5A78"></span>GitHub Trending<span class="lock">只读</span></div>
+            </div>
+            <div class="hint">手机端暂不支持调整连接器，请在管理后台修改。</div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 6 · 追问 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">06</div>
+      <div class="cap-title">追问 — 参照 Grok Bot</div>
+      <div class="cap-note">近单色、黑气泡、内嵌引用卡片、底部 <span class="num">+</span> / 输入框 / 麦克风。回答到达前不显示「正在思考」或逐字输出 —— 服务端目前是确定性拼接，界面不对这一点撒谎。</div>
+    </figcaption>
+    <div class="phone">
+      <div class="screen ask">
+
+        <div class="topglass">
+          <div class="statusbar">
+            <span class="num">9:41</span>
+            <div class="right">
+              <div class="sig"><i></i><i></i><i></i><i></i></div>
+              <div class="bat"></div>
+            </div>
+          </div>
+          <div class="ask-nav">
+            <div class="ask-circle">
+              <svg width="9" height="14" viewBox="0 0 9 14" fill="none"><path d="M7.5 1L1.5 7l6 6" stroke="#53514A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="ask-id">
+              <span class="nm">本期日报</span>
+              <span class="sb">基于归档摘要</span>
+            </div>
+            <div class="spacer"></div>
+            <div class="ask-circle">
+              <svg width="15" height="4" viewBox="0 0 15 4" fill="#53514A"><circle cx="2" cy="2" r="1.5"/><circle cx="7.5" cy="2" r="1.5"/><circle cx="13" cy="2" r="1.5"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="ask-body">
+          <div class="ask-date num">今天 09:41</div>
+
+          <div class="bubble bot">
+            这期日报的核心是三家同一天放出长上下文版本，但只有一家公布了显存占用。
+            <div class="inbubble-card">
+              <div class="hd">引用的素材 · <span class="num">3</span> 条</div>
+              <div class="row">
+                <span class="idx num">A</span>
+                <div>
+                  <div class="tx">Show HN: a 1M-context server that fits on one GPU</div>
+                  <div class="dom num">news.ycombinator.com</div>
+                </div>
+              </div>
+              <div class="row">
+                <span class="idx num">B</span>
+                <div>
+                  <div class="tx">长上下文不是免费的：一次实测的显存账</div>
+                  <div class="dom num">example.org</div>
+                </div>
+              </div>
+              <div class="row">
+                <span class="idx num">C</span>
+                <div>
+                  <div class="tx">Release notes: sliding window attention rewrite</div>
+                  <div class="dom num">github.com</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bubble me">第三条的来源可靠吗？</div>
+
+          <div class="bubble bot">
+            它来自该项目自己的发布说明，属于一手来源；但只有作者自述，没有第三方复现。
+          </div>
+          <div class="ask-actions">
+            <span class="mini">展开素材 C</span>
+            <span class="mini">看这期分组</span>
+          </div>
+
+          <div class="ask-date num">今天 09:44</div>
+
+          <div class="bubble me">那显存曲线能对上吗？</div>
+
+          <div class="bubble bot">
+            能对上。发布说明给出的曲线与实测口径一致，差距在测量误差范围内。
+          </div>
+        </div>
+
+        <div class="ask-input">
+          <div class="round-btn">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1.6v10.8M1.6 7h10.8" stroke="#53514A" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="field-pill">就这期日报提问</div>
+          <div class="round-btn">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="5" y="1.4" width="4" height="6.6" rx="2" stroke="#53514A" stroke-width="1.3"/><path d="M2.6 6.4a4.4 4.4 0 0 0 8.8 0M7 10.8v1.8" stroke="#53514A" stroke-width="1.3" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind light"></div>
+    </div>
+  </figure>
+
+  <!-- ══════════════ 7 · 追问胶囊收起态 ══════════════ -->
+  <figure>
+    <figcaption>
+      <div class="cap-num">07</div>
+      <div class="cap-title">追问胶囊的两种状态</div>
+      <div class="cap-note">左：静止时展开显示「追问」文案。右：滚动时收成圆形图标，停止滚动后恢复。这是「灵动」的具体行为，不是纯装饰。</div>
+    </figcaption>
+    <div style="display:flex;gap:20px">
+      <div class="phone" style="width:186px;height:402px;border-width:6px;border-radius:30px">
+        <div class="screen" style="font-size:0">
+          <div style="padding:20px 14px">
+            <div style="height:8px;width:52%;background:#E9E6DF;border-radius:4px;margin-bottom:9px"></div>
+            <div style="height:8px;width:84%;background:#E9E6DF;border-radius:4px;margin-bottom:9px"></div>
+            <div style="height:8px;width:76%;background:#E9E6DF;border-radius:4px;margin-bottom:20px"></div>
+            <div style="border:1px solid rgba(20,20,15,.10);border-radius:10px;padding:11px;background:#fff;margin-bottom:9px">
+              <div style="height:7px;width:70%;background:#EDEAE3;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:90%;background:#F2F0EA;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:56%;background:#F2F0EA;border-radius:4px"></div>
+            </div>
+            <div style="border:1px solid rgba(20,20,15,.10);border-radius:10px;padding:11px;background:#fff">
+              <div style="height:7px;width:64%;background:#EDEAE3;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:82%;background:#F2F0EA;border-radius:4px"></div>
+            </div>
+          </div>
+          <div style="position:absolute;right:11px;bottom:14px;display:flex;align-items:center;gap:5px;padding:8px 11px 8px 10px;border-radius:18px;background:rgba(20,20,15,.90);color:#FAF9F5;font-size:10.5px;font-weight:650;box-shadow:0 6px 16px -6px rgba(20,20,15,.5)">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2.4 3.6a2 2 0 0 1 2-2h7.2a2 2 0 0 1 2 2v5.2a2 2 0 0 1-2 2H6.8L3.4 13.4v-2.6h-1a1 1 0 0 1-1-1V3.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+            追问
+          </div>
+        </div>
+      </div>
+      <div class="phone" style="width:186px;height:402px;border-width:6px;border-radius:30px">
+        <div class="screen" style="font-size:0">
+          <div style="padding:20px 14px">
+            <div style="height:8px;width:60%;background:#E9E6DF;border-radius:4px;margin-bottom:9px"></div>
+            <div style="height:8px;width:88%;background:#E9E6DF;border-radius:4px;margin-bottom:9px"></div>
+            <div style="height:8px;width:70%;background:#E9E6DF;border-radius:4px;margin-bottom:20px"></div>
+            <div style="border:1px solid rgba(20,20,15,.10);border-radius:10px;padding:11px;background:#fff;margin-bottom:9px">
+              <div style="height:7px;width:74%;background:#EDEAE3;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:86%;background:#F2F0EA;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:50%;background:#F2F0EA;border-radius:4px"></div>
+            </div>
+            <div style="border:1px solid rgba(20,20,15,.10);border-radius:10px;padding:11px;background:#fff">
+              <div style="height:7px;width:58%;background:#EDEAE3;border-radius:4px;margin-bottom:7px"></div>
+              <div style="height:7px;width:78%;background:#F2F0EA;border-radius:4px"></div>
+            </div>
+          </div>
+          <div style="position:absolute;right:13px;bottom:14px;width:34px;height:34px;border-radius:50%;background:rgba(20,20,15,.90);display:flex;align-items:center;justify-content:center;color:#FAF9F5;box-shadow:0 6px 16px -6px rgba(20,20,15,.5)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2.4 3.6a2 2 0 0 1 2-2h7.2a2 2 0 0 1 2 2v5.2a2 2 0 0 1-2 2H6.8L3.4 13.4v-2.6h-1a1 1 0 0 1-1-1V3.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+</main>
+
+<footer class="page-foot">
+  <b>与 v1 的差别：</b>日报页由「同规格卡片平铺 + 全部/按频道分段」改为「导语 + 主卡 + 紧凑行 + 全部入口」；追问由整行大按钮改为右下浮动胶囊，滚动时收起。<br>
+  <b>日报页：</b>本身即全部历史，无独立「全部」页。搜索常驻顶栏，时间与频道收进「筛选」面板，频道即分类（服务端 <span class="num">brief</span> 无独立分类字段，<span class="num">channelId</span> 是唯一分类依据）。<br>
+  <b>导航栏：</b>半透明 <span class="num">.72</span> + <span class="num">blur(22px)</span>，对应 iOS 26 原生液态玻璃；实现时用系统 <span class="num">TabView</span> / <span class="num">NavigationStack</span> 自带效果，不手写材质。<br>
+  <b>本稿不含：</b>设置页、连接页、空态与错误态。
+</footer>
+
+<script>
+  document.querySelectorAll('.fchip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      document.querySelectorAll('.fchip').forEach(function (x) { x.classList.remove('on'); });
+      c.classList.add('on');
+    });
+  });
+</script>
+</body>
+</html>

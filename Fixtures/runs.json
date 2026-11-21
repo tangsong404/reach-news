@@ -1,0 +1,59 @@
+{
+  "items": [
+    {
+      "id": "run_8c9ebf5b-2a71-4d03-9e58-6c1f7a3b0d94",
+      "state": "published",
+      "trigger": "schedule",
+      "startedAt": "2026-11-19T23:59:41.001Z",
+      "finishedAt": "2026-11-20T00:00:12.774Z",
+      "missedReason": null,
+      "createdAt": "2026-11-19T23:59:40.880Z"
+    },
+    {
+      "id": "run_1d47c9e2-8b06-4a35-9f71-2e5c8a0d6b48",
+      "state": "failed",
+      "trigger": "schedule",
+      "startedAt": "2026-11-19T10:00:02.113Z",
+      "finishedAt": "2026-11-19T10:40:02.004Z",
+      "missedReason": "overall-timeout",
+      "createdAt": "2026-11-19T10:00:01.990Z"
+    },
+    {
+      "id": "run_6f02a8d3-5c91-4b7e-a40d-9b3e1c7f2a05",
+      "state": "missed",
+      "trigger": "schedule",
+      "startedAt": null,
+      "finishedAt": "2026-11-10T01:00:30.220Z",
+      "missedReason": "no-material",
+      "createdAt": "2026-11-10T01:00:29.114Z"
+    },
+    {
+      "id": "run_a83c5b71-0d46-4e92-b385-7f2a9c4e1d60",
+      "state": "missed",
+      "trigger": "schedule",
+      "startedAt": null,
+      "finishedAt": "2026-11-17T01:00:22.540Z",
+      "missedReason": "queue-timeout",
+      "createdAt": "2026-11-17T01:00:21.330Z"
+    },
+    {
+      "id": "run_4e19bf60-7a35-4c82-9d07-1b6e3a8f2c51",
+      "state": "writing",
+      "trigger": "manual",
+      "startedAt": "2026-11-20T04:15:11.402Z",
+      "finishedAt": null,
+      "missedReason": null,
+      "createdAt": "2026-11-20T04:15:10.998Z"
+    },
+    {
+      "id": "run_b2c70e94-3f18-4a57-8d61-5e0c9b4a7f23",
+      "state": "missed",
+      "trigger": "retry",
+      "startedAt": null,
+      "finishedAt": "2026-11-18T10:00:40.010Z",
+      "missedReason": "no-material",
+      "createdAt": "2026-11-18T10:00:39.550Z"
+    }
+  ],
+  "nextCursor": null
+}

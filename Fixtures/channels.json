@@ -1,0 +1,57 @@
+{
+  "items": [
+    {
+      "id": "chn_c7e81f00-3a2f-4f7b-9a1e-0d5c2b7e4a11",
+      "name": "AI 前沿",
+      "prompt": "总结今天与 AI 模型、算力和政策相关的进展，优先一手来源，不转述二手评论。",
+      "tone": "简洁中文，不吹不黑",
+      "schedule": { "mon": ["08:00"], "wed": ["08:00"], "fri": ["08:00"] },
+      "enabled": true,
+      "connectorIds": ["cnn_homepage", "cnn_github_trending"],
+      "lastBriefAt": "2026-11-20T00:00:12.774Z",
+      "kind": "channel",
+      "createdAt": "2026-10-02T03:14:22.001Z",
+      "updatedAt": "2026-11-18T09:41:03.882Z"
+    },
+    {
+      "id": "chn_a41b9d22-77c0-4e15-8b3d-6f2a1c9e5b02",
+      "name": "Follow: vLLM 推理性能翻倍的那次合并",
+      "prompt": "Follow：vLLM 推理性能翻倍的那次合并",
+      "tone": "简洁中文，不吹不黑",
+      "schedule": { "mon": ["07:30"], "tue": ["07:30"], "wed": ["07:30"], "thu": ["07:30"], "fri": ["07:30"], "sat": ["07:30"], "sun": ["07:30"] },
+      "enabled": true,
+      "connectorIds": ["cnn_github_trending"],
+      "lastBriefAt": "2026-11-19T23:30:04.120Z",
+      "kind": "follow",
+      "createdAt": "2026-11-12T02:05:44.500Z",
+      "updatedAt": "2026-11-12T02:05:44.500Z"
+    },
+    {
+      "id": "chn_5e0c8f31-2b6d-4a79-9c04-1d8e7b3a2f66",
+      "name": "财经与市场",
+      "prompt": "跟踪算力、芯片与云厂商的价格与产能变化，不预测涨跌。",
+      "tone": "克制，只陈述事实与数据来源",
+      "schedule": { "mon": ["18:00"], "tue": ["18:00"], "wed": ["18:00"], "thu": ["18:00"], "fri": ["18:00"] },
+      "enabled": true,
+      "connectorIds": ["cnn_homepage"],
+      "lastBriefAt": "2026-11-19T10:00:31.007Z",
+      "kind": "channel",
+      "createdAt": "2026-10-02T03:14:22.120Z",
+      "updatedAt": "2026-11-19T10:00:31.007Z"
+    },
+    {
+      "id": "chn_b7d21a04-9c3e-4f88-a1b6-8e2f5c0d9a33",
+      "name": "产品与设计",
+      "prompt": "关注交互模式与信息架构的变化，少一些视觉点评。",
+      "tone": "平实，避免形容词堆砌",
+      "schedule": { "tue": ["09:00"] },
+      "enabled": false,
+      "connectorIds": [],
+      "lastBriefAt": null,
+      "kind": "channel",
+      "createdAt": "2026-10-15T06:22:11.400Z",
+      "updatedAt": "2026-11-10T01:12:00.000Z"
+    }
+  ],
+  "nextCursor": null
+}

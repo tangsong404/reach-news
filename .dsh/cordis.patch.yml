@@ -1,0 +1,5 @@
+- insert:
+    - id: comet-workflow-guard
+      name: "@deepseek-ai/dsh-hooks-claude-code"
+      config:
+        configPath: /var/lib/dsh/reachnews-client/.dsh/hooks.json

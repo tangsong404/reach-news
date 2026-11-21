@@ -1,0 +1,56 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  body{margin:0;background:#E8E5DE;font-family:-apple-system,"PingFang SC",sans-serif;padding:28px;
+       display:flex;flex-wrap:wrap;gap:22px;width:max-content}
+  figure{margin:0;width:240px}
+  .box{width:240px;height:240px;border-radius:14px;overflow:hidden;background:#fff;
+       display:flex;align-items:center;justify-content:center}
+  .box img{width:100%;height:100%;display:block;object-fit:cover}
+  figcaption{font:600 12px/1.5 -apple-system,"PingFang SC",sans-serif;color:#14140F;padding:9px 2px}
+  code{font:400 10.5px/1.5 ui-monospace,monospace;color:#53514A;display:block;padding:0 2px 4px;
+       word-break:break-all}
+</style></head>
+<body>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg"></div>
+  <figcaption>原始</figcaption><code>—</code>
+</figure>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg" style="filter:invert(1)"></div>
+  <figcaption>A 纯反转</figcaption><code>invert(1)</code>
+</figure>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg" style="filter:invert(1) sepia(1) saturate(2.6) hue-rotate(340deg) brightness(.52)"></div>
+  <figcaption>B 反转→暖褐</figcaption><code>invert(1) sepia(1) saturate(2.6) hue-rotate(340deg) brightness(.52)</code>
+</figure>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg" style="filter:invert(1) grayscale(1) brightness(.16)"></div>
+  <figcaption>C 反转→墨黑</figcaption><code>invert(1) grayscale(1) brightness(.16)</code>
+</figure>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg" style="filter:invert(1) grayscale(1) contrast(1.6) brightness(.30)"></div>
+  <figcaption>D 反转到深灰</figcaption><code>invert(1) grayscale(1) contrast(1.6) brightness(.30)</code>
+</figure>
+
+<figure>
+  <div class="box"><img src="../brand/logo-original.jpg" style="filter:invert(1) grayscale(1) brightness(.44)"></div>
+  <figcaption>E 反转到中灰</figcaption><code>invert(1) grayscale(1) brightness(.44)</code>
+</figure>
+
+<figure>
+  <div class="box" style="background:#FBFAF7"><img src="../brand/logo-original.jpg" style="filter:invert(1) grayscale(1) brightness(.14)"></div>
+  <figcaption>F 墨黑 on 纸底</figcaption><code>brightness(.14) on #FBFAF7</code>
+</figure>
+
+<figure>
+  <div class="box" style="background:#FBFAF7"><img src="../brand/logo-original.jpg" style="filter:invert(1) sepia(1) saturate(3) hue-rotate(345deg) brightness(.66)"></div>
+  <figcaption>G 赭石 on 纸底</figcaption><code>sepia(1) saturate(3) hue-rotate(345deg) brightness(.66)</code>
+</figure>
+
+</body></html>

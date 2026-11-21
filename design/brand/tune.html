@@ -1,0 +1,87 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  body{margin:0;background:#E8E5DE;font-family:-apple-system,"PingFang SC",sans-serif;padding:26px 28px}
+  h3{font:600 12px/1 system-ui;color:#53514A;letter-spacing:.1em;text-transform:uppercase;margin:22px 0 14px}
+  .row{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  .item{display:flex;flex-direction:column;gap:7px;align-items:center}
+  .item span{font:500 10px/1.4 ui-monospace,monospace;color:#8B877E}
+  .lbl{font:600 11px/1.4 -apple-system,"PingFang SC",sans-serif;color:#14140F;margin-top:2px}
+  .onpaper{background:#FBFAF7;padding:18px;border-radius:12px;display:flex;gap:20px;align-items:flex-end}
+  .onink{background:#14140F;padding:18px;border-radius:12px;display:flex;gap:20px;align-items:flex-end}
+  .onink span{color:#8B877E}
+</style></head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- 暗部→墨色 #14140F，亮部→纸色 #FBFAF7 -->
+    <filter id="toPaper" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        0.1926 0.6480 0.0654 0 0.078
+        0.1918 0.6452 0.0651 0 0.078
+        0.1935 0.6509 0.0657 0 0.059
+        0      0      0      1 0"/>
+    </filter>
+    <!-- 反向：亮部→墨色，暗部→纸色 -->
+    <filter id="toInk" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        -0.1926 -0.6480 -0.0654 0 0.984
+        -0.1918 -0.6452 -0.0651 0 0.980
+        -0.1935 -0.6509 -0.0657 0 0.969
+         0       0       0      1 0"/>
+    </filter>
+    <clipPath id="rclip"><rect x="26" y="26" width="972" height="972" rx="200"/></clipPath>
+  </defs>
+</svg>
+
+<h3>浅色：纸底 + 墨色图形（用于纸面/导航栏）</h3>
+<div class="onpaper">
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="132" height="132"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toPaper)" clip-path="url(#rclip)"/></svg>
+    <span>132</span>
+  </div>
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="64" height="64"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toPaper)" clip-path="url(#rclip)"/></svg>
+    <span>64</span>
+  </div>
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="40" height="40"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toPaper)" clip-path="url(#rclip)"/></svg>
+    <span>40</span>
+  </div>
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="26" height="26"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toPaper)" clip-path="url(#rclip)"/></svg>
+    <span>26 导航栏</span>
+  </div>
+</div>
+
+<h3>深色：墨底 + 纸色图形（用于图标/深色模式）</h3>
+<div class="onink">
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="132" height="132"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toInk)" clip-path="url(#rclip)"/></svg>
+    <span>132</span>
+  </div>
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="64" height="64"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toInk)" clip-path="url(#rclip)"/></svg>
+    <span>64</span>
+  </div>
+  <div class="item">
+    <svg viewBox="0 0 1024 1024" width="40" height="40"><image href="../brand/logo-original.jpg" width="1024" height="1024" filter="url(#toInk)" clip-path="url(#rclip)"/></svg>
+    <span>40</span>
+  </div>
+</div>
+
+<h3>纯图形（去底）：纸面用墨色，深底用纸色</h3>
+<div class="row">
+  <div class="onpaper" style="background:#FBFAF7">
+    <div class="item">
+      <svg viewBox="0 0 1024 1024" width="96" height="96">
+        <defs><mask id="m1"><image href="../brand/logo-original.jpg" width="1024" height="1024"/></mask></defs>
+        <rect width="1024" height="1024" fill="#14140F" mask="url(#m1)"/>
+      </svg>
+      <span>mark / ink</span>
+    </div>
+  </div>
+</div>
+
+</body></html>

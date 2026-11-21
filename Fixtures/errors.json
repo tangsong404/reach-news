@@ -1,0 +1,15 @@
+{
+  "errors": [
+    { "error": { "code": "unauthorized", "message": "Bearer token required" } },
+    { "error": { "code": "not_found", "message": "Resource not found" } },
+    { "error": { "code": "invalid_input", "message": "limit must be a positive integer" } },
+    { "error": { "code": "busy", "message": "Channel has a run in progress" } },
+    { "error": { "code": "bad_request", "message": "Run is not failed" } },
+    { "error": { "code": "internal_error", "message": "Unexpected server error" } }
+  ],
+  "notes": [
+    "not_found 有两义：端点不存在与资源不存在，只能靠请求路径区分。",
+    "Bearer 打 /admin/api/* 一律 401 Admin session required。",
+    "PUT 等未实现的方法返回 404 而非 405。"
+  ]
+}
