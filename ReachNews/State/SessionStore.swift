@@ -111,10 +111,13 @@ final class SessionStore {
 
             preferences.baseURLString = url.absoluteString
             baseURLString = url.absoluteString
+            let resolvedName = newSession.userName.isEmpty ? name : newSession.userName
+            // 只记展示名，不碰凭证；冷启动恢复会话时头部靠它显示用户名。
+            preferences.lastUserName = resolvedName
             session = AuthSession(
                 token: newSession.token,
                 expiresAt: newSession.expiresAt,
-                userName: newSession.userName.isEmpty ? name : newSession.userName
+                userName: resolvedName
             )
             password = ""
             blockedUntil = nil

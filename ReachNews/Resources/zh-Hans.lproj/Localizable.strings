@@ -142,6 +142,9 @@
 "me.saved.empty.message" = "在日报详情或列表里收藏后，会出现在这里。";
 "me.saved.empty.title" = "还没有收藏";
 "me.saved.remove" = "移除收藏";
+"me.account.plan.free" = "free";
+"me.account.plan.pro" = "pro";
+"me.account.plan.ultra" = "ultra";
 "preferences.baseURL.heading" = "服务地址";
 "preferences.baseURL.save" = "保存地址";
 "preferences.language" = "界面语言";

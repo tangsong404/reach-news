@@ -39,6 +39,27 @@ final class ReachNewsUITests: XCTestCase {
                       || app.cells.firstMatch.waitForExistence(timeout: 10))
     }
 
+    func testMeTabShowsAccountHeaderAboveSettings() throws {
+        let app = launch()
+        let me = app.tabBars.buttons.element(boundBy: 2)
+        XCTAssertTrue(me.waitForExistence(timeout: 20))
+        me.tap()
+
+        // 合并成一个无障碍元素后，可能落在 otherElements 或 cells 里。
+        let header = app.otherElements["me-account-header"]
+        let headerCell = app.cells["me-account-header"]
+        guard header.waitForExistence(timeout: 10) || headerCell.waitForExistence(timeout: 5) else {
+            XCTFail("account header is missing on the Me tab")
+            return
+        }
+        let headerElement = header.exists ? header : headerCell
+        // 头部在三个设置入口之上。
+        let saved = app.buttons["me-saved"]
+        if saved.exists {
+            XCTAssertLessThanOrEqual(headerElement.frame.minY, saved.frame.minY)
+        }
+    }
+
     func testChannelCreateEntryOpensCreateSheet() throws {
         let app = launch()
         let channels = app.tabBars.buttons.element(boundBy: 1)

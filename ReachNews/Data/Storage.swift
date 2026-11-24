@@ -122,6 +122,9 @@ protocol PreferencesStoring: AnyObject {
     var baseURLString: String { get set }
     var languagePreference: String { get set }
     var lastSeenAt: Date? { get set }
+    /// 上次登录的展示名。冷启动从 Keychain 恢复会话时 `AuthSession.userName` 为空，
+    /// 「我的」页头部靠它显示用户名；它不是凭证，改它不影响鉴权。
+    var lastUserName: String { get set }
 }
 
 final class UserDefaultsPreferences: PreferencesStoring {
@@ -130,6 +133,7 @@ final class UserDefaultsPreferences: PreferencesStoring {
         static let language = "preferences.language"
         // 轮询基线单独命名、单独存储，与任何内容缓存无关。
         static let lastSeenAt = "polling.baseline.lastSeenAt"
+        static let lastUserName = "preferences.lastUserName"
     }
 
     private let defaults: UserDefaults
@@ -160,6 +164,11 @@ final class UserDefaultsPreferences: PreferencesStoring {
                 defaults.removeObject(forKey: Keys.lastSeenAt)
             }
         }
+    }
+
+    var lastUserName: String {
+        get { defaults.string(forKey: Keys.lastUserName) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.lastUserName) }
     }
 }
 

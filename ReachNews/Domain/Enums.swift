@@ -147,6 +147,25 @@ enum APIErrorCode: Equatable {
     }
 }
 
+// MARK: - 套餐
+//
+// 「我的」页头部的第三行展示它。后端尚未提供该字段，因此由客户端给出统一取值；
+// 先按三值建模，接上后端后只需替换取值来源，界面不必改动。
+
+enum PlanTier: String, Equatable, CaseIterable {
+    case free
+    case pro
+    case ultra
+
+    /// 界面上原样显示小写的 `free` / `pro` / `ultra`。
+    var label: String { rawValue }
+
+    var labelKey: String { "me.account.plan." + rawValue }
+
+    /// 没有后端时的统一取值。
+    static let current: PlanTier = .ultra
+}
+
 // MARK: - 运行触发方式
 
 enum RunTrigger: String, Equatable {

@@ -15,6 +15,7 @@ final class AppEnvironment {
     let settings: SettingsStore
     let channelColors: ChannelColorStore
     let preferences: PreferencesStoring
+    let profile: ProfileStore
 
     @ObservationIgnored private let client: APIClient
 
@@ -37,6 +38,7 @@ final class AppEnvironment {
             preferences: preferences,
             makeClient: { url in client.withBaseURL(url) }
         )
+        self.profile = ProfileStore(session: session, preferences: preferences)
     }
 
     /// 正式运行时的装配。

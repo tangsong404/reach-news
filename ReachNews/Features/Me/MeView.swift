@@ -33,6 +33,9 @@ struct MeView: View {
 
     private func content(_ env: AppEnvironment) -> some View {
         List {
+            AccountHeaderView(profile: env.profile)
+                .listRowBackground(Palette.surface)
+
             Section {
                 NavigationLink(value: MeDestination.saved) {
                     Label {
