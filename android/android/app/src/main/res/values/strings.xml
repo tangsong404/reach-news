@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Reach News</string>
+    <string name="title_activity_main">Reach News</string>
+    <string name="package_name">com.tangsong404.reachnews</string>
+    <string name="custom_url_scheme">com.tangsong404.reachnews</string>
+</resources>

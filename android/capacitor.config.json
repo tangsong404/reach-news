@@ -1,0 +1,9 @@
+{
+  "appId": "com.tangsong404.reachnews",
+  "appName": "Reach News",
+  "webDir": "dist",
+  "plugins": {
+    "SystemBars": { "insetsHandling": "disable" },
+    "CapacitorHttp": { "enabled": true }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "reach-news-android",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "mock": "MOCK=1 vite --host",
+    "build": "vite build",
+    "test": "node --test test/*.test.js",
+    "apk": "vite build && cap sync android && cd android && ./gradlew assembleDebug",
+    "install-apk": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1",
+    "markdown-it": "^14.1.0",
+    "vue": "^3.5.45"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@vitejs/plugin-vue": "^6.0.10",
+    "vite": "^8.3.8"
+  }
+}
