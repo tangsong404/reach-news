@@ -15,10 +15,15 @@
    - 账号卡片**加大**（头像与字号放大），并减少卡片上方与顶部栏之间的空白。
    - 套餐标识做成**标签样式**（胶囊/圆角底），按档位配色：`admin` 紫、`ultra` 金、`free` 中性灰。
    - 去掉「我的」页里的「连接信息」入口；改由**点账号卡片进入个人页**承载。
-   - 个人页提供：切换昵称、换绑邮箱、修改头像、修改密码、退出登录。
-   - 昵称/邮箱/密码后端暂无接口（实测 `PATCH /api/v1/me`、`POST /api/v1/me/password`、`POST /api/v1/me/email` 均 404），**入口与界面照做，提交按钮置灰**并注明暂未支持；头像上传与退出登录是真实可用的。
+   - 个人页提供：**切换昵称、修改头像（含删除头像）、修改密码、退出登录**。
+   - **换绑邮箱入口去掉**：服务端没有换绑邮箱接口，用户也不要求。
+   - 后端已就绪（`PATCH /api/v1/me`、`POST /api/v1/me/password`、`DELETE /api/v1/me/avatar`），这三项从「置灰占位」改为**真实可用**；错误按服务端 code 与中文 message 展示。
+   - 改密码成功后**不踢回登录页**：实测服务端采用方案 A（其他设备失效、当前 token 保留）。
 
-4. **注册页与登录改造**：按 `api-changes-invite-registration.md` 增加邀请码注册（昵称/邮箱/密码/确认密码/邀请码），注册成功直接进 App；登录改为接受邮箱或昵称；两者都消费 `user` 与 `capabilities`。
+4. **注册页与登录改造**：按 `api-changes-invite-registration.md` 与 `api-changes-account-and-email.md` 增加邀请码注册（昵称/邮箱/密码/确认密码/邀请码），注册成功直接进 App；登录改为接受邮箱或昵称；两者都消费 `user` 与 `capabilities`。
+   - **图形验证（hCaptcha）**：进注册页先调 `GET /api/v1/auth/captcha` 取 `{ enabled, siteKey }`；`enabled` 为真时必须先完成人机验证拿到 token，再随注册提交 `captchaToken`。实测生产已启用，所以这是主流程而非可选分支。
+   - **邮箱验证码**：是否必需取决于管理员是否配了 SMTP。客户端按「可能需要」处理：点发送验证码 → `POST /api/v1/auth/email-code`（`purpose: "register"` + captchaToken）→ 拿到后随注册提交 `emailCode`；若返回 `mail_not_configured`(503) 则不提交该字段。
+   - **错误必须逐项可读**：`code_too_frequent`(429，带 `retryAfterSeconds`，做倒计时)、`code_hourly_limit`、`captcha_required`/`captcha_failed`、`code_mismatch`/`code_expired`/`code_too_many_attempts`、`mail_not_configured` 等，优先展示服务端中文 `message`。
 
 # 范围
 
@@ -26,7 +31,7 @@
 
 ### 新建
 
-- `ReachNews/Features/Me/ProfileDetailView.swift`：账号卡片点进去的个人页，承载切换昵称、换绑邮箱、修改头像、修改密码、退出登录。
+- `ReachNews/Features/Me/AccountDetailView.swift`：账号卡片点进去的个人页，承载切换昵称、修改头像（含删除）、修改密码、退出登录。
 - `ReachNews/Features/Auth/RegisterView.swift`：邀请码注册页（昵称、邮箱、密码、确认密码、邀请码），按服务端 code 逐项提示。
 - `ReachNews/Domain/UserProfile.swift`：当前用户与能力模型（`name` / `email` / `tier` / `avatarUrl` / `capabilities`）。
 - `ReachNewsTests/RegistrationTests.swift`：覆盖注册请求编码、错误码到提示的映射、注册成功直接建立会话。

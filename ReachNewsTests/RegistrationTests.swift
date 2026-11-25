@@ -32,7 +32,9 @@ final class RegistrationTests: XCTestCase {
             email: "fe@example.com",
             password: "password-123",
             passwordConfirm: "password-123",
-            inviteCode: "KYYPVTJB27NUCQE2"
+            inviteCode: "KYYPVTJB27NUCQE2",
+            captchaToken: "captcha-token",
+            emailCode: "123456"
         )
 
         let data = try JSONEncoder().encode(request)
@@ -44,7 +46,8 @@ final class RegistrationTests: XCTestCase {
         XCTAssertEqual(json["password"] as? String, "password-123")
         XCTAssertEqual(json["passwordConfirm"] as? String, "password-123")
         XCTAssertEqual(json["inviteCode"] as? String, "KYYPVTJB27NUCQE2")
-        XCTAssertEqual(json.keys.count, 5)
+        XCTAssertEqual(json["captchaToken"] as? String, "captcha-token")
+        XCTAssertEqual(json["emailCode"] as? String, "123456")
     }
 
     // MARK: 成功
@@ -82,6 +85,59 @@ final class RegistrationTests: XCTestCase {
         XCTAssertEqual(transport.recorded.first?.method, "POST")
         // 注册是公开端点，不带 Bearer。
         XCTAssertNil(transport.recorded.first?.authorization)
+    }
+
+    @MainActor
+    func testRegisterSendsCaptchaAndEmailCodeWhenProvided() async throws {
+        let json = """
+        {"token":"t","expiresAt":"2099-01-01T00:00:00.000Z",\
+        "user":{"id":"usr_1","name":"n","email":"e@x.com","tier":"free","avatarUrl":null},\
+        "capabilities":{"tier":"free","ask":true,"briefImages":false,"channelLimit":1}}
+        """
+        let transport = StubTransport(json: json)
+        let session = makeSession(transport: transport)
+
+        _ = await session.register(
+            nickname: "n", email: "e@x.com",
+            password: "password-123", passwordConfirm: "password-123",
+            inviteCode: "CODE", captchaToken: "cap-token", emailCode: "654321"
+        )
+
+        let body = try XCTUnwrap(transport.recorded.first?.body)
+        let json2 = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json2["captchaToken"] as? String, "cap-token")
+        XCTAssertEqual(json2["emailCode"] as? String, "654321")
+    }
+
+    // MARK: 验证码冷却
+
+    func testRetryAfterSecondsIsParsedFrom429() throws {
+        let payload = """
+        {"error":{"code":"code_too_frequent","message":"请等待 42 秒后再获取验证码"}, "retryAfterSeconds":42}
+        """
+        let failure = EmailCodeFailure(from: Data(payload.utf8), statusCode: 429)
+
+        XCTAssertEqual(failure.code, "code_too_frequent")
+        XCTAssertEqual(failure.retryAfterSeconds, 42)
+        XCTAssertEqual(failure.message, "请等待 42 秒后再获取验证码")
+    }
+
+    func testMailNotConfiguredIsRecognised() throws {
+        let payload = """
+        {"error":{"code":"mail_not_configured","message":"邮件服务尚未配置"}}
+        """
+        let failure = EmailCodeFailure(from: Data(payload.utf8), statusCode: 503)
+
+        XCTAssertTrue(failure.isMailNotConfigured)
+        XCTAssertEqual(failure.retryAfterSeconds, nil)
+    }
+
+    func testCaptchaCodesAreRecognised() throws {
+        for code in ["captcha_required", "captcha_failed"] {
+            let payload = "{\"error\":{\"code\":\"\(code)\",\"message\":\"x\"}}"
+            let failure = EmailCodeFailure(from: Data(payload.utf8), statusCode: 400)
+            XCTAssertTrue(failure.isCaptchaRequired, code)
+        }
     }
 
     // MARK: 失败

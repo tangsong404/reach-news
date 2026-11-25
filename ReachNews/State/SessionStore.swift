@@ -232,7 +232,9 @@ final class SessionStore {
         email: String,
         password: String,
         passwordConfirm: String,
-        inviteCode: String
+        inviteCode: String,
+        captchaToken: String? = nil,
+        emailCode: String? = nil
     ) async -> RegistrationError? {
         guard let url = BaseURLDefaults.parse(baseURLString) else {
             return RegistrationError(code: "invalid_configuration", message: "")
@@ -248,7 +250,9 @@ final class SessionStore {
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 password: password,
                 passwordConfirm: passwordConfirm,
-                inviteCode: inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                inviteCode: inviteCode.trimmingCharacters(in: .whitespacesAndNewlines),
+                captchaToken: captchaToken,
+                emailCode: emailCode
             )
             switch outcome {
             case let .rejected(error):
@@ -283,6 +287,89 @@ final class SessionStore {
         let client = makeClient(resolvedBaseURL)
         do {
             _ = try await client.uploadAvatar(imageData: imageData)
+            await refreshProfile()
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /// 人机验证配置；注册页进入时取一次。
+    func loadCaptchaConfig() async -> CaptchaConfigDTO? {
+        try? await makeClient(resolvedBaseURL).captchaConfig()
+    }
+
+    /// 请求邮箱验证码。返回失败信息供界面逐项展示（含 429 冷却秒数）。
+    func requestEmailCode(email: String, captchaToken: String?) async -> EmailCodeFailure? {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return EmailCodeFailure.emptyEmail
+        }
+        do {
+            let outcome = try await makeClient(resolvedBaseURL).requestEmailCode(
+                email: trimmed,
+                purpose: "register",
+                captchaToken: captchaToken
+            )
+            switch outcome {
+            case .sent: return nil
+            case let .rejected(failure): return failure
+            }
+        } catch {
+            return nil
+        }
+    }
+
+    /// 改昵称；成功后就地刷新资料，不重打 GET。
+    func updateNickname(_ name: String) async -> RegistrationError? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return RegistrationError(code: "nickname_required", message: "")
+        }
+        let client = makeClient(resolvedBaseURL)
+        do {
+            let (profile, capabilities) = try await client.updateNickname(trimmed)
+            self.profile = profile
+            self.capabilities = capabilities
+            if let current = session {
+                session = AuthSession(token: current.token, expiresAt: current.expiresAt, userName: profile.name)
+            }
+            preferences.lastUserName = profile.name
+            return nil
+        } catch let error as APIError {
+            return RegistrationError(code: error.errorCode?.rawValue ?? "unknown", message: error.detailText ?? "")
+        } catch {
+            return RegistrationError(code: "offline", message: "")
+        }
+    }
+
+    /// 改密码。
+    ///
+    /// 服务端采用方案 A：其他设备会话失效、**当前 token 保留**。
+    /// 因此成功后不清理本地凭证、不踢回登录页。
+    func changePassword(current: String, new: String, confirm: String) async -> RegistrationError? {
+        guard !new.isEmpty else { return RegistrationError(code: "password_required", message: "") }
+        guard new.count >= 8 else { return RegistrationError(code: "password_too_short", message: "") }
+        guard !confirm.isEmpty else { return RegistrationError(code: "password_confirm_required", message: "") }
+        guard new == confirm else { return RegistrationError(code: "password_mismatch", message: "") }
+
+        let client = makeClient(resolvedBaseURL)
+        do {
+            try await client.changePassword(current: current, new: new, confirm: confirm)
+            return nil
+        } catch let error as APIError {
+            return RegistrationError(code: error.errorCode?.rawValue ?? "unknown", message: error.detailText ?? "")
+        } catch {
+            return RegistrationError(code: "offline", message: "")
+        }
+    }
+
+    /// 删除头像（幂等）。
+    @discardableResult
+    func deleteAvatar() async -> Bool {
+        guard session != nil else { return false }
+        do {
+            _ = try await makeClient(resolvedBaseURL).deleteAvatar()
             await refreshProfile()
             return true
         } catch {

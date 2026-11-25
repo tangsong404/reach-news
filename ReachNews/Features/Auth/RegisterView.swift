@@ -23,17 +23,36 @@ struct RegisterView: View {
     @State private var error: RegistrationError?
     @FocusState private var focused: Field?
 
+    /// 人机验证配置；进入页面时取一次。
+    @State private var captchaEnabled = false
+    @State private var captchaSiteKey: String?
+    /// hCaptcha 完成后的 token；enabled 为真时必须先有它才能提交。
+    @State private var captchaToken: String?
+    /// 用户填写的邮箱验证码。
+    @State private var emailCode = ""
+    /// SMTP 未配置时（mail_not_configured）不展示验证码行，也不提交该字段。
+    @State private var emailVerificationAvailable = true
+    /// 验证码发送失败信息。
+    @State private var codeFailure: EmailCodeFailure?
+    /// 发送成功的提示。
+    @State private var codeSent = false
+    @State private var isSendingCode = false
+    @State private var resendCountdown = 0
+
     private enum Field {
         case nickname, email, password, passwordConfirm, inviteCode
     }
 
     private var canSubmit: Bool {
-        !nickname.trimmingCharacters(in: .whitespaces).isEmpty
+        let base = !nickname.trimmingCharacters(in: .whitespaces).isEmpty
             && !email.trimmingCharacters(in: .whitespaces).isEmpty
             && !password.isEmpty
             && !passwordConfirm.isEmpty
             && !inviteCode.trimmingCharacters(in: .whitespaces).isEmpty
             && !session.isRegistering
+        // 服务端启用 hCaptcha 时，必须先完成人机验证。
+        let captchaReady = !captchaEnabled || (captchaToken?.isEmpty == false)
+        return base && captchaReady
     }
 
     var body: some View {
@@ -80,6 +99,13 @@ struct RegisterView: View {
                         .focused($focused, equals: .inviteCode)
                         .accessibilityIdentifier("register-invite")
                 }
+
+                if emailVerificationAvailable {
+                    emailCodeSection
+                }
+                if captchaEnabled {
+                    captchaSection
+                }
             }
             .padding(.horizontal, Space.xl)
             .padding(.top, Space.l)
@@ -108,6 +134,141 @@ struct RegisterView: View {
             }
         }
         .accessibilityIdentifier("register-view")
+        .task {
+            // 进入页面先取人机验证配置：没有它不知道要不要渲染组件。
+            let config = await session.loadCaptchaConfig()
+            captchaEnabled = config?.enabled ?? false
+            captchaSiteKey = config?.siteKey
+        }
+    }
+
+    // MARK: 邮箱验证码
+
+    private var emailCodeSection: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(L10n.string("register.emailCode", locale: locale))
+                .font(TypeFace.label(11))
+                .tracking(1)
+                .foregroundStyle(Palette.inkTertiary)
+
+            HStack(spacing: Space.s) {
+                TextField("", text: $emailCode)
+                    .font(TypeFace.body(14))
+                    .keyboardType(.numberPad)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 11)
+                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Palette.line, lineWidth: 1)
+                    }
+                    .accessibilityIdentifier("register-email-code")
+
+                Button {
+                    Task { await sendCode() }
+                } label: {
+                    if isSendingCode {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text(resendCountdown > 0
+                             ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
+                             : L10n.string("register.emailCode.send", locale: locale))
+                            .font(TypeFace.label(12))
+                            .foregroundStyle(canSendCode ? Palette.ink : Palette.inkTertiary)
+                            .lineLimit(1)
+                    }
+                }
+                .disabled(!canSendCode)
+                .accessibilityIdentifier("register-email-code-send")
+            }
+
+            if codeSent && codeFailure == nil {
+                Text(L10n.string("register.emailCode.sent", locale: locale))
+                    .font(TypeFace.footnote)
+                    .foregroundStyle(Palette.runningForeground)
+            }
+
+            if let codeFailure {
+                Text(codeFailureMessage(codeFailure))
+                    .font(TypeFace.footnote)
+                    .foregroundStyle(Palette.failedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("register-email-code-error")
+            }
+        }
+    }
+
+    private var canSendCode: Bool {
+        guard !isSendingCode, resendCountdown == 0 else { return false }
+        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
+        return !captchaEnabled || (captchaToken?.isEmpty == false)
+    }
+
+    private func codeFailureMessage(_ failure: EmailCodeFailure) -> String {
+        let server = failure.message.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !server.isEmpty { return server }
+        if failure.isMailNotConfigured {
+            return L10n.string("register.emailCode.mailNotConfigured", locale: locale)
+        }
+        let key = "register.emailCode.error." + failure.code
+        let fallback = L10n.string(key, locale: locale)
+        return fallback == key ? L10n.string("register.error.unknown", locale: locale) : fallback
+    }
+
+    private func sendCode() async {
+        isSendingCode = true
+        codeFailure = nil
+        codeSent = false
+        defer { isSendingCode = false }
+
+        let failure = await session.requestEmailCode(email: email, captchaToken: captchaToken)
+        if let failure {
+            codeFailure = failure
+            if failure.isMailNotConfigured {
+                emailVerificationAvailable = false
+            }
+            if let seconds = failure.retryAfterSeconds, seconds > 0 {
+                startCountdown(seconds)
+            }
+        } else {
+            codeSent = true
+            startCountdown(60)
+        }
+    }
+
+    private func startCountdown(_ seconds: Int) {
+        resendCountdown = seconds
+        Task {
+            while resendCountdown > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                resendCountdown = max(0, resendCountdown - 1)
+            }
+        }
+    }
+
+    // MARK: 人机验证
+
+    private var captchaSection: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(L10n.string("register.captcha", locale: locale))
+                .font(TypeFace.label(11))
+                .tracking(1)
+                .foregroundStyle(Palette.inkTertiary)
+
+            HCaptchaView(
+                siteKey: captchaSiteKey,
+                onToken: { captchaToken = $0 },
+                onFailure: { captchaToken = nil }
+            )
+            .frame(height: 100)
+            .accessibilityIdentifier("register-captcha")
+
+            if captchaToken == nil {
+                Text(L10n.string("register.captcha.required", locale: locale))
+                    .font(TypeFace.footnote)
+                    .foregroundStyle(Palette.inkTertiary)
+            }
+        }
     }
 
     /// 服务端 message 优先；没有时用 code 对应的本地兜底。
@@ -130,7 +291,11 @@ struct RegisterView: View {
                 email: email,
                 password: password,
                 passwordConfirm: passwordConfirm,
-                inviteCode: inviteCode
+                inviteCode: inviteCode,
+                // 服务端启用时必传；未启用时传 nil，服务端会忽略。
+                captchaToken: captchaEnabled ? captchaToken : nil,
+                // 邮件服务未配置时不传该字段。
+                emailCode: emailVerificationAvailable && !emailCode.isEmpty ? emailCode : nil
             )
             if let failure {
                 error = failure

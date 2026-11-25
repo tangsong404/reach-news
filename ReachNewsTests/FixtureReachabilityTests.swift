@@ -94,7 +94,16 @@ final class LocalizationTests: XCTestCase {
             "account.email.title", "account.tier.label", "account.password.label",
             "account.password.title", "account.password.current", "account.password.new",
             "account.password.confirm", "account.avatar.change", "account.avatar.failed",
-            "account.unavailable.nickname", "account.unavailable.email", "account.unavailable.password"
+            "account.avatar.remove", "account.avatar.removeFailed",
+            "nickname.error.unknown", "nickname.error.nickname_taken",
+            "password.error.unknown", "password.error.password_mismatch",
+            "password.error.password_same_as_current", "password.error.unauthorized",
+            "register.emailCode", "register.emailCode.send", "register.emailCode.resendIn",
+            "register.emailCode.sent", "register.emailCode.mailNotConfigured",
+            "register.captcha", "register.captcha.required",
+            "register.error.email_code_required", "register.error.captcha_required",
+            "register.error.code_mismatch", "register.error.code_expired",
+            "register.error.code_too_many_attempts", "register.error.mail_not_configured"
         ]
         let zh = try keys(in: "Localizable", table: nil, language: "zh-Hans")
         let en = try keys(in: "Localizable", table: nil, language: "en")

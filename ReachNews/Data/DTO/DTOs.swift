@@ -518,6 +518,10 @@ struct RegisterRequest: Encodable {
     let password: String
     let passwordConfirm: String
     let inviteCode: String
+    /// hCaptcha 已配置时必填。
+    let captchaToken: String?
+    /// SMTP 已配置时必填。
+    let emailCode: String?
 }
 
 // MARK: - 当前用户
@@ -542,6 +546,82 @@ struct MeResponseDTO: Decodable {
             channelCount: channelCount
         )
     }
+}
+
+// MARK: - 改密码
+
+struct ChangePasswordRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
+    let newPasswordConfirm: String
+}
+
+struct OKResponseDTO: Decodable {
+    let ok: Bool?
+}
+
+// MARK: - 人机验证配置
+
+struct CaptchaConfigDTO: Decodable {
+    /// 服务端是否已启用（site key 与 secret 都配好才算）。
+    let enabled: Bool?
+    /// enabled 为 false 时为 nil。
+    let siteKey: String?
+}
+
+// MARK: - 邮箱验证码
+
+struct EmailCodeRequest: Encodable {
+    let email: String
+    /// `register` 或 `reset-password`
+    let purpose: String
+    /// hCaptcha 已配置时必填。
+    let captchaToken: String?
+}
+
+/// 请求验证码的失败：保留 code / message / retryAfterSeconds。
+struct EmailCodeFailure: Equatable {
+    let code: String
+    let message: String
+    /// 429 时的冷却秒数，用于界面倒计时。
+    let retryAfterSeconds: Int?
+    let statusCode: Int
+
+    init(code: String, message: String, retryAfterSeconds: Int?, statusCode: Int) {
+        self.code = code
+        self.message = message
+        self.retryAfterSeconds = retryAfterSeconds
+        self.statusCode = statusCode
+    }
+
+    init(from data: Data, statusCode: Int) {
+        self.statusCode = statusCode
+        let decoded = try? JSONDecoder().decode(EmailCodeFailureEnvelope.self, from: data)
+        self.code = decoded?.error.code ?? "unknown"
+        self.message = decoded?.error.message ?? ""
+        self.retryAfterSeconds = decoded?.retryAfterSeconds
+    }
+
+    /// 本地前置校验失败（邮箱为空）时使用，避免走一次必然失败的请求。
+    static let emptyEmail = EmailCodeFailure(code: "email_required", message: "", retryAfterSeconds: nil, statusCode: 0)
+
+    /// 服务端未配置邮件服务：不是用户操作错误，应提示联系管理员。
+    var isMailNotConfigured: Bool { code == "mail_not_configured" }
+    var isCaptchaRequired: Bool { code == "captcha_required" || code == "captcha_failed" }
+}
+
+struct EmailCodeFailureEnvelope: Decodable {
+    struct Payload: Decodable {
+        let code: String
+        let message: String
+    }
+    let error: Payload
+    let retryAfterSeconds: Int?
+}
+
+enum EmailCodeOutcome {
+    case sent
+    case rejected(EmailCodeFailure)
 }
 
 // MARK: - 头像上传

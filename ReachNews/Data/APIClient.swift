@@ -91,7 +91,11 @@ enum Endpoint {
     case settings
     case register
     case me
+    case mePassword
     case avatar
+    case captchaConfig
+    case emailCode
+    case resetPassword
 
     var path: String {
         switch self {
@@ -135,8 +139,16 @@ enum Endpoint {
             return "/api/v1/register"
         case .me:
             return "/api/v1/me"
+        case .mePassword:
+            return "/api/v1/me/password"
         case .avatar:
             return "/api/v1/me/avatar"
+        case .captchaConfig:
+            return "/api/v1/auth/captcha"
+        case .emailCode:
+            return "/api/v1/auth/email-code"
+        case .resetPassword:
+            return "/api/v1/auth/reset-password"
         }
     }
 
@@ -156,14 +168,15 @@ enum Endpoint {
         case .cursor(let since):
             return [URLQueryItem(name: "since", value: PollingBaseline.sinceString(since))]
         case .health, .login, .logout, .createChannel, .channel, .brief, .material, .run, .ask,
-             .connectors, .subscribe, .fork, .settings, .register, .me, .avatar:
+             .connectors, .subscribe, .fork, .settings, .register, .me, .mePassword, .avatar,
+             .captchaConfig, .emailCode, .resetPassword:
             return []
         }
     }
 
     var requiresAuthorization: Bool {
         switch self {
-        case .health, .login, .register: return false
+        case .health, .login, .register, .captchaConfig, .emailCode, .resetPassword: return false
         default: return true
         }
     }
@@ -228,14 +241,18 @@ final class APIClient {
         email: String,
         password: String,
         passwordConfirm: String,
-        inviteCode: String
+        inviteCode: String,
+        captchaToken: String? = nil,
+        emailCode: String? = nil
     ) async throws -> RegisterOutcome {
         let payload = RegisterRequest(
             nickname: nickname,
             email: email,
             password: password,
             passwordConfirm: passwordConfirm,
-            inviteCode: inviteCode
+            inviteCode: inviteCode,
+            captchaToken: captchaToken,
+            emailCode: emailCode
         )
         let body = try JSONEncoder().encode(payload)
         let request = try makeRequest(Endpoint.register, method: "POST", body: body)
@@ -308,6 +325,69 @@ final class APIClient {
             throw APIError.server("HTTP \(response.statusCode)")
         }
         return (try? JSONDecoder().decode(AvatarUploadResponseDTO.self, from: data))?.avatarUrl
+    }
+
+    /// 改昵称。成功后返回最新资料，调用方直接用它刷新头部，不必再打 GET。
+    func updateNickname(_ name: String) async throws -> (UserProfile, UserCapabilities) {
+        let body = try JSONEncoder().encode(["name": name])
+        let dto: MeResponseDTO = try await send(Endpoint.me, method: "PATCH", body: body)
+        return (dto.profile(), dto.capabilities?.toDomain() ?? .unknown)
+    }
+
+    /// 改密码。成功后当前 token 仍有效（服务端只清其他设备会话），调用方不踢用户。
+    ///
+    /// 失败时区分「当前密码错」与其他错误：401 统一按旧密码错误处理。
+    func changePassword(current: String, new: String, confirm: String) async throws {
+        let payload = ChangePasswordRequest(
+            currentPassword: current,
+            newPassword: new,
+            newPasswordConfirm: confirm
+        )
+        let body = try JSONEncoder().encode(payload)
+        let _: OKResponseDTO = try await send(Endpoint.mePassword, method: "POST", body: body)
+    }
+
+    /// 删除头像；幂等，本来没有头像也返回成功。
+    func deleteAvatar() async throws -> String? {
+        let request = try makeRequest(Endpoint.avatar, method: "DELETE", body: nil)
+        let (data, response) = try await transport.send(request)
+        guard (200..<300).contains(response.statusCode) else {
+            if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+                throw envelope.normalized
+            }
+            throw APIError.server("HTTP \(response.statusCode)")
+        }
+        return (try? JSONDecoder().decode(AvatarUploadResponseDTO.self, from: data))?.avatarUrl
+    }
+
+    /// 人机验证配置：客户端必须先取它才知道要用哪个 site key。
+    func captchaConfig() async throws -> CaptchaConfigDTO {
+        try await get(Endpoint.captchaConfig)
+    }
+
+    /// 请求邮箱验证码。
+    ///
+    /// 不使用通用 `send`：429 需要保留 `retryAfterSeconds` 做倒计时，
+    /// 503 `mail_not_configured` 也要原样告知用户（不是用户操作错误）。
+    func requestEmailCode(email: String, purpose: String, captchaToken: String?) async throws -> EmailCodeOutcome {
+        let payload = EmailCodeRequest(email: email, purpose: purpose, captchaToken: captchaToken)
+        let body = try JSONEncoder().encode(payload)
+        let request = try makeRequest(Endpoint.emailCode, method: "POST", body: body)
+
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.send(request)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.normalize(transportError: error)
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            return .rejected(EmailCodeFailure(from: data, statusCode: response.statusCode))
+        }
+        return .sent
     }
 
     /// 注销当前会话凭证；失败不阻碍本地清理。
