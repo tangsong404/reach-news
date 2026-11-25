@@ -28,6 +28,10 @@ struct RegisterView: View {
     @State private var captchaSiteKey: String?
     /// hCaptcha 完成后的 token；enabled 为真时必须先有它才能提交。
     @State private var captchaToken: String?
+    /// hCaptcha 初始化或校验失败；给出可见提示并允许重试。
+    @State private var captchaFailed = false
+    /// 递增后重建 WebView，用于「重试」。
+    @State private var captchaReloadToken = 0
     /// 用户填写的邮箱验证码。
     @State private var emailCode = ""
     /// SMTP 未配置时（mail_not_configured）不展示验证码行，也不提交该字段。
@@ -71,7 +75,7 @@ struct RegisterView: View {
                         .accessibilityIdentifier("register-nickname")
                 }
 
-                field(labelKey: "register.email", hintKey: "register.email.hint") {
+                field(labelKey: "register.email") {
                     TextField("", text: $email)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -198,10 +202,14 @@ struct RegisterView: View {
         }
     }
 
+    /// 发送验证码只要求填了邮箱。
+    ///
+    /// 刻意**不**要求 captcha 已完成：hCaptcha 若因配置问题初始化失败，
+    /// 用户就永远拿不到 token，按钮会被永久禁用——表现为「点了完全没反应」。
+    /// 服务端需要 captcha 时会返回 captcha_required，那时再明确提示。
     private var canSendCode: Bool {
         guard !isSendingCode, resendCountdown == 0 else { return false }
-        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
-        return !captchaEnabled || (captchaToken?.isEmpty == false)
+        return !email.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func codeFailureMessage(_ failure: EmailCodeFailure) -> String {
@@ -216,6 +224,11 @@ struct RegisterView: View {
     }
 
     private func sendCode() async {
+        // 邮箱为空时直接反馈，别让按钮看起来「没反应」。
+        guard !email.trimmingCharacters(in: .whitespaces).isEmpty else {
+            codeFailure = EmailCodeFailure.emptyEmail
+            return
+        }
         isSendingCode = true
         codeFailure = nil
         codeSent = false
@@ -257,13 +270,38 @@ struct RegisterView: View {
 
             HCaptchaView(
                 siteKey: captchaSiteKey,
-                onToken: { captchaToken = $0 },
-                onFailure: { captchaToken = nil }
+                onToken: { token in
+                    captchaToken = token
+                    captchaFailed = false
+                },
+                onFailure: {
+                    // hCaptcha 初始化失败（常见于服务端 siteKey 配置错误）
+                    // 必须让用户看见，否则只表现为「验证框空白、什么都点不了」。
+                    captchaToken = nil
+                    captchaFailed = true
+                }
             )
+            .id(captchaReloadToken)
             .frame(height: 100)
             .accessibilityIdentifier("register-captcha")
 
-            if captchaToken == nil {
+            if captchaFailed {
+                Text(L10n.string("register.captcha.failed", locale: locale))
+                    .font(TypeFace.footnote)
+                    .foregroundStyle(Palette.failedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("register-captcha-error")
+                // 配置错误时允许用户直接重试一次。
+                Button {
+                    captchaFailed = false
+                    captchaReloadToken += 1
+                } label: {
+                    Text(L10n.string("common.retry", locale: locale))
+                        .font(TypeFace.label(12))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("register-captcha-retry")
+            } else if captchaToken == nil {
                 Text(L10n.string("register.captcha.required", locale: locale))
                     .font(TypeFace.footnote)
                     .foregroundStyle(Palette.inkTertiary)

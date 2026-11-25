@@ -206,7 +206,6 @@
 "register.submit" = "注册";
 "register.nickname" = "昵称";
 "register.email" = "邮箱";
-"register.email.hint" = "暂不需要验证";
 "register.password" = "密码";
 "register.passwordConfirm" = "确认密码";
 "register.inviteCode" = "邀请码";
@@ -277,3 +276,4 @@
 "register.error.code_not_found" = "请先获取验证码";
 "register.error.code_required" = "请填写验证码";
 "register.error.mail_not_configured" = "邮件服务尚未配置，请联系管理员";
+"register.captcha.failed" = "人机验证加载失败。这通常是服务端 siteKey 配置有误，请联系管理员";

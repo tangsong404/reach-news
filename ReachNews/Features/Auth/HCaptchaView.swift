@@ -120,6 +120,40 @@ struct HCaptchaView: UIViewRepresentable {
             }
         }
 
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // hCaptcha 遇到非法 siteKey 时不会抛 JS error，只是把容器留空。
+            // 因此加载完成后主动检查容器里有没有渲染出东西；没有就按失败处理，
+            // 否则用户只会看到一个空白区域，完全不知道发生了什么。
+            let script = """
+            (function() {
+              var el = document.querySelector('.h-captcha');
+              if (!el) { return 'missing'; }
+              if (el.querySelector('iframe')) { return 'ok'; }
+              return 'empty';
+            })();
+            """
+            webView.evaluateJavaScript(script) { [weak self] result, _ in
+                guard let self else { return }
+                if let state = result as? String, state == "ok" {
+                    self.sawWidget = true
+                    return
+                }
+                // 给 hCaptcha 一点渲染时间再判定一次，避免误报。
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+                    guard let self, !self.sawWidget else { return }
+                    webView.evaluateJavaScript(script) { result, _ in
+                        if let state = result as? String, state == "ok" {
+                            self.sawWidget = true
+                        } else {
+                            self.onFailure()
+                        }
+                    }
+                }
+            }
+        }
+
+        var sawWidget = false
+
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             onFailure()
         }

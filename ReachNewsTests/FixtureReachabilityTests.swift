@@ -80,7 +80,7 @@ final class LocalizationTests: XCTestCase {
             "brief.heading.follow", "brief.heading.track.prompt",
             "me.account.email.empty", "login.goRegister",
             "register.title", "register.submit", "register.nickname", "register.email",
-            "register.email.hint", "register.password", "register.passwordConfirm",
+            "register.password", "register.passwordConfirm",
             "register.inviteCode", "register.error.unknown",
             "register.error.invite_not_found", "register.error.invite_used",
             "register.error.invite_revoked", "register.error.nickname_required",
@@ -100,7 +100,7 @@ final class LocalizationTests: XCTestCase {
             "password.error.password_same_as_current", "password.error.unauthorized",
             "register.emailCode", "register.emailCode.send", "register.emailCode.resendIn",
             "register.emailCode.sent", "register.emailCode.mailNotConfigured",
-            "register.captcha", "register.captcha.required",
+            "register.captcha", "register.captcha.required", "register.captcha.failed",
             "register.error.email_code_required", "register.error.captcha_required",
             "register.error.code_mismatch", "register.error.code_expired",
             "register.error.code_too_many_attempts", "register.error.mail_not_configured"

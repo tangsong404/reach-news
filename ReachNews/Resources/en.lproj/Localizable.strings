@@ -206,7 +206,6 @@
 "register.submit" = "Register";
 "register.nickname" = "Nickname";
 "register.email" = "Email";
-"register.email.hint" = "No verification for now";
 "register.password" = "Password";
 "register.passwordConfirm" = "Confirm password";
 "register.inviteCode" = "Invite code";
@@ -277,3 +276,4 @@
 "register.error.code_not_found" = "Request a code first";
 "register.error.code_required" = "Enter the code";
 "register.error.mail_not_configured" = "Email service is not configured. Contact an admin";
+"register.captcha.failed" = "Verification failed to load. This usually means the server siteKey is misconfigured; contact an admin";
