@@ -30,6 +30,8 @@ struct RegisterView: View {
     @State private var captchaToken: String?
     /// hCaptcha 初始化或校验失败；给出可见提示并允许重试。
     @State private var captchaFailed = false
+    /// 渲染 hCaptcha 的页面 origin；必须是后台登记过的域名。
+    @State private var captchaBaseURL: URL?
     /// 递增后重建 WebView，用于「重试」。
     @State private var captchaReloadToken = 0
     /// 用户填写的邮箱验证码。
@@ -143,6 +145,8 @@ struct RegisterView: View {
             let config = await session.loadCaptchaConfig()
             captchaEnabled = config?.enabled ?? false
             captchaSiteKey = config?.siteKey
+            // hCaptcha 会校验页面 origin；用服务端地址而不是 about:blank。
+            captchaBaseURL = session.resolvedBaseURL
         }
     }
 
@@ -270,6 +274,7 @@ struct RegisterView: View {
 
             HCaptchaView(
                 siteKey: captchaSiteKey,
+                baseURL: captchaBaseURL,
                 onToken: { token in
                     captchaToken = token
                     captchaFailed = false

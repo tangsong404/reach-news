@@ -12,6 +12,9 @@ import WebKit
 
 struct HCaptchaView: UIViewRepresentable {
     let siteKey: String?
+    /// 页面 origin 必须落在 hCaptcha 后台登记的域名上，否则会返回
+    /// `request not allowed`。因此不能用 about:blank 加载。
+    let baseURL: URL?
     let onToken: (String) -> Void
     let onFailure: () -> Void
 
@@ -32,7 +35,7 @@ struct HCaptchaView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
 
         if let siteKey, !siteKey.isEmpty {
-            webView.loadHTMLString(Self.html(siteKey: siteKey), baseURL: nil)
+            webView.loadHTMLString(Self.html(siteKey: siteKey), baseURL: baseURL)
         } else {
             onFailure()
         }
@@ -45,9 +48,10 @@ struct HCaptchaView: UIViewRepresentable {
               let current = webView.url, current.absoluteString == "about:blank" else { return }
         if webView.isLoading { return }
         let html = Self.html(siteKey: siteKey)
-        if context.coordinator.loadedSiteKey != siteKey {
+        if context.coordinator.loadedSiteKey != siteKey || context.coordinator.loadedBaseURL != baseURL?.absoluteString {
             context.coordinator.loadedSiteKey = siteKey
-            webView.loadHTMLString(html, baseURL: nil)
+            context.coordinator.loadedBaseURL = baseURL?.absoluteString
+            webView.loadHTMLString(html, baseURL: baseURL)
         }
     }
 
@@ -94,6 +98,7 @@ struct HCaptchaView: UIViewRepresentable {
         private let onToken: (String) -> Void
         private let onFailure: () -> Void
         var loadedSiteKey: String?
+        var loadedBaseURL: String?
 
         init(onToken: @escaping (String) -> Void, onFailure: @escaping () -> Void) {
             self.onToken = onToken
