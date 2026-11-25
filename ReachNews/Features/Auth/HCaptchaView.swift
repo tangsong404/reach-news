@@ -168,3 +168,82 @@ struct HCaptchaView: UIViewRepresentable {
         }
     }
 }
+
+// MARK: - 验证弹窗
+//
+// 表单里只放一行入口，点开后在弹窗里给足空间完成验证。
+// hCaptcha 官方组件在窄小的内嵌区域里几乎点不准，弹窗可用「中号」高度
+// 让组件居中显示。
+
+struct CaptchaSheet: View {
+    let siteKey: String?
+    let baseURL: URL?
+    let onToken: (String) -> Void
+    let onFailure: () -> Void
+
+    @Environment(\.appLocale) private var locale
+    @Environment(\.dismiss) private var dismiss
+    @State private var failed = false
+    @State private var reloadToken = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: Space.l) {
+                if failed {
+                    VStack(spacing: Space.s) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 22, weight: .light))
+                            .foregroundStyle(Palette.failedForeground)
+                        Text(L10n.string("register.captcha.failed", locale: locale))
+                            .font(TypeFace.body(13))
+                            .foregroundStyle(Palette.failedForeground)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button {
+                            failed = false
+                            reloadToken += 1
+                        } label: {
+                            Text(L10n.string("common.retry", locale: locale))
+                                .font(TypeFace.label(12.5))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("captcha-sheet-retry")
+                    }
+                    .padding(.horizontal, Space.xl)
+                } else {
+                    HCaptchaView(
+                        siteKey: siteKey,
+                        baseURL: baseURL,
+                        onToken: { token in
+                            failed = false
+                            onToken(token)
+                        },
+                        onFailure: {
+                            failed = true
+                            onFailure()
+                        }
+                    )
+                    .id(reloadToken)
+                    // 给足高度：官方组件约 100pt，加上说明与阴影再留余量。
+                    .frame(height: 220)
+                    .padding(.horizontal, Space.m)
+                    .accessibilityIdentifier("captcha-sheet-webview")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.top, Space.l)
+            .background(Palette.canvas)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    NavTitle(text: L10n.string("register.captcha", locale: locale))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
+                        .font(TypeFace.body(14))
+                }
+            }
+        }
+    }
+}

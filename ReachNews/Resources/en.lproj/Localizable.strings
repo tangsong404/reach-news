@@ -266,7 +266,6 @@
 "register.emailCode.error.captcha_failed" = "Captcha failed. Try again";
 "register.emailCode.error.captcha_unavailable" = "Captcha service is unavailable";
 "register.captcha" = "Verification";
-"register.captcha.required" = "Complete the verification above";
 "register.error.email_code_required" = "Enter the email code";
 "register.error.captcha_required" = "Complete the captcha first";
 "register.error.captcha_failed" = "Captcha failed. Try again";
@@ -277,3 +276,5 @@
 "register.error.code_required" = "Enter the code";
 "register.error.mail_not_configured" = "Email service is not configured. Contact an admin";
 "register.captcha.failed" = "Verification failed to load. This usually means the server siteKey is misconfigured; contact an admin";
+"register.captcha.open" = "Tap to verify";
+"register.captcha.done" = "Verified";

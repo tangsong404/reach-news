@@ -100,7 +100,8 @@ final class LocalizationTests: XCTestCase {
             "password.error.password_same_as_current", "password.error.unauthorized",
             "register.emailCode", "register.emailCode.send", "register.emailCode.resendIn",
             "register.emailCode.sent", "register.emailCode.mailNotConfigured",
-            "register.captcha", "register.captcha.required", "register.captcha.failed",
+            "register.captcha", "register.captcha.open", "register.captcha.done",
+            "register.captcha.failed",
             "register.error.email_code_required", "register.error.captcha_required",
             "register.error.code_mismatch", "register.error.code_expired",
             "register.error.code_too_many_attempts", "register.error.mail_not_configured"

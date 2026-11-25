@@ -266,7 +266,6 @@
 "register.emailCode.error.captcha_failed" = "人机验证未通过，请重试";
 "register.emailCode.error.captcha_unavailable" = "人机验证服务暂时不可用";
 "register.captcha" = "人机验证";
-"register.captcha.required" = "请完成上方验证";
 "register.error.email_code_required" = "请填写邮箱验证码";
 "register.error.captcha_required" = "请先完成人机验证";
 "register.error.captcha_failed" = "人机验证未通过，请重试";
@@ -277,3 +276,5 @@
 "register.error.code_required" = "请填写验证码";
 "register.error.mail_not_configured" = "邮件服务尚未配置，请联系管理员";
 "register.captcha.failed" = "人机验证加载失败。这通常是服务端 siteKey 配置有误，请联系管理员";
+"register.captcha.open" = "点击完成人机验证";
+"register.captcha.done" = "已完成验证";

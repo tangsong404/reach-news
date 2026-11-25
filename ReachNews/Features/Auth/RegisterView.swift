@@ -34,6 +34,8 @@ struct RegisterView: View {
     @State private var captchaBaseURL: URL?
     /// 递增后重建 WebView，用于「重试」。
     @State private var captchaReloadToken = 0
+    /// 人机验证弹窗是否打开。
+    @State private var showsCaptchaSheet = false
     /// 用户填写的邮箱验证码。
     @State private var emailCode = ""
     /// SMTP 未配置时（mail_not_configured）不展示验证码行，也不提交该字段。
@@ -140,6 +142,24 @@ struct RegisterView: View {
             }
         }
         .accessibilityIdentifier("register-view")
+        .sheet(isPresented: $showsCaptchaSheet) {
+            CaptchaSheet(
+                siteKey: captchaSiteKey,
+                baseURL: captchaBaseURL,
+                onToken: { token in
+                    captchaToken = token
+                    captchaFailed = false
+                    showsCaptchaSheet = false
+                },
+                onFailure: {
+                    captchaToken = nil
+                    captchaFailed = true
+                }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Palette.canvas)
+        }
         .task {
             // 进入页面先取人机验证配置：没有它不知道要不要渲染组件。
             let config = await session.loadCaptchaConfig()
@@ -265,6 +285,10 @@ struct RegisterView: View {
 
     // MARK: 人机验证
 
+    /// 人机验证：表单里只放一行状态 + 入口，真正的验证在弹窗里做。
+    ///
+    /// 嵌在表单里时高度太小（hCaptcha 官方组件需要约 100pt 且常带阴影/说明），
+    /// 实际能点到的区域很局促，所以改成点开弹窗给足空间。
     private var captchaSection: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string("register.captcha", locale: locale))
@@ -272,23 +296,36 @@ struct RegisterView: View {
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
 
-            HCaptchaView(
-                siteKey: captchaSiteKey,
-                baseURL: captchaBaseURL,
-                onToken: { token in
-                    captchaToken = token
-                    captchaFailed = false
-                },
-                onFailure: {
-                    // hCaptcha 初始化失败（常见于服务端 siteKey 配置错误）
-                    // 必须让用户看见，否则只表现为「验证框空白、什么都点不了」。
-                    captchaToken = nil
-                    captchaFailed = true
+            Button {
+                showsCaptchaSheet = true
+            } label: {
+                HStack(spacing: Space.s) {
+                    Image(systemName: captchaToken == nil ? "shield" : "checkmark.shield.fill")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(captchaToken == nil ? Palette.inkTertiary : Palette.runningForeground)
+
+                    Text(captchaToken == nil
+                         ? L10n.string("register.captcha.open", locale: locale)
+                         : L10n.string("register.captcha.done", locale: locale))
+                        .font(TypeFace.body(13.5))
+                        .foregroundStyle(Palette.ink)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.inkTertiary)
                 }
-            )
-            .id(captchaReloadToken)
-            .frame(height: 100)
-            .accessibilityIdentifier("register-captcha")
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(captchaToken == nil ? Palette.line : Palette.runningForeground.opacity(0.4), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("register-captcha-open")
 
             if captchaFailed {
                 Text(L10n.string("register.captcha.failed", locale: locale))
@@ -296,20 +333,6 @@ struct RegisterView: View {
                     .foregroundStyle(Palette.failedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("register-captcha-error")
-                // 配置错误时允许用户直接重试一次。
-                Button {
-                    captchaFailed = false
-                    captchaReloadToken += 1
-                } label: {
-                    Text(L10n.string("common.retry", locale: locale))
-                        .font(TypeFace.label(12))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("register-captcha-retry")
-            } else if captchaToken == nil {
-                Text(L10n.string("register.captcha.required", locale: locale))
-                    .font(TypeFace.footnote)
-                    .foregroundStyle(Palette.inkTertiary)
             }
         }
     }
