@@ -230,12 +230,13 @@ enum MarkdownBlockBuilder {
         size: CGFloat,
         onTrackHeading: ((String) -> Void)?
     ) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-            linkText(block)
+        // 用 SwiftUI Layout 的流式布局，让 follow 随标题最后一行走，
+        // 不使用 HStack：HStack 会把按钮推到整块最右侧。
+        FlowLayout(spacing: Space.xs, rowSpacing: Space.xs) {
+            Text(block.text)
                 .font(TypeFace.heading(size))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(1)
                 .accessibilityAddTraits(.isHeader)
 
             if let onTrackHeading {
@@ -337,6 +338,50 @@ enum MarkdownBlockBuilder {
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             )
+        }
+    }
+}
+
+
+/// 简单的行流布局：当标题与 follow 放不下时，后者换到下一行，
+/// 但不会被推到整块最右边。
+private struct FlowLayout: Layout {
+    var spacing: CGFloat
+    var rowSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .greatestFiniteMagnitude
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0 && x + size.width > width {
+                y += rowHeight + rowSpacing
+                x = 0
+                rowHeight = 0
+            }
+            x += (x > 0 ? spacing : 0) + size.width
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX && x + size.width > bounds.maxX {
+                y += rowHeight + rowSpacing
+                x = bounds.minX
+                rowHeight = 0
+            }
+            if x > bounds.minX { x += spacing }
+            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }
