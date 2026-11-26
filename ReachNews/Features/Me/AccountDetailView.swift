@@ -321,6 +321,7 @@ struct NicknameSheet: View {
     let session: SessionStore
     let initialValue: String
 
+    @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
     @State private var value: String = ""
