@@ -330,17 +330,17 @@ DTO 层一次完成，UI 与 Store 只见归一化后的类型：
 | token | 亮 | 暗 |
 | --- | --- | --- |
 | `canvas` | #FBFAF7 | #121210 |
-| `paper` | #F1EFE9 | #1C1C18 |
-| `surface` | #FFFFFF | #232320 |
+| `paper` | #F1EFE9 | #1F1F1B |
+| `surface` | #FFFFFF | #262622 |
 | `ink` | #14140F | #F2EFE7 |
 | `inkSecondary` | #53514A | #B5B1A6 |
 | `inkTertiary` | #8B877E | #97938A |
 | `line` | 黑 12% | 白 12% |
 | `lineStrong` | 黑 20% | 白 20% |
-| `chip` / `field` | #F2F0EA | #2C2C27 |
+| `chip` / `field` | #F2F0EA | #31312B |
 | `askBackground` | #F6F5F2 | #14140F |
 | `askSurface` | #FFFFFF | #1F1F1A |
-| `askBubble` | #EFEDE8 | #2C2C27 |
+| `askBubble` | #EFEDE8 | #31312B |
 | `askUser` / `askUserText` | #121211 / #F7F6F4 | #EDE9DF / #17170F |
 | `running` 底/前景 | #EAF0EC / #3D6B5C | #1B2A23 / #8FD3B5 |
 | `missed` 底/前景 | #EFEDE7 / #53514A | #2A2823 / #B5B1A6 |

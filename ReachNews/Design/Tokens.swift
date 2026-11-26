@@ -46,16 +46,16 @@ private extension UIColor {
 /// 单元测试用同一份数字算对比度，避免「文档写一套、代码是另一套」。
 enum NeutralTokens {
     static let canvas = (light: UInt32(0xFBFAF7), dark: UInt32(0x121210))
-    static let paper = (light: UInt32(0xF1EFE9), dark: UInt32(0x1C1C18))
-    static let surface = (light: UInt32(0xFFFFFF), dark: UInt32(0x232320))
+    static let paper = (light: UInt32(0xF1EFE9), dark: UInt32(0x1F1F1B))
+    static let surface = (light: UInt32(0xFFFFFF), dark: UInt32(0x262622))
     static let ink = (light: UInt32(0x14140F), dark: UInt32(0xF2EFE7))
     static let inkSecondary = (light: UInt32(0x53514A), dark: UInt32(0xB5B1A6))
     static let inkTertiary = (light: UInt32(0x8B877E), dark: UInt32(0x97938A))
-    static let chip = (light: UInt32(0xF2F0EA), dark: UInt32(0x2C2C27))
-    static let field = (light: UInt32(0xF2F0EA), dark: UInt32(0x2C2C27))
+    static let chip = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
+    static let field = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
     static let askBackground = (light: UInt32(0xF6F5F2), dark: UInt32(0x14140F))
     static let askSurface = (light: UInt32(0xFFFFFF), dark: UInt32(0x1F1F1A))
-    static let askBubble = (light: UInt32(0xEFEDE8), dark: UInt32(0x2C2C27))
+    static let askBubble = (light: UInt32(0xEFEDE8), dark: UInt32(0x31312B))
     static let askUser = (light: UInt32(0x121211), dark: UInt32(0xEDE9DF))
     static let askUserText = (light: UInt32(0xF7F6F4), dark: UInt32(0x17170F))
 }
