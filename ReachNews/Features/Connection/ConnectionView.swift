@@ -23,8 +23,6 @@ struct ConnectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
-                header
-
                 if case .failed(let error) = session.state {
                     InlineNotice(
                         text: L10n.string(error.messageKey, locale: locale),
@@ -92,6 +90,7 @@ struct ConnectionView: View {
                         Text(L10n.string("login.goRegister", locale: locale))
                             .font(TypeFace.body(13))
                             .foregroundStyle(Palette.inkSecondary)
+                            .underline()
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
@@ -99,8 +98,9 @@ struct ConnectionView: View {
                 }
             }
             .padding(.horizontal, Space.xl)
-            .padding(.top, Space.xxl)
-            .padding(.bottom, 44)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity, minHeight: 520, alignment: .center)
+            .padding(.vertical, Space.xl)
         }
         .background(Palette.canvas)
         .navigationBarTitleDisplayMode(.inline)
@@ -158,21 +158,5 @@ struct ConnectionView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
-            HStack(spacing: Space.s) {
-                BrandMark(assetName: "LogoMarkInk", size: 30)
-                Text("Reach News")
-                    .font(TypeFace.heading(19))
-                    .foregroundStyle(Palette.ink)
-            }
-            Text(L10n.string("connection.title", locale: locale))
-                .font(TypeFace.display(28))
-                .foregroundStyle(Palette.ink)
-            Text(L10n.string("connection.subtitle", locale: locale))
-                .font(TypeFace.body(13.5))
-                .foregroundStyle(Palette.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
+
 }

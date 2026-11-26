@@ -16,6 +16,7 @@ struct BriefDetailView: View {
     @State private var lastScrollOffset: CGFloat = 0
     /// 点了「跟踪事件」后要预填到创建页的标题；nil 表示不是事件模式。
     @State private var trackedEventHeading: String?
+    @State private var pendingFollowHeading: String?
 
     var body: some View {
         ScrollView {
@@ -27,7 +28,7 @@ struct BriefDetailView: View {
                     content: store.brief.body,
                     onOpenURL: { url in openURL(url) },
                     onTrackHeading: { heading in
-                        trackedEventHeading = heading
+                        pendingFollowHeading = heading
                     }
                 )
                 .padding(.horizontal, Space.xl)
@@ -47,7 +48,7 @@ struct BriefDetailView: View {
         .onPreferenceChange(ScrollOffsetKey.self) { value in
             handleScroll(value)
         }
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // 顶部栏只给「日报」：标题已在正文区大字号呈现，重复显示没有意义。
@@ -56,11 +57,13 @@ struct BriefDetailView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            AskPill(isExpanded: isPillExpanded) {
-                showsAsk = true
+            if env.session.capabilities.ask {
+                AskPill(isExpanded: isPillExpanded) {
+                    showsAsk = true
+                }
+                .padding(.trailing, Space.l)
+                .padding(.bottom, Space.xxl)
             }
-            .padding(.trailing, Space.l)
-            .padding(.bottom, Space.xxl)
         }
         .navigationDestination(isPresented: $showsAsk) {
             AskView(
@@ -70,6 +73,26 @@ struct BriefDetailView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("brief-detail")
+        .confirmationDialog(
+            L10n.string("brief.heading.follow.confirm.title", locale: locale),
+            isPresented: Binding(
+                get: { pendingFollowHeading != nil },
+                set: { if !$0 { pendingFollowHeading = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(L10n.string("brief.heading.follow.confirm.action", locale: locale)) {
+                trackedEventHeading = pendingFollowHeading
+                pendingFollowHeading = nil
+            }
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {
+                pendingFollowHeading = nil
+            }
+        } message: {
+            if let heading = pendingFollowHeading {
+                Text(heading)
+            }
+        }
         .navigationDestination(isPresented: Binding(
             get: { trackedEventHeading != nil },
             set: { if !$0 { trackedEventHeading = nil } }

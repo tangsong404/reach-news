@@ -21,22 +21,25 @@ struct ChannelListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content(env.channels)
-            .background(Theme.canvas(for: env.appearance.style))
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     NavTitle(text: L10n.string("tab.channels", locale: locale))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showsCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundStyle(Palette.ink)
+                    if env.session.capabilities.channelLimit == nil ||
+                        env.channels.myChannels.count < (env.session.capabilities.channelLimit ?? 0) {
+                        Button {
+                            showsCreateSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundStyle(Palette.ink)
+                        }
+                        .accessibilityLabel(Text(L10n.string("channel.create.accessibility", locale: locale)))
+                        .accessibilityIdentifier("channel-create-button")
                     }
-                    .accessibilityLabel(Text(L10n.string("channel.create.accessibility", locale: locale)))
-                    .accessibilityIdentifier("channel-create-button")
                 }
             }
             // 必须挂在 NavigationStack 内部，否则点击无反应。

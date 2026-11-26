@@ -20,7 +20,7 @@ struct BriefFeedView: View {
                     LoadingLine(text: L10n.string("common.loading", locale: locale))
                 }
             }
-            .background(Theme.canvas(for: env.appearance.style))
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -386,11 +386,6 @@ struct FeedFilterSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // 结果数量替代原来的按钮文案，让用户知道当前会筛出多少。
-                    Text(L10n.format("filter.resultCount", locale: locale, previewCount))
-                        .font(TypeFace.footnote)
-                        .foregroundStyle(Palette.inkTertiary)
-                        .padding(.bottom, Space.s)
-
                     sheetHeading("filter.time.heading")
                     ForEach(FeedTimeFilter.allCases) { option in
                         optionRow(
@@ -433,7 +428,7 @@ struct FeedFilterSheet: View {
                 .padding(.top, Space.s)
                 .padding(.bottom, Space.xl)
             }
-            .background(Theme.canvas(for: env.appearance.style))
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -465,7 +460,7 @@ struct FeedFilterSheet: View {
                 }
             }
         }
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .onAppear {
             draft = store.filter
             customStart = store.filter.startDate ?? Date()

@@ -230,43 +230,30 @@ enum MarkdownBlockBuilder {
         size: CGFloat,
         onTrackHeading: ((String) -> Void)?
     ) -> some View {
-        guard let onTrackHeading else {
-            return AnyView(
-                Text(block.text)
-                    .font(TypeFace.heading(size))
-                    .foregroundStyle(Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-            )
-        }
-
-        // 把 follow 做成 inline link：它会紧跟标题最后一个文字，
-        // 标题换行时自然流到最后一行，不会被 HStack 挤到整块最右侧。
-        var attributed = block.text
-        var follow = AttributedString("  " + String(localized: "brief.heading.follow"))
-        follow.link = URL(string: "reachnews://track-heading")
-        follow.foregroundColor = Palette.inkSecondary
-        follow.backgroundColor = Palette.chip
-        follow.font = .system(size: 11, weight: .medium)
-        attributed.append(follow)
-
-        return AnyView(
-            Text(attributed)
+        HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+            linkText(block)
                 .font(TypeFace.heading(size))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, Space.xs)
+                .layoutPriority(1)
                 .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("brief-heading-follow")
-                .environment(\.openURL, OpenURLAction { url in
-                    guard url.scheme == "reachnews", url.host == "track-heading" else {
-                        return .systemAction
-                    }
+
+            if let onTrackHeading {
+                Button {
                     onTrackHeading(block.plainText)
-                    return .handled
-                })
-        )
+                } label: {
+                    Image(systemName: "bell")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Palette.inkSecondary)
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .accessibilityLabel(Text(L10n.string("brief.heading.follow", locale: .current)))
+                .accessibilityIdentifier("brief-heading-follow")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Space.xs)
     }
 
     private static func view(for block: Block, onTrackHeading: ((String) -> Void)?) -> AnyView {

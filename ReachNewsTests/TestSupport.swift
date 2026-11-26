@@ -92,6 +92,7 @@ final class InMemoryPreferences: PreferencesStoring {
     var lastUserName: String = ""
     var readerStyle: String = ""
     var themeTint: String = ""
+    var appearanceMode: String = ""
 }
 
 final class InMemoryChannelColors: ChannelColorStoring {

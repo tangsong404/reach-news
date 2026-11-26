@@ -129,6 +129,7 @@ protocol PreferencesStoring: AnyObject {
     var readerStyle: String { get set }
     /// 主题色（`ThemeTint.rawValue`）。
     var themeTint: String { get set }
+    var appearanceMode: String { get set }
 }
 
 final class UserDefaultsPreferences: PreferencesStoring {
@@ -140,6 +141,7 @@ final class UserDefaultsPreferences: PreferencesStoring {
         static let lastUserName = "preferences.lastUserName"
         static let readerStyle = "preferences.readerStyle"
         static let themeTint = "preferences.themeTint"
+        static let appearanceMode = "preferences.appearanceMode"
     }
 
     private let defaults: UserDefaults
@@ -187,6 +189,11 @@ final class UserDefaultsPreferences: PreferencesStoring {
     var themeTint: String {
         get { defaults.string(forKey: Keys.themeTint) ?? "" }
         set { defaults.set(newValue, forKey: Keys.themeTint) }
+    }
+
+    var appearanceMode: String {
+        get { defaults.string(forKey: Keys.appearanceMode) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.appearanceMode) }
     }
 }
 

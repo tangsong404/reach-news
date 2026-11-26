@@ -295,3 +295,10 @@
 "register.captcha.redo" = "Redo";
 "register.captcha.hint" = "Complete the check before submitting";
 "register.error.invite_required" = "Enter an invite code";
+"account.signout.confirm.title" = "Sign out?";
+"brief.heading.follow.confirm.title" = "Track this event?";
+"brief.heading.follow.confirm.action" = "Track";
+"preferences.appearanceMode" = "Appearance";
+"appearance.mode.system" = "System";
+"appearance.mode.light" = "Light";
+"appearance.mode.dark" = "Dark";

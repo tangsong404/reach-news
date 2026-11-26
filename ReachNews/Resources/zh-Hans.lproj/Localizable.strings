@@ -295,3 +295,10 @@
 "register.captcha.redo" = "重新验证";
 "register.captcha.hint" = "完成验证后才能提交";
 "register.error.invite_required" = "请填写邀请码";
+"account.signout.confirm.title" = "退出登录？";
+"brief.heading.follow.confirm.title" = "跟踪这个事件？";
+"brief.heading.follow.confirm.action" = "跟踪";
+"preferences.appearanceMode" = "外观模式";
+"appearance.mode.system" = "跟随系统";
+"appearance.mode.light" = "亮色";
+"appearance.mode.dark" = "暗色";

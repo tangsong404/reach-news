@@ -11,7 +11,7 @@ struct MeView: View {
     var body: some View {
         NavigationStack {
             content(env)
-            .background(Theme.canvas(for: env.appearance.style))
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -68,7 +68,7 @@ struct MeView: View {
             .listRowBackground(Palette.surface)
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .accessibilityIdentifier("me-list")
     }
 }
@@ -119,7 +119,7 @@ struct SavedBriefsView: View {
                 list
             }
         }
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -167,7 +167,7 @@ struct SavedBriefsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .refreshable {
             await env.savedFeed.refresh(ids: savedIDs)
         }
@@ -255,8 +255,22 @@ struct PreferencesView: View {
                     Text(L10n.string("preferences.language", locale: locale))
                 }
                 .accessibilityIdentifier("preferences-language")
-            } header: {
-                Text(L10n.string("preferences.language.heading", locale: locale))
+            }
+            .listRowBackground(Palette.surface)
+
+            // 亮/暗/跟随系统：独立于编辑风/简洁风。
+            Section {
+                Picker(selection: Binding(
+                    get: { env.appearance.mode },
+                    set: { env.appearance.select(mode: $0) }
+                )) {
+                    ForEach(AppearanceMode.allCases) { option in
+                        Text(L10n.string(option.labelKey, locale: locale)).tag(option)
+                    }
+                } label: {
+                    Text(L10n.string("preferences.appearanceMode", locale: locale))
+                }
+                .accessibilityIdentifier("preferences-appearance-mode")
             }
             .listRowBackground(Palette.surface)
 
@@ -274,22 +288,18 @@ struct PreferencesView: View {
                     Text(L10n.string("preferences.style", locale: locale))
                 }
                 .accessibilityIdentifier("preferences-style")
-            } header: {
-                Text(L10n.string("preferences.style.heading", locale: locale))
             }
             .listRowBackground(Palette.surface)
 
             // 主题色：一行色点，点选即生效。
             Section {
                 tintRow
-            } header: {
-                Text(L10n.string("preferences.tint.heading", locale: locale))
             }
             .listRowBackground(Palette.surface)
 
         }
         .scrollContentBackground(.hidden)
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

@@ -23,6 +23,7 @@ struct AccountDetailView: View {
     @State private var showsPasswordSheet = false
     /// 轻量成功提示；nil 表示不显示。
     @State private var toast: String?
+    @State private var showsSignOutConfirmation = false
 
     private var profile: ProfileStore { env.profile }
 
@@ -60,6 +61,16 @@ struct AccountDetailView: View {
             guard toast != nil else { return }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             toast = nil
+        }
+        .confirmationDialog(
+            L10n.string("account.signout.confirm.title", locale: locale),
+            isPresented: $showsSignOutConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(L10n.string("connection.signOut", locale: locale), role: .destructive) {
+                Task { await session.signOut() }
+            }
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
         }
         .sheet(isPresented: $showsNicknameSheet) {
             NicknameSheet(session: session, initialValue: profile.userName)
@@ -217,7 +228,7 @@ struct AccountDetailView: View {
     private var signOutSection: some View {
         Section {
             Button(role: .destructive) {
-                Task { await session.signOut() }
+                showsSignOutConfirmation = true
             } label: {
                 Text(L10n.string("connection.signOut", locale: locale))
                     .font(TypeFace.body(13.5))

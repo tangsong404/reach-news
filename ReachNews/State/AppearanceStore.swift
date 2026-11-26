@@ -12,6 +12,7 @@ import SwiftUI
 final class AppearanceStore {
     private(set) var style: ReaderStyle
     private(set) var tint: ThemeTint
+    private(set) var mode: AppearanceMode
 
     @ObservationIgnored private let preferences: PreferencesStoring
 
@@ -19,11 +20,17 @@ final class AppearanceStore {
         self.preferences = preferences
         self.style = ReaderStyle(rawValue: preferences.readerStyle) ?? .editorial
         self.tint = ThemeTint(rawValue: preferences.themeTint) ?? .ink
+        self.mode = AppearanceMode(rawValue: preferences.appearanceMode) ?? .system
     }
 
     func select(style: ReaderStyle) {
         self.style = style
         preferences.readerStyle = style.rawValue
+    }
+
+    func select(mode: AppearanceMode) {
+        self.mode = mode
+        preferences.appearanceMode = mode.rawValue
     }
 
     func select(tint: ThemeTint) {
@@ -33,6 +40,9 @@ final class AppearanceStore {
 
     /// 当前强调色。
     var accent: Color { tint.color }
+    var resolvedColorScheme: ColorScheme? {
+        switch mode { case .light: return .light; case .dark: return .dark; case .system: return nil }
+    }
 
     /// 全局施加的外观修饰：底色、强调色与标题字重都跟着走。
     func apply<V: View>(to view: V) -> some View {

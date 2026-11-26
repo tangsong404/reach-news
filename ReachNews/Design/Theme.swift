@@ -1,5 +1,17 @@
 import SwiftUI
 
+
+// MARK: - 亮暗模式
+
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+    var labelKey: String { "appearance.mode." + rawValue }
+}
+
 // MARK: - 界面风格
 //
 // 两套观感：编辑风（默认，纸感、较重的标题层级）与简洁风
@@ -60,6 +72,21 @@ enum ThemeTint: String, CaseIterable, Identifiable {
 // 让内容区更接近纯白，减少视觉重量。
 
 enum Theme {
+    static func canvas(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
+        if mode == .dark { return Color(hex: 0x161613) }
+        return canvas(for: style)
+    }
+
+    static func paper(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
+        if mode == .dark { return Color(hex: 0x24241F) }
+        return paper(for: style)
+    }
+
+    static func surface(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
+        if mode == .dark { return Color(hex: 0x2A2A25) }
+        return surface(for: style)
+    }
+
     static func canvas(for style: ReaderStyle) -> Color {
         switch style {
         case .editorial: return Palette.canvas

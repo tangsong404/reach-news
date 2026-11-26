@@ -29,7 +29,8 @@ struct RootTabView: View {
         // 强调色由外观偏好决定（偏好页可切换），不再是固定墨黑。
         .tint(env.appearance.accent)
         // 风格切换后底色随之变化。
-        .background(Theme.canvas(for: env.appearance.style))
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .preferredColorScheme(env.appearance.resolvedColorScheme)
         .task {
             // 启动时若已有会话，静默验证一次，不弹登录页。
             await env.session.validateStoredSession()
