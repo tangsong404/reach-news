@@ -40,7 +40,7 @@ struct ChannelEditView: View {
                 )
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             }
             .task {
                 // 记录进入时的颜色，用于判断「只改颜色」也算有改动。
@@ -126,7 +126,7 @@ struct ChannelEditView: View {
             .padding(.top, Space.l)
             .padding(.bottom, Space.xxl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
     }
 
     @ToolbarContentBuilder
@@ -185,7 +185,7 @@ struct ChannelEditView: View {
     }
 
     private var fieldBackground: Color {
-        Palette.surface
+        Theme.surface(for: env.appearance.style, mode: env.appearance.mode)
     }
 
     /// 频道标识色：只在本地保存，不改服务端。
@@ -308,7 +308,7 @@ struct ScheduleEditor: View {
                                 .padding(.vertical, Space.s)
                                 .background(
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                                        .fill(isOn ? Palette.ink : Palette.surface)
+                                        .fill(isOn ? Palette.ink : Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
@@ -325,7 +325,7 @@ struct ScheduleEditor: View {
             }
             .padding(.top, Space.l)
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

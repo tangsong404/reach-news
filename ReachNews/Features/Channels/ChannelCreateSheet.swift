@@ -99,7 +99,7 @@ struct ChannelCreateSheet: View {
                 .padding(.top, Space.l)
                 .padding(.bottom, Space.xxl)
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -132,7 +132,7 @@ struct ChannelCreateSheet: View {
             )
             .presentationDetents(SheetMetrics.detents)
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.canvas)
+            .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
         .task {
             await store.loadCreationOptions()

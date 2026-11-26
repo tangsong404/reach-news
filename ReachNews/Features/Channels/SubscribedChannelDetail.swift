@@ -90,7 +90,7 @@ struct SubscribedChannelDetail: View {
                         .padding(.vertical, 13)
                         .background(
                             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                                .fill(Palette.surface)
+                                .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                         )
                         .overlay {
                             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
@@ -106,7 +106,7 @@ struct SubscribedChannelDetail: View {
             .padding(.top, Space.l)
             .padding(.bottom, Space.xxl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -271,11 +271,12 @@ struct SubscribedChannelDetail: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
     }
 

@@ -91,10 +91,22 @@ enum Theme {
         }
     }
 
+    /// 卡片底色。
+    ///
+    /// 简洁风的画布是纯白，卡片若也用白就完全看不见边界——所以这里给浅灰，
+    /// 让「扁平但有层次」的方向成立；编辑风保持暖白纸面，靠描边立住卡片。
     static func surface(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
         switch style {
         case .editorial: return Color(light: 0xFFFCF4, dark: 0x262219)
-        case .plain: return Color(light: 0xFFFFFF, dark: 0x1F1F1F)
+        case .plain: return Color(light: 0xF3F4F6, dark: 0x1E1E1E)
+        }
+    }
+
+    /// 卡片描边：编辑风用细线把卡片「框」出来，简洁风不加描边保持扁平。
+    static func cardStroke(for style: ReaderStyle) -> Color {
+        switch style {
+        case .editorial: return Palette.line
+        case .plain: return Color.clear
         }
     }
 

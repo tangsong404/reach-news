@@ -10,6 +10,7 @@ struct ConnectorPicker: View {
     @Binding var isPresented: Bool
 
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         NavigationStack {
@@ -37,7 +38,7 @@ struct ConnectorPicker: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .sheetContentInset()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

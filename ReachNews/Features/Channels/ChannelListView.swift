@@ -165,6 +165,8 @@ struct ChannelListView: View {
                                 run: store.latestRun(for: channel.id),
                                 isPending: store.pendingChannelIDs.contains(channel.id),
                                 colorIndex: env.channelColors.displayIndex(for: channel),
+                                surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                                stroke: Theme.cardStroke(for: env.appearance.style),
                                 onToggle: { enabled in
                                     Task { await store.setEnabled(enabled, for: channel.id) }
                                 }
@@ -185,7 +187,9 @@ struct ChannelListView: View {
                             SubscribedChannelCard(
                                 channel: channel,
                                 run: store.latestRun(for: channel.id),
-                                colorIndex: env.channelColors.displayIndex(for: channel)
+                                colorIndex: env.channelColors.displayIndex(for: channel),
+                                surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                                stroke: Theme.cardStroke(for: env.appearance.style)
                             )
                         }
                         .buttonStyle(.plain)
@@ -273,6 +277,8 @@ struct ChannelListView: View {
                             // 预览色按 id 稳定取，避免每次渲染都换一个「建议色」。
                             colorIndex: ChannelTint.fallbackIndex(for: channel.id),
                             isPending: store.pendingChannelIDs.contains(channel.id),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style),
                             onSubscribe: {
                                 Task {
                                     // 用与预览一致的稳定色，避免「看到的颜色」和「订阅后得到的颜色」不同。
@@ -329,6 +335,9 @@ struct ChannelCard: View {
     let run: Run?
     let isPending: Bool
     var colorIndex: Int?
+    /// 卡片底色 / 描边随当前风格走，避免两套风格下卡片都只剩一个白块。
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
     var onToggle: (Bool) -> Void
 
     @Environment(\.appLocale) private var locale
@@ -395,7 +404,7 @@ struct ChannelCard: View {
         .background(cardBackground)
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
@@ -403,7 +412,7 @@ struct ChannelCard: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
     }
 
     /// 运行状态三分法：进行中绿、错过中性灰、失败警示色。
@@ -428,6 +437,8 @@ struct SubscribedChannelCard: View {
     let channel: Channel
     let run: Run?
     var colorIndex: Int?
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
 
     @Environment(\.appLocale) private var locale
 
@@ -473,11 +484,11 @@ struct SubscribedChannelCard: View {
         .padding(.horizontal, 15)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
@@ -495,6 +506,8 @@ struct DiscoverableChannelRow: View {
     let channel: Channel
     var colorIndex: Int?
     let isPending: Bool
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
     var onSubscribe: () -> Void
 
     @Environment(\.appLocale) private var locale
@@ -537,11 +550,11 @@ struct DiscoverableChannelRow: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("discover-row-\(channel.id)")
