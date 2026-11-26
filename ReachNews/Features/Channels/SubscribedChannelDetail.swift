@@ -97,7 +97,7 @@ struct SubscribedChannelDetail: View {
                                 .strokeBorder(Palette.line, lineWidth: 1)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .disabled(isWorking)
                     .accessibilityIdentifier("subscribed-detail-color-field")
                 }
@@ -170,7 +170,6 @@ struct SubscribedChannelDetail: View {
         } message: {
             Text(L10n.string("subscribed.fork.confirm.message", locale: locale))
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("subscribed-channel-detail")
     }
 

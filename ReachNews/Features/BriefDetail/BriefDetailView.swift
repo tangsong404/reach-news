@@ -12,8 +12,6 @@ struct BriefDetailView: View {
     @Environment(AppEnvironment.self) private var env
 
     @State private var showsAsk = false
-    @State private var isPillExpanded = true
-    @State private var lastScrollOffset: CGFloat = 0
     /// 点了「跟踪事件」后要预填到创建页的标题；nil 表示不是事件模式。
     @State private var trackedEventHeading: String?
     @State private var pendingFollowHeading: String?
@@ -38,18 +36,6 @@ struct BriefDetailView: View {
                 .padding(.top, Space.m)
             }
             .padding(.bottom, 120)
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: ScrollOffsetKey.self,
-                        value: proxy.frame(in: .named("detail-scroll")).minY
-                    )
-                }
-            )
-        }
-        .coordinateSpace(name: "detail-scroll")
-        .onPreferenceChange(ScrollOffsetKey.self) { value in
-            handleScroll(value)
         }
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
@@ -57,6 +43,20 @@ struct BriefDetailView: View {
             // 顶部栏只给「日报」：标题已在正文区大字号呈现，重复显示没有意义。
             ToolbarItem(placement: .principal) {
                 NavTitle(text: L10n.string("brief.detail.title", locale: locale))
+            }
+            // 追问入口放工具栏：HIG 没有浮动按钮（FAB）这种模式，
+            // 而且自绘胶囊会压住正文右下角。
+            if env.session.capabilities.ask {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsAsk = true
+                    } label: {
+                        Image(systemName: "bubble.left.and.text.bubble.right")
+                            .font(.system(size: 16, weight: .regular))
+                    }
+                    .accessibilityLabel(Text(String(localized: "ask.pill")))
+                    .accessibilityIdentifier("ask-pill")
+                }
             }
             // 收藏入口：详情页是唯一能收藏日报的地方，收藏后从「我的 → 收藏」进入。
             // 图标跟随主题色；点击先确认，确认后才切换。
@@ -74,22 +74,12 @@ struct BriefDetailView: View {
                 .accessibilityIdentifier("brief-save")
             }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if env.session.capabilities.ask {
-                AskPill(isExpanded: isPillExpanded) {
-                    showsAsk = true
-                }
-                .padding(.trailing, Space.l)
-                .padding(.bottom, Space.xxl)
-            }
-        }
         .navigationDestination(isPresented: $showsAsk) {
             AskView(
                 brief: brief,
                 store: env.makeAskStore(briefID: brief.id)
             )
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("brief-detail")
         // 二次确认用系统原生 alert：屏幕正中、系统圆角，没有气泡尖角。
         .alert(
@@ -166,72 +156,4 @@ struct BriefDetailView: View {
         .padding(.bottom, Space.l)
     }
 
-    /// 滚动时收起胶囊，停止滚动后恢复。
-    private func handleScroll(_ offset: CGFloat) {
-        let delta = offset - lastScrollOffset
-        guard abs(delta) > 4 else { return }
-        lastScrollOffset = offset
-
-        if isPillExpanded {
-            withAnimation(.easeOut(duration: 0.18)) {
-                isPillExpanded = false
-            }
-        }
-
-        // 停止滚动后恢复展开态。
-        Task {
-            try? await Task.sleep(nanoseconds: 700_000_000)
-            await MainActor.run {
-                if !isPillExpanded {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        isPillExpanded = true
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct ScrollOffsetKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-// MARK: - 追问胶囊
-
-struct AskPill: View {
-    let isExpanded: Bool
-    var action: () -> Void
-
-    @Environment(AppEnvironment.self) private var env
-
-    private var accent: Color { env.appearance.accent }
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: isExpanded ? 7 : 0) {
-                Image(systemName: "bubble.left")
-                    .font(.system(size: 14, weight: .medium))
-                if isExpanded {
-                    Text(String(localized: "ask.pill"))
-                        .font(TypeFace.heading(13.5))
-                }
-            }
-            // 深底上的浅色文字用语义 token，而不是借用画布色。
-            .foregroundStyle(Palette.askUserText)
-            .padding(.horizontal, isExpanded ? 15 : 0)
-            .padding(.vertical, isExpanded ? 11 : 0)
-            .frame(width: isExpanded ? nil : 46, height: isExpanded ? nil : 46)
-            // 主操作跟随主题色；再叠一层 thinMaterial 会把颜色冲淡成灰，所以用实底。
-            .background(accent, in: Capsule())
-            .shadow(color: .black.opacity(0.28), radius: 12, y: 4)
-        }
-        .buttonStyle(.plain)
-        .animation(.easeOut(duration: 0.18), value: isExpanded)
-        // 两种形态都读作「追问」。
-        .accessibilityLabel(Text(String(localized: "ask.pill")))
-        .accessibilityIdentifier("ask-pill")
-    }
 }

@@ -12,12 +12,8 @@ struct MeView: View {
         NavigationStack {
             content(env)
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("tab.me", locale: locale))
-                }
-            }
+            .navigationTitle(L10n.string("tab.me", locale: locale))
+            .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: MeDestination.self) { destination in
                 switch destination {
                 case .saved:
@@ -31,6 +27,12 @@ struct MeView: View {
         }
     }
 
+    private var savedRowTitle: String {
+        let count = env.saved.savedIDs.count
+        let title = L10n.string("me.saved", locale: locale)
+        return count > 0 ? "\(title) \(count)" : title
+    }
+
     private func content(_ env: AppEnvironment) -> some View {
         List {
             // 整张账号卡片点进个人页；连接信息不再单列入口。
@@ -39,7 +41,7 @@ struct MeView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .listRowInsets(EdgeInsets(top: Space.s, leading: Space.l, bottom: Space.s, trailing: Space.l))
             .listRowBackground(Theme.surface(for: env.appearance.style))
             .accessibilityIdentifier("me-account-card")
@@ -47,11 +49,12 @@ struct MeView: View {
             Section {
                 NavigationLink(value: MeDestination.saved) {
                     Label {
-                        Text(L10n.string("me.saved", locale: locale))
+                        // HIG：badge 只留给真正的「新/未读」信息，
+                        // 收藏数量放进行标题，不用红点式角标。
+                        Text(savedRowTitle)
                     } icon: {
                         Image(systemName: "bookmark")
                     }
-                    .badge(env.saved.savedIDs.count)
                 }
                 .accessibilityIdentifier("me-saved")
 
@@ -196,7 +199,7 @@ struct SavedBriefsView: View {
                     Text(L10n.string("common.retry", locale: locale))
                         .font(TypeFace.label(12))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
             } else {
                 ProgressView().controlSize(.small)
                 Text(L10n.string("common.loading", locale: locale))
@@ -320,11 +323,15 @@ struct PreferencesView: View {
                         .frame(width: 26, height: 26)
                         .overlay {
                             Circle()
-                                .strokeBorder(Palette.ink, lineWidth: env.appearance.tint == option ? 2 : 0)
+                                .strokeBorder(env.appearance.accent, lineWidth: env.appearance.tint == option ? 2 : 0)
                                 .padding(-4)
                         }
+                        // 视觉 26pt，可点范围 44pt（HIG 默认最小值）。
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
+                .accessibilityAddTraits(env.appearance.tint == option ? [.isSelected] : [])
                 .accessibilityLabel(Text(L10n.string(option.labelKey, locale: locale)))
                 .accessibilityIdentifier("preferences-tint-\(option.rawValue)")
             }

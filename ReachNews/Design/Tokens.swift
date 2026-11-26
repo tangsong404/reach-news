@@ -22,6 +22,23 @@ extension Color {
             UIColor(rgbHex: traits.userInterfaceStyle == .dark ? dark : light)
         })
     }
+
+    /// 亮 / 暗 / 提高对比度四套取值。
+    ///
+    /// 「提高对比度」是系统辅助功能：开启后需要比默认更分离的前景与背景，
+    /// HIG 要求自定义色也提供这个变体，不能只给 light/dark 两套。
+    init(light: UInt32, dark: UInt32, highContrastLight: UInt32, highContrastDark: UInt32) {
+        self.init(uiColor: UIColor { traits in
+            let isDark = traits.userInterfaceStyle == .dark
+            let isHighContrast = traits.accessibilityContrast == .high
+            switch (isDark, isHighContrast) {
+            case (false, false): return UIColor(rgbHex: light)
+            case (false, true): return UIColor(rgbHex: highContrastLight)
+            case (true, false): return UIColor(rgbHex: dark)
+            case (true, true): return UIColor(rgbHex: highContrastDark)
+            }
+        })
+    }
 }
 
 private extension UIColor {
@@ -50,7 +67,9 @@ enum NeutralTokens {
     static let surface = (light: UInt32(0xFFFFFF), dark: UInt32(0x262622))
     static let ink = (light: UInt32(0x14140F), dark: UInt32(0xF2EFE7))
     static let inkSecondary = (light: UInt32(0x53514A), dark: UInt32(0xB5B1A6))
-    static let inkTertiary = (light: UInt32(0x8B877E), dark: UInt32(0x97938A))
+    /// 三级文字：亮色对奶油底 ≥4.5:1、暗色对卡片 ≥7:1。
+    /// 旧值 0x8B877E 只有 3.6:1，小字号下不达标。
+    static let inkTertiary = (light: UInt32(0x6E6A61), dark: UInt32(0xB8B4A8))
     static let chip = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
     static let field = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
     static let askBackground = (light: UInt32(0xF6F5F2), dark: UInt32(0x14140F))
@@ -80,13 +99,37 @@ enum Palette {
     static let canvas = Color(light: NeutralTokens.canvas.light, dark: NeutralTokens.canvas.dark)
     static let paper = Color(light: NeutralTokens.paper.light, dark: NeutralTokens.paper.dark)
     static let surface = Color(light: NeutralTokens.surface.light, dark: NeutralTokens.surface.dark)
-    static let ink = Color(light: NeutralTokens.ink.light, dark: NeutralTokens.ink.dark)
-    static let inkSecondary = Color(light: NeutralTokens.inkSecondary.light, dark: NeutralTokens.inkSecondary.dark)
-    static let inkTertiary = Color(light: NeutralTokens.inkTertiary.light, dark: NeutralTokens.inkTertiary.dark)
-    static let line = Color(light: 0x14140F, dark: 0xFFFFFF).opacity(0.12)
-    static let lineStrong = Color(light: 0x14140F, dark: 0xFFFFFF).opacity(0.20)
-    static let chip = Color(light: NeutralTokens.chip.light, dark: NeutralTokens.chip.dark)
-    static let field = Color(light: NeutralTokens.field.light, dark: NeutralTokens.field.dark)
+    static let ink = Color(
+        light: NeutralTokens.ink.light,
+        dark: NeutralTokens.ink.dark,
+        highContrastLight: 0x000000,
+        highContrastDark: 0xFFFFFF
+    )
+    static let inkSecondary = Color(
+        light: NeutralTokens.inkSecondary.light,
+        dark: NeutralTokens.inkSecondary.dark,
+        highContrastLight: 0x3A3833,
+        highContrastDark: 0xD6D2C7
+    )
+    static let inkTertiary = Color(
+        light: NeutralTokens.inkTertiary.light,
+        dark: NeutralTokens.inkTertiary.dark,
+        highContrastLight: 0x55524A,
+        highContrastDark: 0xD6D2C7
+    )
+    /// 分隔线直接采用系统语义色：亮/暗与提高对比度都由系统给对，
+    /// 比手写一个透明度黑更稳。
+    static let line = Color(uiColor: .separator)
+    static let lineStrong = Color(uiColor: .opaqueSeparator)
+    // 填充类用系统语义填充色：亮/暗与提高对比度都由系统调好，
+    // 比手写一个暖灰更稳（品牌底色仍留给 canvas / surface）。
+    static let chip = Color(uiColor: .tertiarySystemFill)
+    static let field = Color(uiColor: .tertiarySystemFill)
+
+    /// 反色提示面（toast 之类）。刻意与正文色分开：
+    /// 同一个颜色既当文字又当背景会让人分不清「这是内容还是控件」。
+    static let inverseSurface = Color(light: 0x2A2A22, dark: 0xE8E4DA)
+    static let onInverse = Color(light: 0xF7F3E9, dark: 0x1A1A14)
 
     // 追问风：近单色
     static let askBackground = Color(light: NeutralTokens.askBackground.light, dark: NeutralTokens.askBackground.dark)
@@ -226,35 +269,50 @@ extension View {
 // 中文用系统字（苹方／思源黑），数字用压缩体（对应稿子的 Arial Narrow 角色）。
 
 enum TypeFace {
+    /// 设计稿字号下限：低于 11 pt 小屏不可读，HIG 也不建议。
+    static let minimumSize: CGFloat = 11
+
+    /// 把设计稿的固定字号换算成当前 Dynamic Type 下的字号。
+    ///
+    /// 之前全站写死 `.system(size:)`，系统调大字号时界面完全不变，
+    /// 等于不支持 Dynamic Type。这里用 `UIFontMetrics` 按正文样式缩放，
+    /// 既保留设计稿的比例，又跟随系统设置。
+    static func scaledSize(_ size: CGFloat) -> CGFloat {
+        let base = max(size, minimumSize)
+        let category = UIApplication.shared.preferredContentSizeCategory
+        let traits = UITraitCollection(preferredContentSizeCategory: category)
+        return UIFontMetrics(forTextStyle: .body).scaledValue(for: base, compatibleWith: traits)
+    }
+
     static func display(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .bold)
+        .system(size: scaledSize(size), weight: .bold)
     }
 
     static func title(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .bold)
+        .system(size: scaledSize(size), weight: .bold)
     }
 
     static func heading(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .semibold)
+        .system(size: scaledSize(size), weight: .semibold)
     }
 
     static func body(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .regular)
+        .system(size: scaledSize(size), weight: .regular)
     }
 
     static func label(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .medium)
+        .system(size: scaledSize(size), weight: .medium)
     }
 
     /// 苹果风格的脚注尺寸，仅用于确实需要说明的次要信息。
     static let footnote: Font = .footnote
 
     static func condensed(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight).width(.condensed)
+        .system(size: scaledSize(size), weight: weight).width(.condensed)
     }
 
     static func monospacedDigits(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight).monospacedDigit()
+        .system(size: scaledSize(size), weight: weight).monospacedDigit()
     }
 }
 

@@ -51,7 +51,6 @@ struct ChannelEditView: View {
                     await env.channels.loadCreationOptions()
                 }
             }
-            .toolbar(.hidden, for: .tabBar)
             .accessibilityIdentifier("channel-edit-view")
     }
 
@@ -316,7 +315,7 @@ struct ScheduleEditor: View {
                                         .strokeBorder(Palette.line, lineWidth: isOn ? 0 : 1)
                                 }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .accessibilityIdentifier("schedule-weekday-\(weekday.key)")
                     }
                 }

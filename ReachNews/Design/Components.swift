@@ -128,26 +128,6 @@ struct SectionStickyHeader: View {
     }
 }
 
-// MARK: - 圆形导航按钮
-
-struct NavCircleButton: View {
-    let systemImage: String
-    let label: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Palette.inkSecondary)
-                .frame(width: 34, height: 34)
-                .background(.regularMaterial, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
-    }
-}
-
 // MARK: - 主按钮
 
 struct PrimaryButton: View {
@@ -169,7 +149,7 @@ struct PrimaryButton: View {
                         .fill(env.appearance.accent)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -370,7 +350,7 @@ struct SelectorRow: View {
                     .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -413,7 +393,7 @@ struct ChannelColorRow: View {
                     .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .accessibilityIdentifier("channel-color-row")
         .sheet(isPresented: $showsPicker) {
             ColorPickerSheet(selection: $selection, isPresented: $showsPicker)
@@ -455,7 +435,7 @@ struct ColorPickerSheet: View {
                                     .foregroundStyle(Palette.inkTertiary)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .accessibilityIdentifier("channel-color-\(index)")
                     }
                 }
@@ -553,24 +533,40 @@ struct ChannelToggle: View {
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
+        // HIG：不在列表行里就不要用开关样式，改用「toggle 形态的按钮」——
+        // 图标本身表达状态（勾选/空心），不只靠颜色；可点范围 44pt。
         Button {
             action(!isOn)
         } label: {
-            Capsule()
-                .fill(isOn ? env.appearance.accent : Palette.lineStrong)
-                .frame(width: 38, height: 22)
-                .overlay {
-                    Circle()
-                        .fill(Palette.canvas)
-                        .frame(width: 17, height: 17)
-                        .padding(2.5)
-                        .frame(maxWidth: .infinity, alignment: isOn ? .trailing : .leading)
-                }
-                .opacity(isPending ? 0.5 : 1)
+            Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(isOn ? env.appearance.accent : Palette.inkTertiary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(isPending)
+        .opacity(isPending ? 0.5 : 1)
         .accessibilityLabel(Text(String(localized: "channel.toggle.accessibility")))
         .accessibilityValue(Text(isOn ? String(localized: "common.on") : String(localized: "common.off")))
+        .accessibilityAddTraits(isOn ? [.isSelected] : [])
     }
+}
+
+// MARK: - 按压态
+//
+// HIG：自定义按钮必须给按压态，否则按下去毫无反馈、像坏掉了。
+// List 行有系统高亮，这里的样式主要给 ScrollView 里的自绘按钮与行用。
+
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.55 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == PressableButtonStyle {
+    /// `.buttonStyle(.pressable)`
+    static var pressable: PressableButtonStyle { PressableButtonStyle() }
 }

@@ -9,6 +9,8 @@ struct AskView: View {
     let brief: Brief
     @State var store: AskStore
     @Environment(\.appLocale) private var locale
+    /// 减弱动态效果时不做滚动动画（HIG：Reduce Motion 时减少自动与重复动画）。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isComposerFocused: Bool
 
     var body: some View {
@@ -30,7 +32,6 @@ struct AskView: View {
         .task {
             await store.loadHistoryIfNeeded()
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("ask-view")
     }
 
@@ -94,8 +95,12 @@ struct AskView: View {
             }
             .onChange(of: store.turns.count) { _, _ in
                 if let last = store.turns.last {
-                    withAnimation(.easeOut(duration: 0.2)) {
+                    if reduceMotion {
                         proxy.scrollTo(last.id, anchor: .bottom)
+                    } else {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -195,7 +200,7 @@ struct AskView: View {
                         .frame(width: 36, height: 36)
                         .background(Palette.askSurface, in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .accessibilityLabel(Text(String(localized: "ask.composer.add")))
                 .accessibilityIdentifier("ask-composer-add")
 
@@ -218,7 +223,7 @@ struct AskView: View {
                         .frame(width: 36, height: 36)
                         .background(store.canSend ? Palette.ink : Palette.askSurface, in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(!store.canSend)
                 .accessibilityLabel(Text(String(localized: "ask.composer.send")))
                 .accessibilityIdentifier("ask-composer-send")

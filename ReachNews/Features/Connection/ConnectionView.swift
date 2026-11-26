@@ -95,7 +95,7 @@ struct ConnectionView: View {
                             .foregroundStyle(Palette.inkSecondary)
                             .underline()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("login-go-register")
                 }

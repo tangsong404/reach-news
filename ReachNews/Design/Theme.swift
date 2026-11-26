@@ -122,7 +122,7 @@ enum Theme {
     /// 这是两套风格最好辨认的差异，切换时第一眼就该看出来。
     static func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
         .system(
-            size: size,
+            size: TypeFace.scaledSize(size),
             weight: headingWeight(for: style),
             design: style == .editorial ? .serif : .default
         )

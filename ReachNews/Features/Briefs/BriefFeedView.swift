@@ -21,11 +21,12 @@ struct BriefFeedView: View {
                 }
             }
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            // 一级页面用大标题（HIG：大标题帮助定位，滚动时自动收成标准标题）。
+            .navigationTitle(L10n.string("tab.briefs", locale: locale))
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    brandHeader
+                ToolbarItem(placement: .topBarTrailing) {
+                    filterToolbarButton(store)
                 }
             }
             .navigationDestination(for: Brief.self) { brief in
@@ -40,24 +41,12 @@ struct BriefFeedView: View {
         }
     }
 
-    private var brandHeader: some View {
-        HStack(spacing: Space.s) {
-            BrandMark(size: 24)
-            Text("Reach News")
-                .font(TypeFace.heading(15))
-                .foregroundStyle(Palette.ink)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
     @ViewBuilder
     private func content(_ store: BriefFeedStore) -> some View {
         @Bindable var store = store
 
         VStack(spacing: 0) {
             metaLines(store)
-            searchRow(store)
 
             if store.filter.isActive {
                 activeFilterSummary(store)
@@ -92,11 +81,42 @@ struct BriefFeedView: View {
                 feedList(store)
             }
         }
+        // 系统搜索框：自带查找图标、清除按钮、键盘联动与滚动固定行为。
+        .searchable(
+            text: $store.searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: Text(L10n.string("feed.search.placeholder", locale: locale))
+        )
         .sheet(isPresented: $showFilter) {
             FeedFilterSheet(store: store, isPresented: $showFilter)
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
         }
+    }
+
+    /// 筛选入口放工具栏：HIG 工具栏承载作用于内容的命令，搜索框则由系统 searchable 承担。
+    @ViewBuilder
+    private func filterToolbarButton(_ store: BriefFeedStore?) -> some View {
+        let isActive = store?.filter.isActive ?? false
+        let dimensions = store?.filter.activeDimensionCount ?? 0
+        Button {
+            showFilter = true
+        } label: {
+            Image(
+                systemName: isActive
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle"
+            )
+            .font(.system(size: 17, weight: .regular))
+            .foregroundStyle(isActive ? env.appearance.accent : Palette.ink)
+        }
+        .buttonStyle(.pressable)
+        .disabled(store == nil)
+        .accessibilityIdentifier("feed-filter-button")
+        .accessibilityLabel(Text(L10n.string("feed.filter.button", locale: locale)))
+        .accessibilityValue(
+            Text(dimensions > 0 ? "\(dimensions)" : L10n.string("common.off", locale: locale))
+        )
     }
 
     /// 只保留频道数与期数；不显示当日日期，也不显示排序说明。
@@ -111,87 +131,6 @@ struct BriefFeedView: View {
         .padding(.top, Space.m)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("feed-meta")
-    }
-
-    private func searchRow(_ store: BriefFeedStore) -> some View {
-        @Bindable var store = store
-        return HStack(spacing: Space.s) {
-            HStack(spacing: Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.inkTertiary)
-                TextField(
-                    String(localized: "feed.search.placeholder"),
-                    text: $store.searchText
-                )
-                .font(TypeFace.body(13.5))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier("feed-search-field")
-                if !store.searchText.isEmpty {
-                    Button {
-                        store.searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.inkTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(String(localized: "feed.search.clear")))
-                }
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 9)
-            .background(
-                Theme.surface(for: env.appearance.style, mode: env.appearance.mode).opacity(0.72),
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 0.5)
-            }
-
-            Button {
-                showFilter = true
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(L10n.string("feed.filter.button", locale: locale))
-                        .font(TypeFace.heading(12.5))
-                    if store.filter.activeDimensionCount > 0 {
-                        Text("\(store.filter.activeDimensionCount)")
-                            .font(TypeFace.condensed(9.5, weight: .bold))
-                            .foregroundStyle(store.filter.isActive ? Palette.canvas : Palette.inkSecondary)
-                            .padding(.horizontal, 3)
-                            .frame(minWidth: 15, minHeight: 15)
-                            .background(
-                                store.filter.isActive ? Palette.canvas.opacity(0.22) : Palette.chip,
-                                in: Capsule()
-                            )
-                    }
-                }
-                .foregroundStyle(store.filter.isActive ? Palette.canvas : Palette.ink)
-                .padding(.horizontal, Space.m)
-                .padding(.vertical, 9)
-                .background(
-                    store.filter.isActive
-                        ? env.appearance.accent
-                        : Theme.surface(for: env.appearance.style, mode: env.appearance.mode).opacity(0.72),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Palette.line, lineWidth: store.filter.isActive ? 0 : 0.5)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("feed-filter-button")
-            .accessibilityLabel(Text(L10n.string("feed.filter.button", locale: locale)))
-        }
-        .padding(.horizontal, Space.l)
-        .padding(.top, Space.m)
-        .padding(.bottom, Space.m)
     }
 
     private func activeFilterSummary(_ store: BriefFeedStore) -> some View {
@@ -238,7 +177,7 @@ struct BriefFeedView: View {
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(Palette.inkTertiary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityLabel(Text(String(localized: "filter.remove")))
         }
         .padding(.horizontal, 9)
@@ -246,15 +185,12 @@ struct BriefFeedView: View {
         .background(Palette.chip, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
+    /// HIG：用 List 承载列表数据——分隔线、行内边距、选中高亮、滑动操作都由系统提供。
+    /// 行内容仍是自定义的 BriefRow，但外框交给 List。
     private func feedList(_ store: BriefFeedStore) -> some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                ForEach(store.groupedBriefs, id: \.day) { group in
-                    DayRule(title: DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
-                        .padding(.horizontal, Space.xl)
-                        .padding(.top, Space.l)
-                        .padding(.bottom, Space.xs)
-
+        List {
+            ForEach(store.groupedBriefs, id: \.day) { group in
+                Section {
                     ForEach(group.briefs) { brief in
                         NavigationLink(value: brief) {
                             BriefRow(
@@ -265,26 +201,30 @@ struct BriefFeedView: View {
                                 colorIndex: env.channelColors.colorIndex(for: brief.channelID)
                             )
                         }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, Space.xl)
+                        .listRowBackground(Color.clear)
                         .task {
                             await store.loadMoreIfNeeded(appearing: brief)
                         }
                     }
-                }
-
-                if store.isLoadingMore {
-                    LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
-                } else if !store.hasMore && !store.briefs.isEmpty {
-                    Text(L10n.string("feed.endOfFeed", locale: locale))
-                        .font(TypeFace.body(11.5))
-                        .foregroundStyle(Palette.inkTertiary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Space.l)
+                } header: {
+                    DayRule(title: DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
                 }
             }
-            .padding(.bottom, 96)
+
+            if store.isLoadingMore {
+                LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
+                    .listRowSeparator(.hidden)
+            } else if !store.hasMore && !store.briefs.isEmpty {
+                Text(L10n.string("feed.endOfFeed", locale: locale))
+                    .font(TypeFace.body(11.5))
+                    .foregroundStyle(Palette.inkTertiary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Space.l)
+                    .listRowSeparator(.hidden)
+            }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .refreshable {
             await store.refresh()
         }
@@ -541,7 +481,7 @@ struct FeedFilterSheet: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .accessibilityIdentifier("filter-option-\(title)")
     }
 

@@ -140,7 +140,6 @@ struct ChannelCreateSheet: View {
             selectedColorIndex = env.channelColors.suggestedIndex()
             applyEventDraftIfNeeded()
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("channel-create-sheet")
     }
 

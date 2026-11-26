@@ -32,7 +32,7 @@ struct ConnectorPicker: View {
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .accessibilityIdentifier("connector-picker-\(connector.id)")
                 }
             }

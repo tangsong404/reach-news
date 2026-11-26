@@ -9,6 +9,8 @@ import SwiftUI
 struct ChannelListView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
+    /// 减弱动态效果时展开/收起不做动画。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var path = NavigationPath()
     @State private var showsCreateSheet = false
 
@@ -22,11 +24,9 @@ struct ChannelListView: View {
         NavigationStack(path: $path) {
             content(env.channels)
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(L10n.string("tab.channels", locale: locale))
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("tab.channels", locale: locale))
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if env.session.capabilities.channelLimit == nil ||
                         env.channels.myChannels.count < (env.session.capabilities.channelLimit ?? 0) {
@@ -151,11 +151,12 @@ struct ChannelListView: View {
         .padding(.top, Space.m)
     }
 
+    /// HIG：列表数据用 List 承载（分隔线、行高亮、滑动操作由系统给）。
+    /// 卡片本身仍保留品牌样式，但作为 List 行出现，不再自绘滚动容器。
     private func list(_ store: ChannelStore) -> some View {
-        ScrollView {
-            LazyVStack(spacing: Space.m) {
-                if !store.myChannels.isEmpty {
-                    sectionHeader("channel.section.mine")
+        List {
+            if !store.myChannels.isEmpty {
+                Section {
                     ForEach(store.myChannels) { channel in
                         Button {
                             path.append(Route.edit(channel))
@@ -172,14 +173,20 @@ struct ChannelListView: View {
                                 }
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
                         .onAppear { track(channel, store: store) }
                         .onDisappear { untrack(channel, store: store) }
                     }
+                } header: {
+                    sectionHeader("channel.section.mine")
                 }
+            }
 
-                if !store.subscribedChannels.isEmpty {
-                    sectionHeader("channel.section.subscribed")
+            if !store.subscribedChannels.isEmpty {
+                Section {
                     ForEach(store.subscribedChannels) { channel in
                         Button {
                             path.append(Route.subscribed(channel))
@@ -192,22 +199,34 @@ struct ChannelListView: View {
                                 stroke: Theme.cardStroke(for: env.appearance.style)
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
                         .onAppear { track(channel, store: store) }
                         .onDisappear { untrack(channel, store: store) }
                     }
+                } header: {
+                    sectionHeader("channel.section.subscribed")
                 }
-
-                discoverSection(store)
             }
-            .padding(.horizontal, Space.xl)
-            .padding(.top, Space.l)
-            .padding(.bottom, 96)
+
+            detailSection(store)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .refreshable {
             await store.load()
         }
         .accessibilityIdentifier("channel-list")
+    }
+
+    @ViewBuilder
+    private func detailSection(_ store: ChannelStore) -> some View {
+        discoverSection(store)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
     }
 
     // MARK: 发现更多
@@ -216,8 +235,12 @@ struct ChannelListView: View {
     private func discoverSection(_ store: ChannelStore) -> some View {
         VStack(spacing: Space.m) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                if reduceMotion {
                     store.isDiscoverExpanded.toggle()
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        store.isDiscoverExpanded.toggle()
+                    }
                 }
                 if store.isDiscoverExpanded && store.discoverableChannels.isEmpty {
                     Task { await store.loadDiscoverable() }
@@ -242,7 +265,7 @@ struct ChannelListView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityIdentifier("channel-discover-toggle")
 
             // 失败原因不随折叠隐藏：否则用户只看到「发现更多」是空的。
@@ -544,7 +567,7 @@ struct DiscoverableChannelRow: View {
                         .background(Capsule().fill(env.appearance.accent))
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .disabled(isPending)
             .accessibilityIdentifier("channel-subscribe-\(channel.id)")
         }

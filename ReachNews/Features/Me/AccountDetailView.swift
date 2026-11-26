@@ -14,6 +14,8 @@ struct AccountDetailView: View {
     let session: SessionStore
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
+    /// 减弱动态效果时不播放 toast 过渡。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var photoItem: PhotosPickerItem?
     @State private var isUploadingAvatar = false
@@ -46,16 +48,16 @@ struct AccountDetailView: View {
             if let toast {
                 Text(toast)
                     .font(TypeFace.label(13))
-                    .foregroundStyle(Palette.canvas)
+                    .foregroundStyle(Palette.onInverse)
                     .padding(.horizontal, Space.l)
                     .padding(.vertical, Space.s)
-                    .background(Capsule().fill(Palette.ink))
+                    .background(Capsule().fill(Palette.inverseSurface))
                     .padding(.bottom, Space.xxl)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .accessibilityIdentifier("account-toast")
             }
         }
-        .animation(.easeOut(duration: 0.2), value: toast)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.2), value: toast)
         .task(id: toast) {
             guard toast != nil else { return }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -120,7 +122,7 @@ struct AccountDetailView: View {
                         Text(L10n.string("account.avatar.remove", locale: locale))
                             .font(TypeFace.label(12.5))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .foregroundStyle(Palette.failedForeground)
                     .accessibilityIdentifier("account-avatar-remove")
                 }
@@ -173,7 +175,7 @@ struct AccountDetailView: View {
                     identifier: "account-edit-nickname"
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
 
             // 邮箱是不可修改项：没有换绑接口，因此不显示进入箭头，
             // 也不做成可点的行——免得看起来能点却点不动。
@@ -215,7 +217,7 @@ struct AccountDetailView: View {
                     identifier: "account-edit-password"
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         } header: {
             Text(L10n.string("account.security.heading", locale: locale))
         }

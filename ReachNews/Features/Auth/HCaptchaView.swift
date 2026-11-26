@@ -275,7 +275,7 @@ struct CaptchaSheet: View {
                 Text(L10n.string("common.retry", locale: locale))
                     .font(TypeFace.label(12.5))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityIdentifier("captcha-sheet-retry")
         }
         .padding(.horizontal, Space.xl)

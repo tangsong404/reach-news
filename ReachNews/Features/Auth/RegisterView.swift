@@ -321,7 +321,7 @@ struct RegisterView: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .accessibilityIdentifier("register-captcha-open")
 
                 if captchaToken != nil {
@@ -335,7 +335,7 @@ struct RegisterView: View {
                             .font(TypeFace.label(11))
                             .foregroundStyle(Palette.inkTertiary)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .accessibilityIdentifier("register-captcha-redo")
                 } else {
                     Image(systemName: "chevron.right")

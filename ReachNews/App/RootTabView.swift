@@ -50,7 +50,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.briefs", locale: locale))
                     } icon: {
-                        Image(systemName: "list.bullet.rectangle")
+                        Image(systemName: "list.bullet.rectangle.fill")
                     }
                 }
                 .tag(Tab.briefs)
@@ -60,7 +60,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.channels", locale: locale))
                     } icon: {
-                        Image(systemName: "slider.horizontal.below.rectangle")
+                        Image(systemName: "rectangle.stack.fill")
                     }
                 }
                 .tag(Tab.channels)
@@ -70,7 +70,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.me", locale: locale))
                     } icon: {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: "person.crop.circle.fill")
                     }
                 }
                 .tag(Tab.me)

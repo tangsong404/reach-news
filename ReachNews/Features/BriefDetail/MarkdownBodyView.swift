@@ -271,8 +271,11 @@ enum MarkdownBlockBuilder {
                         .overlay {
                             Circle().strokeBorder(Palette.line, lineWidth: 1)
                         }
+                        // 视觉 22pt，可点范围撑到 44pt（HIG 默认最小值）。
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .fixedSize()
                 .accessibilityLabel(Text(L10n.string("brief.heading.follow", locale: .current)))
                 .accessibilityIdentifier("brief-heading-follow")
