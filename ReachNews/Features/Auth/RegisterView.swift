@@ -156,9 +156,8 @@ struct RegisterView: View {
                     captchaFailed = true
                 }
             )
-            // 验证组件需要足够高度：medium 只有半屏，减去导航栏与安全区
-            // 之后实测会把组件挤得显示不全，改为大尺寸。
-            .presentationDetents([.large])
+            // 2/3 高度：够放验证组件，又不像全屏那样空荡。
+            .presentationDetents([.fraction(0.66)])
             .presentationDragIndicator(.visible)
             .presentationBackground(Palette.canvas)
         }

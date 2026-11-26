@@ -17,12 +17,9 @@ struct HCaptchaView: UIViewRepresentable {
     let baseURL: URL?
     let onToken: (String) -> Void
     let onFailure: () -> Void
-    /// 内容实际高度；hCaptcha 组件高度会随状态变化（错误提示等），
-    /// 固定高度会把它裁掉，因此由页面自己上报。
-    var onContentHeight: ((CGFloat) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onToken: onToken, onFailure: onFailure, onContentHeight: onContentHeight)
+        Coordinator(onToken: onToken, onFailure: onFailure)
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -72,8 +69,11 @@ struct HCaptchaView: UIViewRepresentable {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
         <style>
-          html,body{margin:0;padding:0;background:transparent;overflow:hidden;}
-          .wrap{display:flex;justify-content:center;padding:8px 0;}
+          html,body{margin:0;padding:0;height:100%;background:transparent;overflow:hidden;}
+          /* 垂直居中，而不是贴顶：组件比容器矮时居中，
+             比容器高时从中间溢出而不是把顶部切掉。 */
+          .wrap{display:flex;justify-content:center;align-items:center;min-height:100%;padding:8px 0;box-sizing:border-box;}
+          .h-captcha{transform-origin:center center;}
         </style>
         </head>
         <body>
@@ -84,6 +84,30 @@ struct HCaptchaView: UIViewRepresentable {
                data-expired-callback="onExpired"
                data-error-callback="onError"></div>
         </div>
+        <script>
+          // 容器装不下时按比例缩放，而不是把顶部裁掉。
+          // hCaptcha 渲染完成后才知道真实尺寸，因此轮询几次。
+          (function() {
+            var tries = 0;
+            function fit() {
+              var el = document.querySelector('.h-captcha');
+              if (!el) return;
+              var ch = el.offsetHeight, cw = el.offsetWidth;
+              if (!ch || !cw) return;
+              var availH = window.innerHeight - 16;
+              var availW = window.innerWidth - 16;
+              var scale = Math.min(1, availH / ch, availW / cw);
+              if (scale < 1) {
+                el.style.transform = 'scale(' + scale + ')';
+              }
+            }
+            var timer = setInterval(function() {
+              fit();
+              if (++tries > 20) clearInterval(timer);
+            }, 300);
+            window.addEventListener('resize', fit);
+          })();
+        </script>
         <script>
           function post(payload) {
             try { window.webkit.messageHandlers.captcha.postMessage(payload); } catch (e) {}
@@ -100,26 +124,13 @@ struct HCaptchaView: UIViewRepresentable {
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         private let onToken: (String) -> Void
         private let onFailure: () -> Void
-        private let onContentHeight: ((CGFloat) -> Void)?
+
         var loadedSiteKey: String?
         var loadedBaseURL: String?
 
-        init(
-            onToken: @escaping (String) -> Void,
-            onFailure: @escaping () -> Void,
-            onContentHeight: ((CGFloat) -> Void)? = nil
-        ) {
+        init(onToken: @escaping (String) -> Void, onFailure: @escaping () -> Void) {
             self.onToken = onToken
             self.onFailure = onFailure
-            self.onContentHeight = onContentHeight
-        }
-
-        /// 读取 body 的实际高度并回传。
-        func reportContentHeight(_ webView: WKWebView) {
-            webView.evaluateJavaScript("document.body.scrollHeight") { [weak self] result, _ in
-                guard let self, let number = result as? NSNumber, number.doubleValue > 0 else { return }
-                self.onContentHeight?(CGFloat(number.doubleValue))
-            }
         }
 
         func userContentController(
@@ -154,13 +165,6 @@ struct HCaptchaView: UIViewRepresentable {
               return 'empty';
             })();
             """
-            reportContentHeight(webView)
-            // hCaptcha 组件异步渲染，稍后再量一次真实高度。
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak webView] in
-                guard let self, let webView else { return }
-                self.reportContentHeight(webView)
-            }
-
             webView.evaluateJavaScript(script) { [weak self] result, _ in
                 guard let self else { return }
                 if let state = result as? String, state == "ok" {
@@ -209,37 +213,16 @@ struct CaptchaSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var failed = false
     @State private var reloadToken = 0
-    /// 由页面上报的真实高度；未上报前用一个够用的初值。
-    @State private var contentHeight: CGFloat = 180
 
     var body: some View {
-        NavigationStack {
-            // 用 ScrollView 兜底：组件实际高度因网络与错误提示而变，
-            // 固定高度会裁掉内容；滚动至少保证任何情况下都能看全。
-            ScrollView {
-                VStack(spacing: Space.l) {
+        // 组件本身会超过容器：不要再把它按在顶部——
+        // 那样上半部分被裁掉、下方却留着空白。这里让它在可用区域里居中，
+        // 并用 GeometryReader 把高度交给组件，避免固定值猜错。
+        GeometryReader { proxy in
+            NavigationStack {
+                Group {
                     if failed {
-                        VStack(spacing: Space.s) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 22, weight: .light))
-                                .foregroundStyle(Palette.failedForeground)
-                            Text(L10n.string("register.captcha.failed", locale: locale))
-                                .font(TypeFace.body(13))
-                                .foregroundStyle(Palette.failedForeground)
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Button {
-                                failed = false
-                                reloadToken += 1
-                            } label: {
-                                Text(L10n.string("common.retry", locale: locale))
-                                    .font(TypeFace.label(12.5))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("captcha-sheet-retry")
-                        }
-                        .padding(.horizontal, Space.xl)
-                        .padding(.top, Space.xl)
+                        failureView
                     } else {
                         HCaptchaView(
                             siteKey: siteKey,
@@ -251,36 +234,50 @@ struct CaptchaSheet: View {
                             onFailure: {
                                 failed = true
                                 onFailure()
-                            },
-                            onContentHeight: { height in
-                                // 夹在合理区间：太小时组件会被裁，太大时留白过多。
-                                let clamped = min(max(height, 140), 460)
-                                if abs(clamped - contentHeight) > 1 {
-                                    contentHeight = clamped
-                                }
                             }
                         )
                         .id(reloadToken)
-                        .frame(height: contentHeight)
-                        .padding(.horizontal, Space.m)
+                        .frame(width: proxy.size.width - Space.l * 2,
+                               height: proxy.size.height)
                         .accessibilityIdentifier("captcha-sheet-webview")
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, Space.m)
-                .padding(.bottom, Space.xl)
-            }
-            .background(Palette.canvas)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("register.captcha", locale: locale))
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
-                        .font(TypeFace.body(14))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Palette.canvas)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        NavTitle(text: L10n.string("register.captcha", locale: locale))
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
+                            .font(TypeFace.body(14))
+                    }
                 }
             }
         }
+    }
+
+    private var failureView: some View {
+        VStack(spacing: Space.s) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 22, weight: .light))
+                .foregroundStyle(Palette.failedForeground)
+            Text(L10n.string("register.captcha.failed", locale: locale))
+                .font(TypeFace.body(13))
+                .foregroundStyle(Palette.failedForeground)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                failed = false
+                reloadToken += 1
+            } label: {
+                Text(L10n.string("common.retry", locale: locale))
+                    .font(TypeFace.label(12.5))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("captcha-sheet-retry")
+        }
+        .padding(.horizontal, Space.xl)
     }
 }
