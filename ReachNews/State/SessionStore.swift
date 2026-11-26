@@ -304,7 +304,11 @@ final class SessionStore {
     }
 
     /// 请求邮箱验证码。返回失败信息供界面逐项展示（含 429 冷却秒数）。
-    func requestEmailCode(email: String, captchaToken: String?) async -> EmailCodeFailure? {
+    func requestEmailCode(
+        email: String,
+        purpose: String = "register",
+        captchaToken: String? = nil
+    ) async -> EmailCodeFailure? {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return EmailCodeFailure.emptyEmail
@@ -312,7 +316,7 @@ final class SessionStore {
         do {
             let outcome = try await makeClient(resolvedBaseURL).requestEmailCode(
                 email: trimmed,
-                purpose: "register",
+                purpose: purpose,
                 captchaToken: captchaToken
             )
             switch outcome {
@@ -351,15 +355,28 @@ final class SessionStore {
     ///
     /// 服务端采用方案 A：其他设备会话失效、**当前 token 保留**。
     /// 因此成功后不清理本地凭证、不踢回登录页。
-    func changePassword(current: String, new: String, confirm: String) async -> RegistrationError? {
+    func changePassword(
+        current: String,
+        new: String,
+        confirm: String,
+        emailCode: String
+    ) async -> RegistrationError? {
         guard !new.isEmpty else { return RegistrationError(code: "password_required", message: "") }
         guard new.count >= 8 else { return RegistrationError(code: "password_too_short", message: "") }
         guard !confirm.isEmpty else { return RegistrationError(code: "password_confirm_required", message: "") }
         guard new == confirm else { return RegistrationError(code: "password_mismatch", message: "") }
+        guard !emailCode.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return RegistrationError(code: "email_code_required", message: "")
+        }
 
         let client = makeClient(resolvedBaseURL)
         do {
-            try await client.changePassword(current: current, new: new, confirm: confirm)
+            try await client.changePassword(
+                current: current,
+                new: new,
+                confirm: confirm,
+                emailCode: emailCode.trimmingCharacters(in: .whitespaces)
+            )
             return nil
         } catch let error as APIError {
             return RegistrationError(code: error.errorCode?.rawValue ?? "unknown", message: error.detailText ?? "")

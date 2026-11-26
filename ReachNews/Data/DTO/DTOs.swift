@@ -523,6 +523,23 @@ struct RegisterRequest: Encodable {
     let captchaToken: String?
     /// SMTP 已配置时必填。
     let emailCode: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case nickname, email, password, passwordConfirm, inviteCode, captchaToken, emailCode
+    }
+
+    /// 可选扩展字段为 nil 时**不编码**，而不是编码成 null：
+    /// 服务端用「字段是否存在」区分开放注册与带验证的请求。
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nickname, forKey: .nickname)
+        try container.encode(email, forKey: .email)
+        try container.encode(password, forKey: .password)
+        try container.encode(passwordConfirm, forKey: .passwordConfirm)
+        try container.encodeIfPresent(inviteCode, forKey: .inviteCode)
+        try container.encodeIfPresent(captchaToken, forKey: .captchaToken)
+        try container.encodeIfPresent(emailCode, forKey: .emailCode)
+    }
 }
 
 // MARK: - 当前用户
@@ -555,6 +572,9 @@ struct ChangePasswordRequest: Encodable {
     let currentPassword: String
     let newPassword: String
     let newPasswordConfirm: String
+    /// 必填（2026-11-26 起）：先调 /auth/email-code（purpose=change-password）。
+    /// 只有当前密码不够——否则任何拿到已登录设备的人都能把机主锁在外面。
+    let emailCode: String
 }
 
 struct OKResponseDTO: Decodable {

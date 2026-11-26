@@ -47,7 +47,7 @@ struct BriefDetailView: View {
         .onPreferenceChange(ScrollOffsetKey.self) { value in
             handleScroll(value)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // 顶部栏只给「日报」：标题已在正文区大字号呈现，重复显示没有意义。

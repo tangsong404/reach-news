@@ -337,11 +337,12 @@ final class APIClient {
     /// 改密码。成功后当前 token 仍有效（服务端只清其他设备会话），调用方不踢用户。
     ///
     /// 失败时区分「当前密码错」与其他错误：401 统一按旧密码错误处理。
-    func changePassword(current: String, new: String, confirm: String) async throws {
+    func changePassword(current: String, new: String, confirm: String, emailCode: String) async throws {
         let payload = ChangePasswordRequest(
             currentPassword: current,
             newPassword: new,
-            newPasswordConfirm: confirm
+            newPasswordConfirm: confirm,
+            emailCode: emailCode
         )
         let body = try JSONEncoder().encode(payload)
         let _: OKResponseDTO = try await send(Endpoint.mePassword, method: "POST", body: body)

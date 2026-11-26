@@ -47,28 +47,11 @@ final class SavedFeedStore {
         }
         guard !targets.isEmpty else { return }
 
-        // 并发上限 4：收藏通常不多，但也不该一次性打满。
-        await withTaskGroup(of: Void.self) { group in
-            var iterator = targets.makeIterator()
-            var inFlight = 0
-            let limit = 4
-
-            func addNext(_ group: inout TaskGroup<Void>) {
-                guard let id = iterator.next() else { return }
-                group.addTask { [weak self] in
-                    await self?.loadOne(id)
-                }
-            }
-
-            while inFlight < limit {
-                addNext(&group)
-                inFlight += 1
-            }
-            while await group.next() != nil {
-                inFlight -= 1
-                addNext(&group)
-                inFlight += 1
-            }
+        // 收藏通常不多，逐条取回以保持 @MainActor 状态的确定性；
+        // 单条失败由 loadOne 隔离，继续处理其余收藏。
+        for id in targets {
+            if Task.isCancelled { return }
+            await loadOne(id)
         }
 
         // 收藏被取消的条目顺手清掉缓存，避免长期驻留。

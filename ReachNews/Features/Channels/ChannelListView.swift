@@ -21,7 +21,7 @@ struct ChannelListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content(env.channels)
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

@@ -20,7 +20,7 @@ struct BriefFeedView: View {
                     LoadingLine(text: L10n.string("common.loading", locale: locale))
                 }
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -433,7 +433,7 @@ struct FeedFilterSheet: View {
                 .padding(.top, Space.s)
                 .padding(.bottom, Space.xl)
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -465,7 +465,7 @@ struct FeedFilterSheet: View {
                 }
             }
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .onAppear {
             draft = store.filter
             customStart = store.filter.startDate ?? Date()

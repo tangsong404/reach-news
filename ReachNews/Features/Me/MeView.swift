@@ -11,7 +11,7 @@ struct MeView: View {
     var body: some View {
         NavigationStack {
             content(env)
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -68,7 +68,7 @@ struct MeView: View {
             .listRowBackground(Palette.surface)
         }
         .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .accessibilityIdentifier("me-list")
     }
 }
@@ -119,7 +119,7 @@ struct SavedBriefsView: View {
                 list
             }
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -167,7 +167,7 @@ struct SavedBriefsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .refreshable {
             await env.savedFeed.refresh(ids: savedIDs)
         }
@@ -289,7 +289,7 @@ struct PreferencesView: View {
 
         }
         .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

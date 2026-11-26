@@ -206,18 +206,67 @@ enum MarkdownBlockBuilder {
         for run in links {
             // 链接之前的普通文字（含本条链接本身）。
             if cursor < run.range.lowerBound {
-                pieces.append(Text(String(block.text[cursor..<run.range.lowerBound].characters)))
+                pieces.append(Text(AttributedString(block.text[cursor..<run.range.lowerBound])))
             }
             pieces.append(Text(AttributedString(block.text[run.range])))
-            // 图标紧跟这条链接，且不参与跳转。
+            // 图标紧跟这条链接，且不参与跳转；略微上移，避免落在下划线高度。
             pieces.append(Text(" "))
-            pieces.append(Text(Image(systemName: "arrow.up.forward.app")))
+            pieces.append(
+                Text(Image(systemName: "arrow.up.forward.app"))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Palette.inkTertiary)
+                    .baselineOffset(3)
+            )
             cursor = run.range.upperBound
         }
         if cursor < block.text.endIndex {
-            pieces.append(Text(String(block.text[cursor...].characters)))
+            pieces.append(Text(AttributedString(block.text[cursor...])))
         }
         return pieces.reduce(Text("")) { $0 + $1 }
+    }
+
+    private static func headingWithFollow(
+        _ block: Block,
+        size: CGFloat,
+        onTrackHeading: ((String) -> Void)?
+    ) -> some View {
+        guard let onTrackHeading else {
+            return AnyView(
+                Text(block.text)
+                    .font(TypeFace.heading(size))
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+            )
+        }
+
+        // 把 follow 做成 inline link：它会紧跟标题最后一个文字，
+        // 标题换行时自然流到最后一行，不会被 HStack 挤到整块最右侧。
+        var attributed = block.text
+        var follow = AttributedString("  follow")
+        follow.link = URL(string: "reachnews://track-heading")
+        follow.foregroundColor = Palette.inkSecondary
+        follow.backgroundColor = Palette.chip
+        follow.font = .system(size: 11, weight: .medium)
+        attributed.append(follow)
+
+        return AnyView(
+            Text(attributed)
+                .font(TypeFace.heading(size))
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, Space.xs)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("brief-heading-follow")
+                .environment(\.openURL, OpenURLAction { url in
+                    guard url.scheme == "reachnews", url.host == "track-heading" else {
+                        return .systemAction
+                    }
+                    onTrackHeading(block.plainText)
+                    return .handled
+                })
+        )
     }
 
     private static func view(for block: Block, onTrackHeading: ((String) -> Void)?) -> AnyView {
@@ -225,34 +274,13 @@ enum MarkdownBlockBuilder {
         case .heading(let level):
             let sizes: [CGFloat] = [22, 19, 17, 16, 16, 16]
             let size = sizes[min(max(level, 1), 6) - 1]
-            // 标题文字后面紧接着一个 follow 按钮：按钮是文字标签，
-            // 紧贴标题而不是被推到整块最右端（不用 Spacer，也不用图标）。
+            // follow 紧跟标题的**最后一个文字**：用 Text + Text 拼接，
+            // 而不是 HStack（HStack 会把按钮顶到行的最右侧，不会随文字换行）。
+            //
+            // 做法：把标题文字与按钮文字拼成一个 Text，靠 baseline 流式排布，
+            // 按钮的胶囊底由 overlay 画在对应位置。
             return AnyView(
-                HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-                    Text(block.text)
-                        .font(TypeFace.heading(size))
-                        .foregroundStyle(Palette.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let onTrackHeading {
-                        Button {
-                            onTrackHeading(block.plainText)
-                        } label: {
-                            Text(L10n.string("brief.heading.follow", locale: .current))
-                                .font(TypeFace.label(11))
-                                .foregroundStyle(Palette.inkSecondary)
-                                .padding(.horizontal, Space.xs)
-                                .padding(.vertical, 2)
-                                .background(Capsule().fill(Palette.chip))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("brief-heading-follow")
-                    }
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, Space.xs)
+                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading)
             )
 
         case .listItem(let ordered, let ordinal):

@@ -21,6 +21,8 @@ struct AccountDetailView: View {
     @State private var avatarError: String?
     @State private var showsNicknameSheet = false
     @State private var showsPasswordSheet = false
+    /// 轻量成功提示；nil 表示不显示。
+    @State private var toast: String?
 
     private var profile: ProfileStore { env.profile }
 
@@ -32,7 +34,7 @@ struct AccountDetailView: View {
             signOutSection
         }
         .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -40,13 +42,35 @@ struct AccountDetailView: View {
             }
         }
         .accessibilityIdentifier("account-detail")
+        .overlay(alignment: .bottom) {
+            if let toast {
+                Text(toast)
+                    .font(TypeFace.label(13))
+                    .foregroundStyle(Palette.canvas)
+                    .padding(.horizontal, Space.l)
+                    .padding(.vertical, Space.s)
+                    .background(Capsule().fill(Palette.ink))
+                    .padding(.bottom, Space.xxl)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .accessibilityIdentifier("account-toast")
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: toast)
+        .task(id: toast) {
+            guard toast != nil else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            toast = nil
+        }
         .sheet(isPresented: $showsNicknameSheet) {
             NicknameSheet(session: session, initialValue: profile.userName)
                 .presentationDetents(SheetMetrics.detents)
         }
         .sheet(isPresented: $showsPasswordSheet) {
-            PasswordChangeSheet(session: session)
-                .presentationDetents(SheetMetrics.detents)
+            PasswordChangeSheet(session: session) {
+                // 成功提示：之前改完只无声关闭，用户不知道到底成没成。
+                toast = L10n.string("account.password.changed", locale: locale)
+            }
+            .presentationDetents(SheetMetrics.detents)
         }
         .task {
             await session.refreshProfile()
@@ -141,12 +165,19 @@ struct AccountDetailView: View {
             }
             .buttonStyle(.plain)
 
-            // 邮箱只读展示：服务端没有换绑邮箱接口，不放入口。
-            row(
-                titleKey: "account.email.label",
-                value: profile.email ?? L10n.string("me.account.email.empty", locale: locale),
-                identifier: "account-email-readonly"
-            )
+            // 邮箱是不可修改项：没有换绑接口，因此不显示进入箭头，
+            // 也不做成可点的行——免得看起来能点却点不动。
+            HStack {
+                Text(L10n.string("account.email.label", locale: locale))
+                    .font(TypeFace.body(13))
+                    .foregroundStyle(Palette.inkSecondary)
+                Spacer(minLength: Space.s)
+                Text(profile.email ?? L10n.string("me.account.email.empty", locale: locale))
+                    .font(TypeFace.label(13))
+                    .foregroundStyle(Palette.inkTertiary)
+                    .lineLimit(1)
+            }
+            .accessibilityIdentifier("account-email-readonly")
 
             HStack {
                 Text(L10n.string("account.tier.label", locale: locale))
@@ -330,7 +361,7 @@ struct NicknameSheet: View {
             .padding(.horizontal, Space.xl)
             .padding(.top, Space.l)
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -386,6 +417,10 @@ struct NicknameSheet: View {
 }
 
 // MARK: - 修改密码
+//
+// 2026-11-26 起该接口必须带邮箱验证码（purpose=change-password）。
+// 只有当前密码不够——否则任何拿到已登录设备的人都能把机主锁在外面。
+// 当前密码错时验证码不会被消耗，改对后可用同一个码继续。
 
 struct PasswordChangeSheet: View {
     let session: SessionStore
@@ -395,11 +430,23 @@ struct PasswordChangeSheet: View {
     @State private var current = ""
     @State private var next = ""
     @State private var confirm = ""
+    @State private var emailCode = ""
     @State private var error: RegistrationError?
     @State private var isSaving = false
+    @State private var isSendingCode = false
+    @State private var codeSent = false
+    @State private var resendCountdown = 0
+    /// 成功后的回调：由上层负责弹提示。
+    var onChanged: (() -> Void)?
+
+    private var canSendCode: Bool {
+        !isSendingCode && resendCountdown == 0 && !isSaving
+    }
 
     private var canSave: Bool {
-        !current.isEmpty && !next.isEmpty && !confirm.isEmpty && !isSaving
+        !current.isEmpty && !next.isEmpty && !confirm.isEmpty
+            && !emailCode.trimmingCharacters(in: .whitespaces).isEmpty
+            && !isSaving
     }
 
     var body: some View {
@@ -414,13 +461,62 @@ struct PasswordChangeSheet: View {
                     secureField(labelKey: "account.password.current", text: $current, identifier: "password-current")
                     secureField(labelKey: "account.password.new", text: $next, identifier: "password-new")
                     secureField(labelKey: "account.password.confirm", text: $confirm, identifier: "password-confirm")
+
+                    // 邮箱验证码：接口要求，缺少会直接 400。
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        Text(L10n.string("account.password.emailCode", locale: locale))
+                            .font(TypeFace.label(11))
+                            .tracking(1)
+                            .foregroundStyle(Palette.inkTertiary)
+
+                        HStack(spacing: Space.s) {
+                            TextField("", text: $emailCode)
+                                .font(TypeFace.body(14))
+                                .keyboardType(.numberPad)
+                                .padding(.horizontal, 13)
+                                .padding(.vertical, 11)
+                                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(Palette.line, lineWidth: 1)
+                                }
+                                .accessibilityIdentifier("password-email-code")
+
+                            Button {
+                                Task { await sendCode() }
+                            } label: {
+                                if isSendingCode {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Text(resendCountdown > 0
+                                         ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
+                                         : L10n.string("register.emailCode.send", locale: locale))
+                                        .font(TypeFace.label(12))
+                                        .foregroundStyle(canSendCode ? Palette.ink : Palette.inkTertiary)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .disabled(!canSendCode)
+                            .accessibilityIdentifier("password-email-code-send")
+                        }
+
+                        if codeSent {
+                            Text(L10n.string("register.emailCode.sent", locale: locale))
+                                .font(TypeFace.footnote)
+                                .foregroundStyle(Palette.runningForeground)
+                        } else {
+                            Text(L10n.string("account.password.emailCode.hint", locale: locale))
+                                .font(TypeFace.footnote)
+                                .foregroundStyle(Palette.inkTertiary)
+                        }
+                    }
                 }
                 .padding(.horizontal, Space.xl)
                 .padding(.top, Space.l)
                 .padding(.bottom, 44)
             }
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -450,18 +546,51 @@ struct PasswordChangeSheet: View {
         .accessibilityIdentifier("password-sheet")
     }
 
+    private func sendCode() async {
+        isSendingCode = true
+        error = nil
+        codeSent = false
+        defer { isSendingCode = false }
+
+        // 改密码的验证码不需要 captcha，且发到当前账号绑定的邮箱。
+        let email = session.profile?.email ?? ""
+        let failure = await session.requestEmailCode(email: email, purpose: "change-password")
+        if let failure {
+            error = RegistrationError(code: failure.code, message: failure.message)
+            if let seconds = failure.retryAfterSeconds, seconds > 0 {
+                startCountdown(seconds)
+            }
+        } else {
+            codeSent = true
+            startCountdown(60)
+        }
+    }
+
+    private func startCountdown(_ seconds: Int) {
+        resendCountdown = seconds
+        Task {
+            while resendCountdown > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                resendCountdown = max(0, resendCountdown - 1)
+            }
+        }
+    }
+
     private func save() {
         guard canSave else { return }
         isSaving = true
         error = nil
         Task {
-            let failure = await session.changePassword(current: current, new: next, confirm: confirm)
+            let failure = await session.changePassword(
+                current: current, new: next, confirm: confirm, emailCode: emailCode
+            )
             isSaving = false
             if let failure {
                 error = failure
             } else {
                 // 服务端方案 A：当前 token 仍有效，不踢用户回登录页。
                 dismiss()
+                onChanged?()
             }
         }
     }
