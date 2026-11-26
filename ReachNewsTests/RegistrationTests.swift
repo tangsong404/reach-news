@@ -109,6 +109,49 @@ final class RegistrationTests: XCTestCase {
         XCTAssertEqual(json2["emailCode"] as? String, "654321")
     }
 
+    // MARK: 邀请码可选
+
+    @MainActor
+    func testRegisterWithoutInviteCodeOmitsTheField() async throws {
+        // 开放注册模式下不带码；不应发送空字符串，服务端会当成无效码。
+        let json = """
+        {"token":"t","expiresAt":"2099-01-01T00:00:00.000Z",\
+        "user":{"id":"usr_1","name":"n","email":"e@x.com","tier":"free","avatarUrl":null},\
+        "capabilities":{"tier":"free","ask":true,"briefImages":false,"channelLimit":1}}
+        """
+        let transport = StubTransport(json: json)
+        let session = makeSession(transport: transport)
+
+        _ = await session.register(
+            nickname: "n", email: "e@x.com",
+            password: "password-123", passwordConfirm: "password-123",
+            inviteCode: ""
+        )
+
+        let body = try XCTUnwrap(transport.recorded.first?.body)
+        let json2 = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertNil(json2["inviteCode"], "空邀请码不应作为字段发送")
+        XCTAssertTrue(session.isSignedIn)
+    }
+
+    @MainActor
+    func testInviteRequiredIsReportedWhenServerRejectsMissingCode() async throws {
+        // 「需要邀请码」模式下不带码：服务端返回 invite_not_found，需保留给界面。
+        let json = "{\"error\":{\"code\":\"invite_not_found\",\"message\":\"邀请码无效，请检查\"}}"
+        let transport = StubTransport(json: json, status: 400)
+        let session = makeSession(transport: transport)
+
+        let failure = await session.register(
+            nickname: "n", email: "e@x.com",
+            password: "password-123", passwordConfirm: "password-123",
+            inviteCode: ""
+        )
+
+        let error = try XCTUnwrap(failure)
+        XCTAssertEqual(error.code, "invite_not_found")
+        XCTAssertFalse(session.isSignedIn)
+    }
+
     // MARK: 验证码冷却
 
     func testRetryAfterSecondsIsParsedFrom429() throws {

@@ -292,3 +292,7 @@
 "appearance.tint.ember" = "Ember";
 "appearance.tint.violet" = "Violet";
 "appearance.tint.teal" = "Teal";
+"register.inviteCode.required" = "Invite code (required)";
+"register.captcha.redo" = "Redo";
+"register.captcha.hint" = "Complete the check before submitting";
+"register.error.invite_required" = "Enter an invite code";

@@ -250,7 +250,11 @@ final class SessionStore {
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 password: password,
                 passwordConfirm: passwordConfirm,
-                inviteCode: inviteCode.trimmingCharacters(in: .whitespacesAndNewlines),
+                // 开放注册模式下不带码；空串按 nil 发送，不塞一个空字符串。
+                inviteCode: {
+                    let trimmed = inviteCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return trimmed.isEmpty ? nil : trimmed
+                }(),
                 captchaToken: captchaToken,
                 emailCode: emailCode
             )

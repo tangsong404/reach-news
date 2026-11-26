@@ -44,6 +44,8 @@ struct RegisterView: View {
     @State private var codeFailure: EmailCodeFailure?
     /// 发送成功的提示。
     @State private var codeSent = false
+    /// 服务端告知邀请码必填后置真；此时平台也把该字段标为必填。
+    @State private var inviteRequired = false
     @State private var isSendingCode = false
     @State private var resendCountdown = 0
 
@@ -51,16 +53,21 @@ struct RegisterView: View {
         case nickname, email, password, passwordConfirm, inviteCode
     }
 
+    /// 邀请码是否必填由服务端配置决定（「需要邀请码」模式 / 「开放注册」模式）。
+    ///
+    /// 客户端不写死：开放注册下不带码也能提交。当前若仍要求邀请码，
+    /// 服务端会返回 invite_not_found，据此把该字段标为必填并提示。
     private var canSubmit: Bool {
         let base = !nickname.trimmingCharacters(in: .whitespaces).isEmpty
             && !email.trimmingCharacters(in: .whitespaces).isEmpty
             && !password.isEmpty
             && !passwordConfirm.isEmpty
-            && !inviteCode.trimmingCharacters(in: .whitespaces).isEmpty
             && !session.isRegistering
         // 服务端启用 hCaptcha 时，必须先完成人机验证。
         let captchaReady = !captchaEnabled || (captchaToken?.isEmpty == false)
-        return base && captchaReady
+        // 已确认需要邀请码时才强制非空。
+        let inviteReady = !inviteRequired || !inviteCode.trimmingCharacters(in: .whitespaces).isEmpty
+        return base && captchaReady && inviteReady
     }
 
     var body: some View {
@@ -100,7 +107,7 @@ struct RegisterView: View {
                         .accessibilityIdentifier("register-password-confirm")
                 }
 
-                field(labelKey: "register.inviteCode") {
+                field(labelKey: inviteRequired ? "register.inviteCode.required" : "register.inviteCode") {
                     TextField("", text: $inviteCode)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
@@ -290,6 +297,10 @@ struct RegisterView: View {
     ///
     /// 嵌在表单里时高度太小（hCaptcha 官方组件需要约 100pt 且常带阴影/说明），
     /// 实际能点到的区域很局促，所以改成点开弹窗给足空间。
+    /// 人机验证入口。
+    ///
+    /// 三种状态必须一眼可分：已验证（绿勾 + 灰字）、待验证、验证失败（红字 + 重试）。
+    /// 已验证后**不再因为改动其他字段而要求重验**——token 只在服务端明确拒绝时作废。
     private var captchaSection: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string("register.captcha", locale: locale))
@@ -297,36 +308,48 @@ struct RegisterView: View {
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
 
-            Button {
-                showsCaptchaSheet = true
-            } label: {
-                HStack(spacing: Space.s) {
-                    Image(systemName: captchaToken == nil ? "shield" : "checkmark.shield.fill")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(captchaToken == nil ? Palette.inkTertiary : Palette.runningForeground)
+            HStack(spacing: Space.s) {
+                // 左半区：点它开始或重新验证。
+                Button {
+                    showsCaptchaSheet = true
+                } label: {
+                    HStack(spacing: Space.s) {
+                        statusIcon
+                        statusText
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("register-captcha-open")
 
-                    Text(captchaToken == nil
-                         ? L10n.string("register.captcha.open", locale: locale)
-                         : L10n.string("register.captcha.done", locale: locale))
-                        .font(TypeFace.body(13.5))
-                        .foregroundStyle(Palette.ink)
-
-                    Spacer(minLength: 0)
-
+                if captchaToken != nil {
+                    // 已验证时给一个明确的「重新验证」入口（独立按钮，不嵌套）。
+                    Button {
+                        captchaToken = nil
+                        captchaFailed = false
+                        showsCaptchaSheet = true
+                    } label: {
+                        Text(L10n.string("register.captcha.redo", locale: locale))
+                            .font(TypeFace.label(11))
+                            .foregroundStyle(Palette.inkTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("register-captcha-redo")
+                } else {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Palette.inkTertiary)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(captchaToken == nil ? Palette.line : Palette.runningForeground.opacity(0.4), lineWidth: 1)
+                        .accessibilityHidden(true)
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("register-captcha-open")
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(rowBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(rowBorder, lineWidth: 1)
+            }
 
             if captchaFailed {
                 Text(L10n.string("register.captcha.failed", locale: locale))
@@ -334,8 +357,58 @@ struct RegisterView: View {
                     .foregroundStyle(Palette.failedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("register-captcha-error")
+            } else if captchaToken == nil {
+                Text(L10n.string("register.captcha.hint", locale: locale))
+                    .font(TypeFace.footnote)
+                    .foregroundStyle(Palette.inkTertiary)
             }
         }
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        if captchaToken != nil {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.runningForeground)
+        } else if captchaFailed {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.failedForeground)
+        } else {
+            Image(systemName: "circle.dashed")
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.inkTertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var statusText: some View {
+        if captchaToken != nil {
+            Text(L10n.string("register.captcha.done", locale: locale))
+                .font(TypeFace.body(13.5))
+                .foregroundStyle(Palette.runningForeground)
+        } else if captchaFailed {
+            Text(L10n.string("register.captcha.open", locale: locale))
+                .font(TypeFace.body(13.5))
+                .foregroundStyle(Palette.failedForeground)
+        } else {
+            Text(L10n.string("register.captcha.open", locale: locale))
+                .font(TypeFace.body(13.5))
+                .foregroundStyle(Palette.ink)
+        }
+    }
+
+    private var rowBackground: Color {
+        if captchaToken != nil { return Palette.runningBackground }
+        if captchaFailed { return Palette.failedBackground }
+        return Palette.surface
+    }
+
+    private var rowBorder: Color {
+        if captchaToken != nil { return Palette.runningForeground.opacity(0.35) }
+        if captchaFailed { return Palette.failedForeground.opacity(0.35) }
+        return Palette.line
     }
 
     /// 服务端 message 优先；没有时用 code 对应的本地兜底。
@@ -358,7 +431,7 @@ struct RegisterView: View {
                 email: email,
                 password: password,
                 passwordConfirm: passwordConfirm,
-                inviteCode: inviteCode,
+                inviteCode: inviteCode.trimmingCharacters(in: .whitespacesAndNewlines),
                 // 服务端启用时必传；未启用时传 nil，服务端会忽略。
                 captchaToken: captchaEnabled ? captchaToken : nil,
                 // 邮件服务未配置时不传该字段。
@@ -366,6 +439,17 @@ struct RegisterView: View {
             )
             if let failure {
                 error = failure
+                // 邀请码被拒：说明当前服务端仍是「需要邀请码」模式，
+                // 记下来让字段变必填，避免用户反复尝试才明白。
+                if failure.code == "invite_not_found" || failure.code == "invite_required" {
+                    inviteRequired = true
+                }
+                // captcha token 一次性有效：校验失败或被用掉后必须重新验证。
+                // 主动作废并提示，比让用户带着旧 token 反复提交更好。
+                if failure.code == "captcha_failed" || failure.code == "captcha_required" {
+                    captchaToken = nil
+                    captchaFailed = true
+                }
             } else {
                 // 注册成功：会话已建立，直接回退让根视图切换到主界面。
                 dismiss()

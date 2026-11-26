@@ -517,7 +517,8 @@ struct RegisterRequest: Encodable {
     let email: String
     let password: String
     let passwordConfirm: String
-    let inviteCode: String
+    /// 开放注册模式下可以不填；由服务端配置决定是否必填。
+    let inviteCode: String?
     /// hCaptcha 已配置时必填。
     let captchaToken: String?
     /// SMTP 已配置时必填。

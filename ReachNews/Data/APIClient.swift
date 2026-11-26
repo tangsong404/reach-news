@@ -241,7 +241,7 @@ final class APIClient {
         email: String,
         password: String,
         passwordConfirm: String,
-        inviteCode: String,
+        inviteCode: String?,
         captchaToken: String? = nil,
         emailCode: String? = nil
     ) async throws -> RegisterOutcome {
