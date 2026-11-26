@@ -21,7 +21,7 @@ struct MeView: View {
             .navigationDestination(for: MeDestination.self) { destination in
                 switch destination {
                 case .saved:
-                    SavedBriefsView(store: env.feed, saved: env.saved)
+                    SavedBriefsView(saved: env.saved)
                 case .preferences:
                     PreferencesView(session: env.session, preferences: env.preferences)
                 case .account:

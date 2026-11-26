@@ -15,11 +15,11 @@ struct HCaptchaView: UIViewRepresentable {
     /// 页面 origin 必须落在 hCaptcha 后台登记的域名上，否则会返回
     /// `request not allowed`。因此不能用 about:blank 加载。
     let baseURL: URL?
+    let onToken: (String) -> Void
+    let onFailure: () -> Void
     /// 内容实际高度；hCaptcha 组件高度会随状态变化（错误提示等），
     /// 固定高度会把它裁掉，因此由页面自己上报。
     var onContentHeight: ((CGFloat) -> Void)? = nil
-    let onToken: (String) -> Void
-    let onFailure: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onToken: onToken, onFailure: onFailure, onContentHeight: onContentHeight)
