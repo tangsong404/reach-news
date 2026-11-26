@@ -37,10 +37,6 @@ struct AccountHeaderView: View {
             }
 
             Spacer(minLength: Space.s)
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.inkTertiary)
         }
         .padding(.vertical, Space.s)
         .accessibilityElement(children: .combine)
