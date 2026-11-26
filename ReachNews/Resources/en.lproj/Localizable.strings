@@ -143,7 +143,6 @@
 "me.saved.empty.title" = "Nothing saved yet";
 "me.saved.remove" = "Remove";
 "me.account.plan.free" = "free";
-"me.account.plan.pro" = "pro";
 "me.account.plan.ultra" = "ultra";
 "preferences.baseURL.heading" = "Service address";
 "preferences.baseURL.save" = "Save address";

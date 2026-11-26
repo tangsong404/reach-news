@@ -73,7 +73,7 @@ final class LocalizationTests: XCTestCase {
             "channel.create.title", "channel.create.submit",
             "error.offline", "error.unauthorized", "error.busy",
             "me.saved", "me.preferences", "me.connection",
-            "me.account.plan.free", "me.account.plan.pro", "me.account.plan.ultra",
+            "me.account.plan.free", "me.account.plan.ultra",
             "subscribed.fork", "subscribed.unsubscribe",
             "error.ownChannel", "error.notPublished", "error.subscriberReadOnly",
             "brief.body.empty",

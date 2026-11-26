@@ -243,7 +243,7 @@ enum MarkdownBlockBuilder {
         // 把 follow 做成 inline link：它会紧跟标题最后一个文字，
         // 标题换行时自然流到最后一行，不会被 HStack 挤到整块最右侧。
         var attributed = block.text
-        var follow = AttributedString("  follow")
+        var follow = AttributedString("  " + String(localized: "brief.heading.follow"))
         follow.link = URL(string: "reachnews://track-heading")
         follow.foregroundColor = Palette.inkSecondary
         follow.backgroundColor = Palette.chip
