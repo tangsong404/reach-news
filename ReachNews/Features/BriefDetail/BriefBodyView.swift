@@ -12,6 +12,8 @@ struct BriefBodyView: View {
     var onOpenURL: (URL) -> Void
     /// 点小标题右侧「跟踪」按钮时的回调；为 nil 时不显示该按钮。
     var onTrackHeading: ((String) -> Void)?
+    /// 当前观感风格：正文小标题的字形与字重跟着它走。
+    var style: ReaderStyle = .editorial
 
     @Environment(\.appLocale) private var locale
 
@@ -28,7 +30,8 @@ struct BriefBodyView: View {
             MarkdownBodyView(
                 markdown: content.markdown,
                 onOpenURL: onOpenURL,
-                onTrackHeading: onTrackHeading
+                onTrackHeading: onTrackHeading,
+                style: style
             )
             .accessibilityIdentifier("brief-body")
         } else {

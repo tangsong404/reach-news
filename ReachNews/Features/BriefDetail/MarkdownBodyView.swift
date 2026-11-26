@@ -1,5 +1,7 @@
 import SwiftUI
 import Foundation
+import CoreText
+import UIKit
 
 // MARK: - 正文 Markdown 渲染（原生实现）
 //
@@ -21,10 +23,16 @@ struct MarkdownBodyView: View {
     var onOpenURL: (URL) -> Void
     /// 点小标题右侧「跟踪」按钮时的回调，参数是该标题的文字。
     var onTrackHeading: ((String) -> Void)?
+    /// 当前观感风格：决定标题字形（衬线 / 无衬线）与字重。
+    var style: ReaderStyle = .editorial
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            let blocks = MarkdownBlockBuilder.parse(markdown, onTrackHeading: onTrackHeading)
+            let blocks = MarkdownBlockBuilder.parse(
+                markdown,
+                onTrackHeading: onTrackHeading,
+                style: style
+            )
             ForEach(blocks) { block in
                 block.view
             }
@@ -71,13 +79,17 @@ enum MarkdownBlockBuilder {
         let view: AnyView
     }
 
-    static func parse(_ markdown: String, onTrackHeading: ((String) -> Void)? = nil) -> [LaidOutBlock] {
+    static func parse(
+        _ markdown: String,
+        onTrackHeading: ((String) -> Void)? = nil,
+        style: ReaderStyle = .editorial
+    ) -> [LaidOutBlock] {
         split(attributed(from: markdown)).enumerated().map { index, block in
             LaidOutBlock(
                 id: index,
                 kind: block.kind,
                 plainText: block.plainText,
-                view: view(for: block, onTrackHeading: onTrackHeading)
+                view: view(for: block, onTrackHeading: onTrackHeading, style: style)
             )
         }
     }
@@ -228,13 +240,20 @@ enum MarkdownBlockBuilder {
     private static func headingWithFollow(
         _ block: Block,
         size: CGFloat,
-        onTrackHeading: ((String) -> Void)?
+        onTrackHeading: ((String) -> Void)?,
+        style: ReaderStyle
     ) -> some View {
-        // 用自定义布局让 follow 跟在标题文字后面，而不是被推到整块最右侧。
+        // 用自定义布局把 follow 钉在标题**最后一个文字**的右侧：
+        // 单行时跟在这一行文字后面，折行时贴最后一行文字之后。
         // 不用 HStack（会把按钮顶到最右），也不用单个 Text（无法接收点击）。
-        HeadingFollowLayout(spacing: Space.xs) {
+        HeadingFollowLayout(
+            text: block.plainText,
+            fontSize: size,
+            style: style,
+            spacing: Space.xs
+        ) {
             Text(block.text)
-                .font(TypeFace.heading(size))
+                .font(Theme.headingFont(size: size, style: style))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
@@ -243,9 +262,15 @@ enum MarkdownBlockBuilder {
                 Button {
                     onTrackHeading(block.plainText)
                 } label: {
+                    // 给一点按钮外观：看得出这里可以点，而不是一段装饰字符。
                     Image(systemName: "bell")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Palette.inkSecondary)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(Palette.chip))
+                        .overlay {
+                            Circle().strokeBorder(Palette.line, lineWidth: 1)
+                        }
                 }
                 .buttonStyle(.plain)
                 .fixedSize()
@@ -257,18 +282,17 @@ enum MarkdownBlockBuilder {
         .padding(.top, Space.xs)
     }
 
-    private static func view(for block: Block, onTrackHeading: ((String) -> Void)?) -> AnyView {
+    private static func view(
+        for block: Block,
+        onTrackHeading: ((String) -> Void)?,
+        style: ReaderStyle
+    ) -> AnyView {
         switch block.kind {
         case .heading(let level):
             let sizes: [CGFloat] = [22, 19, 17, 16, 16, 16]
             let size = sizes[min(max(level, 1), 6) - 1]
-            // follow 紧跟标题的**最后一个文字**：用 Text + Text 拼接，
-            // 而不是 HStack（HStack 会把按钮顶到行的最右侧，不会随文字换行）。
-            //
-            // 做法：把标题文字与按钮文字拼成一个 Text，靠 baseline 流式排布，
-            // 按钮的胶囊底由 overlay 画在对应位置。
             return AnyView(
-                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading)
+                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading, style: style)
             )
 
         case .listItem(let ordered, let ordinal):
@@ -345,14 +369,22 @@ enum MarkdownBlockBuilder {
 
 /// 小标题与 follow 的排布。
 ///
-/// 目标：follow 紧跟标题最后一个字，而不是被挤到整块最右侧。
-/// - 标题一行放得下：follow 直接跟在这一行文字之后。
-/// - 标题需要换行：先给 follow 预留宽度再排版，follow 落在最后一行文字之后
-///   （贴该行底部对齐），因此不会出现文字戳出容器、按钮被推到最右的情况。
+/// 目标：follow 紧贴标题**最后一个文字**的右侧，而不是被挤到整块最右侧。
+/// - 单行放得下：follow 跟在这一行文字之后。
+/// - 需要折行：先给 follow 预留宽度再排版；follow 的位置由 CoreText
+///   复算最后一行的排版宽度得到，因此它贴的是最后一行文字之后，
+///   而不是最宽那一行的右边缘。
 ///
 /// 用普通 `Text` 拼接虽然也能让图标随文字流式换行，但图标就读不到点击了，
 /// 所以由布局显式算出两个子视图的位置。
 private struct HeadingFollowLayout: Layout {
+    /// 量自然宽度时用的「足够大」的宽度。
+    static let unboundedWidth: CGFloat = 100_000
+
+    /// 标题纯文本，用于复算换行。
+    var text: String
+    var fontSize: CGFloat
+    var style: ReaderStyle
     var spacing: CGFloat
 
     private struct Metrics {
@@ -362,19 +394,21 @@ private struct HeadingFollowLayout: Layout {
     }
 
     private func metrics(_ subviews: Subviews, maxWidth: CGFloat) -> Metrics {
-        let text = subviews[0].sizeThatFits(.unspecified)
+        // 用一个足够大的确定宽度取「不折行时的自然宽度」：直接 `.unspecified`
+        // 在可伸缩的 Text 上可能返回容器宽度，那样 follow 永远会跑到最右侧；
+        // 传 infinity 又被当成「未指定」，所以给一个具体的极大值。
+        let ideal = subviews[0].sizeThatFits(ProposedViewSize(width: Self.unboundedWidth, height: nil))
         guard subviews.count > 1 else {
-            // 没有 follow 按钮时也要按容器宽度换行，否则长标题会横着戳出去。
-            guard maxWidth.isFinite, text.width > maxWidth else {
-                return Metrics(text: text, bell: .zero, wrapped: false)
+            guard maxWidth.isFinite, ideal.width > maxWidth else {
+                return Metrics(text: ideal, bell: .zero, wrapped: false)
             }
             let wrapped = subviews[0].sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
             return Metrics(text: wrapped, bell: .zero, wrapped: true)
         }
         let bell = subviews[1].sizeThatFits(.unspecified)
         let slot = bell.width + spacing
-        if !maxWidth.isFinite || text.width + slot <= maxWidth {
-            return Metrics(text: text, bell: bell, wrapped: false)
+        if !maxWidth.isFinite || ideal.width + slot <= maxWidth {
+            return Metrics(text: ideal, bell: bell, wrapped: false)
         }
         let wrapped = subviews[0].sizeThatFits(
             ProposedViewSize(width: max(0, maxWidth - slot), height: nil)
@@ -382,7 +416,7 @@ private struct HeadingFollowLayout: Layout {
         return Metrics(text: wrapped, bell: bell, wrapped: true)
     }
 
-    private func textWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
+    private func wrapWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
         guard m.wrapped else { return m.text.width }
         return m.bell.width > 0 ? max(0, maxWidth - (m.bell.width + spacing)) : maxWidth
     }
@@ -397,19 +431,25 @@ private struct HeadingFollowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let m = metrics(subviews, maxWidth: bounds.width)
-        let measured = CGSize(width: textWidth(m, maxWidth: bounds.width), height: m.text.height)
+        let width = wrapWidth(m, maxWidth: bounds.width)
         subviews[0].place(
             at: CGPoint(x: bounds.minX, y: bounds.minY),
             anchor: .topLeading,
-            proposal: ProposedViewSize(width: measured.width, height: nil)
+            proposal: ProposedViewSize(width: width, height: nil)
         )
         guard subviews.count > 1, m.bell.width > 0 else { return }
 
         let x: CGFloat
         let y: CGFloat
         if m.wrapped {
-            // 与最后一行文字对齐：贴在该行底部，横向接在最宽一行之后。
-            x = bounds.minX + min(bounds.width - m.bell.width, m.text.width + spacing)
+            let font = Theme.headingUIFont(size: fontSize, style: style)
+            let lastLine = HeadingTextMetrics.lastLineWidth(
+                text: text,
+                font: font,
+                maxWidth: width
+            ) ?? m.text.width
+            x = bounds.minX + min(bounds.width - m.bell.width, lastLine + spacing)
+            // 与最后一行文字对齐：贴该行底部。
             y = bounds.minY + max(0, m.text.height - m.bell.height)
         } else {
             x = bounds.minX + m.text.width + spacing
@@ -420,5 +460,26 @@ private struct HeadingFollowLayout: Layout {
             anchor: .topLeading,
             proposal: ProposedViewSize(m.bell)
         )
+    }
+}
+
+/// 用 CoreText 复算一段文字的换行结果，取出最后一行的排版宽度。
+///
+/// 需要它是因为 SwiftUI 的 `Text` 只暴露整块尺寸：折行后整块宽度等于
+/// 最宽那一行，拿不到「最后一行到哪儿结束」。而 follow 必须贴最后一个字。
+enum HeadingTextMetrics {
+    static func lastLineWidth(text: String, font: UIFont, maxWidth: CGFloat) -> CGFloat? {
+        guard maxWidth.isFinite, maxWidth > 0, !text.isEmpty else { return nil }
+        let attributed = NSAttributedString(string: text, attributes: [.font: font])
+        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
+        let path = CGPath(
+            rect: CGRect(x: 0, y: 0, width: maxWidth, height: 100_000),
+            transform: nil
+        )
+        let frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, 0), path, nil)
+        let lines = CTFrameGetLines(frame) as? [CTLine]
+        guard let last = lines?.last else { return nil }
+        let width = CGFloat(CTLineGetTypographicBounds(last, nil, nil, nil))
+        return width.isFinite ? width : nil
     }
 }

@@ -17,6 +17,8 @@ struct BriefDetailView: View {
     /// 点了「跟踪事件」后要预填到创建页的标题；nil 表示不是事件模式。
     @State private var trackedEventHeading: String?
     @State private var pendingFollowHeading: String?
+    /// 收藏前的二次确认。
+    @State private var showsSaveConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -29,7 +31,8 @@ struct BriefDetailView: View {
                     onOpenURL: { url in openURL(url) },
                     onTrackHeading: { heading in
                         pendingFollowHeading = heading
-                    }
+                    },
+                    style: env.appearance.style
                 )
                 .padding(.horizontal, Space.xl)
                 .padding(.top, Space.m)
@@ -56,16 +59,17 @@ struct BriefDetailView: View {
                 NavTitle(text: L10n.string("brief.detail.title", locale: locale))
             }
             // 收藏入口：详情页是唯一能收藏日报的地方，收藏后从「我的 → 收藏」进入。
+            // 图标跟随主题色；点击先确认，确认后才切换。
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    env.saved.toggle(brief.id)
+                    showsSaveConfirmation = true
                 } label: {
-                    Image(systemName: env.saved.isSaved(brief.id) ? "bookmark.fill" : "bookmark")
+                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(env.saved.isSaved(brief.id) ? Palette.ink : Palette.inkSecondary)
+                        .foregroundStyle(env.appearance.accent)
                 }
                 .accessibilityLabel(
-                    Text(L10n.string(env.saved.isSaved(brief.id) ? "me.saved.remove" : "me.saved.add", locale: locale))
+                    Text(L10n.string(isSaved ? "me.saved.remove" : "me.saved.add", locale: locale))
                 )
                 .accessibilityIdentifier("brief-save")
             }
@@ -87,20 +91,35 @@ struct BriefDetailView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("brief-detail")
-        .confirmationCard(
+        // 二次确认用系统原生 alert：屏幕正中、系统圆角，没有气泡尖角。
+        .alert(
+            L10n.string("brief.heading.follow.confirm.title", locale: locale),
             isPresented: Binding(
                 get: { pendingFollowHeading != nil },
                 set: { if !$0 { pendingFollowHeading = nil } }
-            ),
-            title: L10n.string("brief.heading.follow.confirm.title", locale: locale),
-            message: pendingFollowHeading,
-            confirmTitle: L10n.string("brief.heading.follow.confirm.action", locale: locale),
-            cancelTitle: L10n.string("common.cancel", locale: locale),
-            onConfirm: {
+            )
+        ) {
+            Button(L10n.string("brief.heading.follow.confirm.action", locale: locale)) {
                 trackedEventHeading = pendingFollowHeading
                 pendingFollowHeading = nil
             }
-        )
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {
+                pendingFollowHeading = nil
+            }
+        } message: {
+            if let heading = pendingFollowHeading {
+                Text(heading)
+            }
+        }
+        .alert(
+            L10n.string(isSaved ? "brief.save.remove.title" : "brief.save.confirm.title", locale: locale),
+            isPresented: $showsSaveConfirmation
+        ) {
+            Button(L10n.string(isSaved ? "brief.save.remove.action" : "brief.save.confirm.action", locale: locale)) {
+                env.saved.toggle(brief.id)
+            }
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
+        }
         .navigationDestination(isPresented: Binding(
             get: { trackedEventHeading != nil },
             set: { if !$0 { trackedEventHeading = nil } }
@@ -120,10 +139,12 @@ struct BriefDetailView: View {
         }
     }
 
+    private var isSaved: Bool { env.saved.isSaved(brief.id) }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text(store.brief.title)
-                .font(TypeFace.title(25))
+                .font(Theme.headingFont(size: 25, style: env.appearance.style))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 

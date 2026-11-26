@@ -12,6 +12,7 @@ struct ReachNewsApp: App {
                 .environment(\.appEnvironment, environment)
                 .environment(\.appLocale, appLocale)
                 .tint(environment.appearance.accent)
+                .fontDesign(environment.appearance.style == .editorial ? .serif : .default)
                 // 稿子只有纸色外观。
                 .preferredColorScheme(environment.appearance.resolvedColorScheme)
         }

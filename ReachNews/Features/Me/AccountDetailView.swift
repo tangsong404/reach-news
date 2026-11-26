@@ -61,16 +61,16 @@ struct AccountDetailView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             toast = nil
         }
-        .confirmationCard(
-            isPresented: $showsSignOutConfirmation,
-            title: L10n.string("account.signout.confirm.title", locale: locale),
-            confirmTitle: L10n.string("connection.signOut", locale: locale),
-            cancelTitle: L10n.string("common.cancel", locale: locale),
-            isDestructive: true,
-            onConfirm: {
+        // 二次确认用系统原生 alert：屏幕正中、系统圆角，没有气泡尖角。
+        .alert(
+            L10n.string("account.signout.confirm.title", locale: locale),
+            isPresented: $showsSignOutConfirmation
+        ) {
+            Button(L10n.string("connection.signOut", locale: locale), role: .destructive) {
                 Task { await session.signOut() }
             }
-        )
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
+        }
         .sheet(isPresented: $showsNicknameSheet) {
             NicknameSheet(session: session, initialValue: profile.userName)
                 .presentationDetents(SheetMetrics.detents)
@@ -128,7 +128,7 @@ struct AccountDetailView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, Space.s)
         }
-        .listRowBackground(Palette.surface)
+        .listRowBackground(Theme.surface(for: env.appearance.style))
         .onChange(of: photoItem) { _, newValue in
             guard let newValue else { return }
             Task { await uploadAvatar(newValue) }
@@ -199,7 +199,7 @@ struct AccountDetailView: View {
         } header: {
             Text(L10n.string("account.profile.heading", locale: locale))
         }
-        .listRowBackground(Palette.surface)
+        .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
     // MARK: 安全
@@ -219,7 +219,7 @@ struct AccountDetailView: View {
         } header: {
             Text(L10n.string("account.security.heading", locale: locale))
         }
-        .listRowBackground(Palette.surface)
+        .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
     // MARK: 退出登录
@@ -234,7 +234,7 @@ struct AccountDetailView: View {
             }
             .accessibilityIdentifier("account-signout")
         }
-        .listRowBackground(Palette.surface)
+        .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
     private func row(titleKey: String, value: String?, identifier: String) -> some View {

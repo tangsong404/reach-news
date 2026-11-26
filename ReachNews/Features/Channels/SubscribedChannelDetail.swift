@@ -148,27 +148,28 @@ struct SubscribedChannelDetail: View {
             guard !isPresented else { return }
             Task { await applyColor() }
         }
-        .confirmationCard(
-            isPresented: $showsUnsubscribeConfirm,
-            title: L10n.string("subscribed.unsubscribe.confirm.title", locale: locale),
-            message: L10n.string("subscribed.unsubscribe.confirm.message", locale: locale),
-            confirmTitle: L10n.string("subscribed.unsubscribe", locale: locale),
-            cancelTitle: L10n.string("common.cancel", locale: locale),
-            isDestructive: true,
-            onConfirm: {
+        .alert(
+            L10n.string("subscribed.unsubscribe.confirm.title", locale: locale),
+            isPresented: $showsUnsubscribeConfirm
+        ) {
+            Button(L10n.string("subscribed.unsubscribe", locale: locale), role: .destructive) {
                 Task { await unsubscribe() }
             }
-        )
-        .confirmationCard(
-            isPresented: $showsForkConfirm,
-            title: L10n.string("subscribed.fork.confirm.title", locale: locale),
-            message: L10n.string("subscribed.fork.confirm.message", locale: locale),
-            confirmTitle: L10n.string("subscribed.fork", locale: locale),
-            cancelTitle: L10n.string("common.cancel", locale: locale),
-            onConfirm: {
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
+        } message: {
+            Text(L10n.string("subscribed.unsubscribe.confirm.message", locale: locale))
+        }
+        .alert(
+            L10n.string("subscribed.fork.confirm.title", locale: locale),
+            isPresented: $showsForkConfirm
+        ) {
+            Button(L10n.string("subscribed.fork", locale: locale)) {
                 Task { await fork() }
             }
-        )
+            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
+        } message: {
+            Text(L10n.string("subscribed.fork.confirm.message", locale: locale))
+        }
         .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("subscribed-channel-detail")
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 
 // MARK: - 亮暗模式
@@ -72,28 +73,28 @@ enum ThemeTint: String, CaseIterable, Identifiable {
 // 让内容区更接近纯白，减少视觉重量。
 
 enum Theme {
-    // 底色同样走亮/暗成对 token：`mode` 只用于说明调用点属于哪种外观，
-    // 真正取哪一套由当前 trait 决定（`.preferredColorScheme` 已经把它设好）。
-    // 这样同一处调用在亮暗之间不再需要分支，也不会漏掉某个子视图。
+    // 底色按风格分两套：编辑风是暖纸，简洁风是纯白扁平。
+    // 色值都成对给出，暗色下同样保持两套的差异（暖暗 / 中性暗）。
+    // `mode` 只用于说明调用点属于哪种外观，真正取哪一套由当前 trait 决定。
 
     static func canvas(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
         switch style {
-        case .editorial: return Palette.canvas
-        case .plain: return Color(light: 0xFFFFFF, dark: 0x0F0F0D)
+        case .editorial: return Color(light: 0xF5EFE2, dark: 0x17140F)
+        case .plain: return Color(light: 0xFFFFFF, dark: 0x0C0C0C)
         }
     }
 
     static func paper(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
         switch style {
-        case .editorial: return Palette.paper
-        case .plain: return Color(light: 0xF7F7F5, dark: 0x191917)
+        case .editorial: return Color(light: 0xEBE3D2, dark: 0x1E1A14)
+        case .plain: return Color(light: 0xF2F3F5, dark: 0x171717)
         }
     }
 
     static func surface(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
         switch style {
-        case .editorial: return Palette.surface
-        case .plain: return Color(light: 0xFFFFFF, dark: 0x212120)
+        case .editorial: return Color(light: 0xFFFCF4, dark: 0x262219)
+        case .plain: return Color(light: 0xFFFFFF, dark: 0x1F1F1F)
         }
     }
 
@@ -103,5 +104,25 @@ enum Theme {
         case .editorial: return .semibold
         case .plain: return .medium
         }
+    }
+
+    /// 标题字形：编辑风用衬线，简洁风用无衬线。
+    /// 这是两套风格最好辨认的差异，切换时第一眼就该看出来。
+    static func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
+        .system(
+            size: size,
+            weight: headingWeight(for: style),
+            design: style == .editorial ? .serif : .default
+        )
+    }
+
+    /// 与 `headingFont` 对应的 UIKit 字体，供 CoreText 复算换行位置。
+    static func headingUIFont(size: CGFloat, style: ReaderStyle) -> UIFont {
+        let weight: UIFont.Weight = style == .editorial ? .semibold : .medium
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        guard style == .editorial,
+              let descriptor = base.fontDescriptor.withDesign(.serif)
+        else { return base }
+        return UIFont(descriptor: descriptor, size: size)
     }
 }

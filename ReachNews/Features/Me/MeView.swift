@@ -41,7 +41,7 @@ struct MeView: View {
             }
             .buttonStyle(.plain)
             .listRowInsets(EdgeInsets(top: Space.s, leading: Space.l, bottom: Space.s, trailing: Space.l))
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
             .accessibilityIdentifier("me-account-card")
 
             Section {
@@ -65,7 +65,7 @@ struct MeView: View {
                 .accessibilityIdentifier("me-preferences")
 
             }
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
         }
         .scrollContentBackground(.hidden)
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
@@ -256,7 +256,7 @@ struct PreferencesView: View {
                 }
                 .accessibilityIdentifier("preferences-language")
             }
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
             // 亮/暗/跟随系统：独立于编辑风/简洁风。
             Section {
@@ -272,7 +272,7 @@ struct PreferencesView: View {
                 }
                 .accessibilityIdentifier("preferences-appearance-mode")
             }
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
             // 风格：两套观感，只改基调不改结构。
             Section {
@@ -289,13 +289,13 @@ struct PreferencesView: View {
                 }
                 .accessibilityIdentifier("preferences-style")
             }
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
             // 主题色：一行色点，点选即生效。
             Section {
                 tintRow
             }
-            .listRowBackground(Palette.surface)
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
         }
         .scrollContentBackground(.hidden)

@@ -143,6 +143,10 @@
 "me.saved.empty.title" = "还没有收藏";
 "me.saved.remove" = "移除收藏";
 "me.saved.add" = "收藏";
+"brief.save.confirm.title" = "收藏这条日报？";
+"brief.save.confirm.action" = "收藏";
+"brief.save.remove.title" = "取消收藏？";
+"brief.save.remove.action" = "取消收藏";
 "me.account.plan.free" = "free";
 "me.account.plan.ultra" = "ultra";
 "preferences.baseURL.heading" = "服务地址";
