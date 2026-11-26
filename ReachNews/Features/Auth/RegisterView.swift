@@ -14,6 +14,7 @@ struct RegisterView: View {
     @Bindable var session: SessionStore
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
 
     @State private var nickname = ""
     @State private var email = ""
@@ -126,7 +127,7 @@ struct RegisterView: View {
             .padding(.top, Space.l)
             .padding(.bottom, 44)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -166,7 +167,7 @@ struct RegisterView: View {
             // 2/3 高度：够放验证组件，又不像全屏那样空荡。
             .presentationDetents([.fraction(0.66)])
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.canvas)
+            .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
         .task {
             // 进入页面先取人机验证配置：没有它不知道要不要渲染组件。
@@ -193,7 +194,7 @@ struct RegisterView: View {
                     .keyboardType(.numberPad)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 11)
-                    .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .strokeBorder(Palette.line, lineWidth: 1)
@@ -399,10 +400,15 @@ struct RegisterView: View {
         }
     }
 
+    /// 输入框底色：随风格取卡片色，简洁风是浅灰、编辑风是暖白。
+    private var fieldSurface: Color {
+        Theme.surface(for: env.appearance.style, mode: env.appearance.mode)
+    }
+
     private var rowBackground: Color {
         if captchaToken != nil { return Palette.runningBackground }
         if captchaFailed { return Palette.failedBackground }
-        return Palette.surface
+        return fieldSurface
     }
 
     private var rowBorder: Color {
@@ -472,7 +478,7 @@ struct RegisterView: View {
                 .font(TypeFace.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(Palette.line, lineWidth: 1)

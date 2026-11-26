@@ -141,7 +141,7 @@ struct SubscribedChannelDetail: View {
             ColorPickerSheet(selection: $colorSelection, isPresented: $showsColorPicker)
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
         .onChange(of: showsColorPicker) { _, isPresented in
             // 关闭选色层时才提交，避免每一格点击都发一次请求。

@@ -363,7 +363,7 @@ struct NicknameSheet: View {
                     .padding(.vertical, 13)
                     .background(
                         RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                            .fill(Palette.surface)
+                            .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                     )
                     .overlay {
                         RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
@@ -454,6 +454,11 @@ struct PasswordChangeSheet: View {
     @State private var isSendingCode = false
     @State private var codeSent = false
     @State private var resendCountdown = 0
+
+    /// 输入框底色随风格走，和设置页保持一致。
+    private var fieldSurface: Color {
+        Theme.surface(for: env.appearance.style, mode: env.appearance.mode)
+    }
     /// 成功后的回调：由上层负责弹提示。
     var onChanged: (() -> Void)?
 
@@ -493,7 +498,7 @@ struct PasswordChangeSheet: View {
                                 .keyboardType(.numberPad)
                                 .padding(.horizontal, 13)
                                 .padding(.vertical, 11)
-                                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                                         .strokeBorder(Palette.line, lineWidth: 1)
@@ -631,7 +636,7 @@ struct PasswordChangeSheet: View {
                 .font(TypeFace.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(Palette.line, lineWidth: 1)

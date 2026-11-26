@@ -205,6 +205,10 @@ struct AskPill: View {
     let isExpanded: Bool
     var action: () -> Void
 
+    @Environment(AppEnvironment.self) private var env
+
+    private var accent: Color { env.appearance.accent }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: isExpanded ? 7 : 0) {
@@ -220,8 +224,8 @@ struct AskPill: View {
             .padding(.horizontal, isExpanded ? 15 : 0)
             .padding(.vertical, isExpanded ? 11 : 0)
             .frame(width: isExpanded ? nil : 46, height: isExpanded ? nil : 46)
-            // 直接用近黑色实底：再叠一层 thinMaterial 是半透明浅色，会把深色冲淡成灰。
-            .background(Palette.askUser, in: Capsule())
+            // 主操作跟随主题色；再叠一层 thinMaterial 会把颜色冲淡成灰，所以用实底。
+            .background(accent, in: Capsule())
             .shadow(color: .black.opacity(0.28), radius: 12, y: 4)
         }
         .buttonStyle(.plain)

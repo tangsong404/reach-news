@@ -154,6 +154,8 @@ struct PrimaryButton: View {
     let title: String
     var action: () -> Void
 
+    @Environment(AppEnvironment.self) private var env
+
     var body: some View {
         Button(action: action) {
             Text(title)
@@ -161,7 +163,11 @@ struct PrimaryButton: View {
                 .foregroundStyle(Palette.canvas)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Palette.ink))
+                // 主操作跟随主题色，而不是固定墨黑。
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(env.appearance.accent)
+                )
         }
         .buttonStyle(.plain)
     }
@@ -170,6 +176,8 @@ struct PrimaryButton: View {
 // MARK: - 空态 / 错误态
 
 struct MessageStateView: View {
+    @Environment(AppEnvironment.self) private var env
+
     enum Kind {
         case empty
         case error(APIError)
@@ -204,7 +212,7 @@ struct MessageStateView: View {
                     .foregroundStyle(Palette.canvas)
                     .padding(.horizontal, Space.l)
                     .padding(.vertical, Space.s)
-                    .background(Capsule().fill(Palette.ink))
+                    .background(Capsule().fill(env.appearance.accent))
                     .padding(.top, Space.xxs)
             }
         }
@@ -306,6 +314,8 @@ struct FieldBox<Content: View>: View {
     var minHeight: CGFloat = 0
     @ViewBuilder var content: Content
 
+    @Environment(AppEnvironment.self) private var env
+
     var body: some View {
         content
             .font(TypeFace.body(15))
@@ -316,11 +326,11 @@ struct FieldBox<Content: View>: View {
             .frame(minHeight: minHeight > 0 ? minHeight : nil, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .fill(Palette.surface)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
     }
 }
@@ -334,6 +344,8 @@ struct SelectorRow: View {
     let text: String
     var isPlaceholder: Bool = false
     var action: () -> Void
+
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         Button(action: action) {
@@ -350,11 +362,12 @@ struct SelectorRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -370,6 +383,7 @@ struct ChannelColorRow: View {
     @Binding var selection: Int
     @State private var showsPicker = false
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         // 色点与文字同行排布，不再用 overlay 叠在文字上。
@@ -391,11 +405,12 @@ struct ChannelColorRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -404,7 +419,7 @@ struct ChannelColorRow: View {
             ColorPickerSheet(selection: $selection, isPresented: $showsPicker)
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
     }
 }
@@ -414,6 +429,7 @@ struct ColorPickerSheet: View {
     @Binding var selection: Int
     @Binding var isPresented: Bool
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 4)
 
@@ -431,7 +447,7 @@ struct ColorPickerSheet: View {
                                     .frame(width: 44, height: 44)
                                     .overlay {
                                         Circle()
-                                            .strokeBorder(Palette.ink, lineWidth: selection == index ? 2 : 0)
+                                            .strokeBorder(env.appearance.accent, lineWidth: selection == index ? 2 : 0)
                                             .padding(-4)
                                     }
                                 Text(ChannelColorName.name(for: index, locale: locale))
@@ -447,7 +463,7 @@ struct ColorPickerSheet: View {
                 .padding(.top, Space.l)
             }
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -534,12 +550,14 @@ struct ChannelToggle: View {
     let isPending: Bool
     let action: (Bool) -> Void
 
+    @Environment(AppEnvironment.self) private var env
+
     var body: some View {
         Button {
             action(!isOn)
         } label: {
             Capsule()
-                .fill(isOn ? Palette.ink : Palette.lineStrong)
+                .fill(isOn ? env.appearance.accent : Palette.lineStrong)
                 .frame(width: 38, height: 22)
                 .overlay {
                     Circle()

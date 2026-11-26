@@ -142,7 +142,10 @@ struct BriefFeedView: View {
             }
             .padding(.horizontal, 11)
             .padding(.vertical, 9)
-            .background(Palette.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .background(
+                Theme.surface(for: env.appearance.style, mode: env.appearance.mode).opacity(0.72),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(Palette.line, lineWidth: 0.5)
@@ -172,7 +175,9 @@ struct BriefFeedView: View {
                 .padding(.horizontal, Space.m)
                 .padding(.vertical, 9)
                 .background(
-                    store.filter.isActive ? Palette.ink : Palette.surface.opacity(0.72),
+                    store.filter.isActive
+                        ? env.appearance.accent
+                        : Theme.surface(for: env.appearance.style, mode: env.appearance.mode).opacity(0.72),
                     in: RoundedRectangle(cornerRadius: 10, style: .continuous)
                 )
                 .overlay {
@@ -518,11 +523,11 @@ struct FeedFilterSheet: View {
                 Spacer(minLength: 0)
                 ZStack {
                     Circle()
-                        .strokeBorder(isOn ? Palette.ink : Palette.lineStrong, lineWidth: 1.4)
+                        .strokeBorder(isOn ? env.appearance.accent : Palette.lineStrong, lineWidth: 1.4)
                         .frame(width: 17, height: 17)
                     if isOn {
                         Circle()
-                            .fill(Palette.ink)
+                            .fill(env.appearance.accent)
                             .frame(width: 17, height: 17)
                         Image(systemName: "checkmark")
                             .font(.system(size: 8, weight: .bold))

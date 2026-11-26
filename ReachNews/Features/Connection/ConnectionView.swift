@@ -11,6 +11,7 @@ struct ConnectionView: View {
 
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
     @FocusState private var focusedField: Field?
     /// 是否正在看注册页；用导航推入，返回即回到登录。
     @State private var showsRegister = false
@@ -104,7 +105,7 @@ struct ConnectionView: View {
             .frame(maxWidth: .infinity, minHeight: 520, alignment: .center)
             .padding(.vertical, Space.xl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isReplacingCredential {
@@ -152,7 +153,7 @@ struct ConnectionView: View {
                 .font(TypeFace.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(Theme.surface(for: env.appearance.style, mode: env.appearance.mode), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(Palette.line, lineWidth: 1)

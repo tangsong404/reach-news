@@ -511,6 +511,7 @@ struct DiscoverableChannelRow: View {
     var onSubscribe: () -> Void
 
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         HStack(spacing: Space.m) {
@@ -540,7 +541,7 @@ struct DiscoverableChannelRow: View {
                         .foregroundStyle(Palette.canvas)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(Palette.ink))
+                        .background(Capsule().fill(env.appearance.accent))
                 }
             }
             .buttonStyle(.plain)

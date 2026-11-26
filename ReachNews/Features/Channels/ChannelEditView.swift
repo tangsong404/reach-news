@@ -255,6 +255,7 @@ struct ChannelEditView: View {
 struct ScheduleEditor: View {
     @Binding var schedule: Schedule
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     @State private var showsTimePicker = false
     @State private var draftTime = "08:00"
@@ -308,7 +309,7 @@ struct ScheduleEditor: View {
                                 .padding(.vertical, Space.s)
                                 .background(
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                                        .fill(isOn ? Palette.ink : Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
+                                        .fill(isOn ? env.appearance.accent : Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
