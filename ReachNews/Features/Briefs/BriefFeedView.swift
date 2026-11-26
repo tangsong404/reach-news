@@ -274,10 +274,10 @@ struct BriefRow: View {
                 if isNew {
                     Text(L10n.string("feed.new", locale: locale))
                         .font(TypeFace.condensed(9, weight: .bold))
-                        .foregroundStyle(Palette.canvas)
+                        .foregroundStyle(Palette.onInverse)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1.5)
-                        .background(Palette.ink, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .background(Palette.inverseSurface, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
                 }
                 Spacer(minLength: 0)
             }

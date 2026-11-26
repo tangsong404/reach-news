@@ -320,7 +320,8 @@ enum MarkdownBlockBuilder {
                 ScrollView(.horizontal, showsIndicators: false) {
                     // 代码块不加行内样式，等宽并保留换行与缩进；不做语法高亮。
                     Text(String(block.text.characters))
-                        .font(.system(size: 13.5, design: .monospaced))
+                        // 代码块也要跟随 Dynamic Type，否则调大字后正文变了它不变。
+                        .font(.system(size: TypeFace.scaledSize(13.5), design: .monospaced))
                         .foregroundStyle(Palette.ink)
                         .textSelection(.enabled)
                         .padding(Space.m)
