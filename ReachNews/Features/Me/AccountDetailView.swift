@@ -425,6 +425,7 @@ struct NicknameSheet: View {
 struct PasswordChangeSheet: View {
     let session: SessionStore
 
+    @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
     @State private var current = ""
