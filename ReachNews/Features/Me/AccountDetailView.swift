@@ -4,12 +4,11 @@ import PhotosUI
 // MARK: - 个人页
 //
 // 从「我的」页的账号卡片进入。承载与账号相关的全部操作：
-// 修改头像、切换昵称、换绑邮箱、修改密码、退出登录。
+// 修改头像、切换昵称、修改密码、退出登录。
 //
-// 其中昵称/邮箱/密码的写接口后端尚未提供（实测 PATCH /api/v1/me、
-// POST /api/v1/me/email、POST /api/v1/me/password 均 404）。
-// 这些入口照做，但提交按钮置灰并注明暂未支持——不给用户点了没反应的假入口。
-// 头像上传与退出登录是真实可用的。
+// 昵称（PATCH /api/v1/me）、头像（POST/DELETE /api/v1/me/avatar）与密码
+// （POST /api/v1/me/password，需邮箱验证码）都是真实接口；
+// 邮箱只读——服务端没有换绑接口。
 
 struct AccountDetailView: View {
     let session: SessionStore
@@ -62,16 +61,16 @@ struct AccountDetailView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             toast = nil
         }
-        .confirmationDialog(
-            L10n.string("account.signout.confirm.title", locale: locale),
+        .confirmationCard(
             isPresented: $showsSignOutConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(L10n.string("connection.signOut", locale: locale), role: .destructive) {
+            title: L10n.string("account.signout.confirm.title", locale: locale),
+            confirmTitle: L10n.string("connection.signOut", locale: locale),
+            cancelTitle: L10n.string("common.cancel", locale: locale),
+            isDestructive: true,
+            onConfirm: {
                 Task { await session.signOut() }
             }
-            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
-        }
+        )
         .sheet(isPresented: $showsNicknameSheet) {
             NicknameSheet(session: session, initialValue: profile.userName)
                 .presentationDetents(SheetMetrics.detents)
@@ -305,9 +304,15 @@ struct TierBadge: View {
     private var colors: (background: Color, foreground: Color) {
         switch tier.lowercased() {
         case "admin":
-            return (Color(hex: 0x6A4FA0).opacity(0.14), Color(hex: 0x6A4FA0))
+            return (
+                Color(light: 0x6A4FA0, dark: 0xA98FD8).opacity(0.16),
+                Color(light: 0x6A4FA0, dark: 0xC3B0EE)
+            )
         case "ultra":
-            return (Color(hex: 0xB08615).opacity(0.16), Color(hex: 0x8A6A0F))
+            return (
+                Color(light: 0xB08615, dark: 0xD8B75C).opacity(0.18),
+                Color(light: 0x8A6A0F, dark: 0xEBD08D)
+            )
         default:
             return (Palette.chip, Palette.inkSecondary)
         }

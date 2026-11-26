@@ -230,9 +230,9 @@ enum MarkdownBlockBuilder {
         size: CGFloat,
         onTrackHeading: ((String) -> Void)?
     ) -> some View {
-        // 用 SwiftUI Layout 的流式布局，让 follow 随标题最后一行走，
-        // 不使用 HStack：HStack 会把按钮推到整块最右侧。
-        FlowLayout(spacing: Space.xs, rowSpacing: Space.xs) {
+        // 用自定义布局让 follow 跟在标题文字后面，而不是被推到整块最右侧。
+        // 不用 HStack（会把按钮顶到最右），也不用单个 Text（无法接收点击）。
+        HeadingFollowLayout(spacing: Space.xs) {
             Text(block.text)
                 .font(TypeFace.heading(size))
                 .foregroundStyle(Palette.ink)
@@ -343,45 +343,76 @@ enum MarkdownBlockBuilder {
 }
 
 
-/// 简单的行流布局：当标题与 follow 放不下时，后者换到下一行，
-/// 但不会被推到整块最右边。
-private struct FlowLayout: Layout {
+/// 小标题与 follow 的排布。
+///
+/// 目标：follow 紧跟标题最后一个字，而不是被挤到整块最右侧。
+/// - 标题一行放得下：follow 直接跟在这一行文字之后。
+/// - 标题需要换行：先给 follow 预留宽度再排版，follow 落在最后一行文字之后
+///   （贴该行底部对齐），因此不会出现文字戳出容器、按钮被推到最右的情况。
+///
+/// 用普通 `Text` 拼接虽然也能让图标随文字流式换行，但图标就读不到点击了，
+/// 所以由布局显式算出两个子视图的位置。
+private struct HeadingFollowLayout: Layout {
     var spacing: CGFloat
-    var rowSpacing: CGFloat
+
+    private struct Metrics {
+        var text: CGSize
+        var bell: CGSize
+        var wrapped: Bool
+    }
+
+    private func metrics(_ subviews: Subviews, maxWidth: CGFloat) -> Metrics {
+        let text = subviews[0].sizeThatFits(.unspecified)
+        guard subviews.count > 1 else {
+            return Metrics(text: text, bell: .zero, wrapped: false)
+        }
+        let bell = subviews[1].sizeThatFits(.unspecified)
+        let slot = bell.width + spacing
+        if !maxWidth.isFinite || text.width + slot <= maxWidth {
+            return Metrics(text: text, bell: bell, wrapped: false)
+        }
+        let wrapped = subviews[0].sizeThatFits(
+            ProposedViewSize(width: max(0, maxWidth - slot), height: nil)
+        )
+        return Metrics(text: wrapped, bell: bell, wrapped: true)
+    }
+
+    private func textWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
+        m.wrapped ? max(0, maxWidth - (m.bell.width + spacing)) : m.text.width
+    }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .greatestFiniteMagnitude
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > 0 && x + size.width > width {
-                y += rowHeight + rowSpacing
-                x = 0
-                rowHeight = 0
-            }
-            x += (x > 0 ? spacing : 0) + size.width
-            rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+        let maxWidth = proposal.width ?? .greatestFiniteMagnitude
+        let m = metrics(subviews, maxWidth: maxWidth)
+        guard m.bell.width > 0 else { return m.text }
+        let width = proposal.width ?? min(maxWidth, m.text.width + spacing + m.bell.width)
+        return CGSize(width: width, height: max(m.text.height, m.bell.height))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
-                y += rowHeight + rowSpacing
-                x = bounds.minX
-                rowHeight = 0
-            }
-            if x > bounds.minX { x += spacing }
-            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
-            x += size.width
-            rowHeight = max(rowHeight, size.height)
+        let m = metrics(subviews, maxWidth: bounds.width)
+        let measured = CGSize(width: textWidth(m, maxWidth: bounds.width), height: m.text.height)
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: measured.width, height: nil)
+        )
+        guard subviews.count > 1, m.bell.width > 0 else { return }
+
+        let x: CGFloat
+        let y: CGFloat
+        if m.wrapped {
+            // 与最后一行文字对齐：贴在该行底部，横向接在最宽一行之后。
+            x = bounds.minX + min(bounds.width - m.bell.width, m.text.width + spacing)
+            y = bounds.minY + max(0, m.text.height - m.bell.height)
+        } else {
+            x = bounds.minX + m.text.width + spacing
+            y = bounds.minY + max(0, (m.text.height - m.bell.height) / 2)
         }
+        subviews[1].place(
+            at: CGPoint(x: x, y: y),
+            anchor: .topLeading,
+            proposal: ProposedViewSize(m.bell)
+        )
     }
 }

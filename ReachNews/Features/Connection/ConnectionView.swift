@@ -23,6 +23,8 @@ struct ConnectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
+                header
+
                 if case .failed(let error) = session.state {
                     InlineNotice(
                         text: L10n.string(error.messageKey, locale: locale),
@@ -158,5 +160,15 @@ struct ConnectionView: View {
         }
     }
 
-
+    /// 品牌区：图形 + 字标。
+    /// 只保留品牌本身，不再有 "Connect to Reach News" 这类解释性副标题。
+    private var header: some View {
+        HStack(spacing: Space.s) {
+            BrandMark(size: 30)
+            Text("Reach News")
+                .font(TypeFace.heading(19))
+                .foregroundStyle(Palette.ink)
+        }
+        .accessibilityIdentifier("connection-brand")
+    }
 }

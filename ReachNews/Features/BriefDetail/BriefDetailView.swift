@@ -55,6 +55,20 @@ struct BriefDetailView: View {
             ToolbarItem(placement: .principal) {
                 NavTitle(text: L10n.string("brief.detail.title", locale: locale))
             }
+            // 收藏入口：详情页是唯一能收藏日报的地方，收藏后从「我的 → 收藏」进入。
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    env.saved.toggle(brief.id)
+                } label: {
+                    Image(systemName: env.saved.isSaved(brief.id) ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(env.saved.isSaved(brief.id) ? Palette.ink : Palette.inkSecondary)
+                }
+                .accessibilityLabel(
+                    Text(L10n.string(env.saved.isSaved(brief.id) ? "me.saved.remove" : "me.saved.add", locale: locale))
+                )
+                .accessibilityIdentifier("brief-save")
+            }
         }
         .overlay(alignment: .bottomTrailing) {
             if env.session.capabilities.ask {
@@ -73,26 +87,20 @@ struct BriefDetailView: View {
         }
         .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("brief-detail")
-        .confirmationDialog(
-            L10n.string("brief.heading.follow.confirm.title", locale: locale),
+        .confirmationCard(
             isPresented: Binding(
                 get: { pendingFollowHeading != nil },
                 set: { if !$0 { pendingFollowHeading = nil } }
             ),
-            titleVisibility: .visible
-        ) {
-            Button(L10n.string("brief.heading.follow.confirm.action", locale: locale)) {
+            title: L10n.string("brief.heading.follow.confirm.title", locale: locale),
+            message: pendingFollowHeading,
+            confirmTitle: L10n.string("brief.heading.follow.confirm.action", locale: locale),
+            cancelTitle: L10n.string("common.cancel", locale: locale),
+            onConfirm: {
                 trackedEventHeading = pendingFollowHeading
                 pendingFollowHeading = nil
             }
-            Button(L10n.string("common.cancel", locale: locale), role: .cancel) {
-                pendingFollowHeading = nil
-            }
-        } message: {
-            if let heading = pendingFollowHeading {
-                Text(heading)
-            }
-        }
+        )
         .navigationDestination(isPresented: Binding(
             get: { trackedEventHeading != nil },
             set: { if !$0 { trackedEventHeading = nil } }
@@ -193,7 +201,7 @@ struct AskPill: View {
             .frame(width: isExpanded ? nil : 46, height: isExpanded ? nil : 46)
             // 直接用近黑色实底：再叠一层 thinMaterial 是半透明浅色，会把深色冲淡成灰。
             .background(Palette.askUser, in: Capsule())
-            .shadow(color: Palette.ink.opacity(0.32), radius: 12, y: 4)
+            .shadow(color: .black.opacity(0.28), radius: 12, y: 4)
         }
         .buttonStyle(.plain)
         .animation(.easeOut(duration: 0.18), value: isExpanded)

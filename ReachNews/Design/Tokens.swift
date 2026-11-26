@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 // MARK: - 色值工具
 
@@ -10,6 +11,28 @@ extension Color {
         let blue = Double(hex & 0xFF) / 255
         self.init(.sRGB, red: red, green: green, blue: blue, opacity: opacity)
     }
+
+    /// 亮 / 暗两套取值。
+    ///
+    /// 承载在 UIKit 动态色上：视图里仍然只写 `Palette.ink` 这样的语义 token，
+    /// 由当前 trait 解析出对应色值。这样 `.preferredColorScheme` 一改，
+    /// 全应用的 token 一起切换，不必给每个视图传一遍模式。
+    init(light: UInt32, dark: UInt32) {
+        self.init(uiColor: UIColor { traits in
+            UIColor(rgbHex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+}
+
+private extension UIColor {
+    convenience init(rgbHex: UInt32) {
+        self.init(
+            red: CGFloat((rgbHex >> 16) & 0xFF) / 255,
+            green: CGFloat((rgbHex >> 8) & 0xFF) / 255,
+            blue: CGFloat(rgbHex & 0xFF) / 255,
+            alpha: 1
+        )
+    }
 }
 
 // MARK: - 语义 token
@@ -17,37 +40,72 @@ extension Color {
 // 两套视觉语言并存（ADR 0001）：日报、频道、我的走「编辑风」；追问走「近单色工具风」。
 // 视图内一律引用这里的 token，不写字面色值。
 
+/// 中性 token 的亮/暗取值。
+///
+/// 这里是两份配色的唯一出处：`Palette` 用它构造动态色，
+/// 单元测试用同一份数字算对比度，避免「文档写一套、代码是另一套」。
+enum NeutralTokens {
+    static let canvas = (light: UInt32(0xFBFAF7), dark: UInt32(0x121210))
+    static let paper = (light: UInt32(0xF1EFE9), dark: UInt32(0x1C1C18))
+    static let surface = (light: UInt32(0xFFFFFF), dark: UInt32(0x232320))
+    static let ink = (light: UInt32(0x14140F), dark: UInt32(0xF2EFE7))
+    static let inkSecondary = (light: UInt32(0x53514A), dark: UInt32(0xB5B1A6))
+    static let inkTertiary = (light: UInt32(0x8B877E), dark: UInt32(0x97938A))
+    static let chip = (light: UInt32(0xF2F0EA), dark: UInt32(0x2C2C27))
+    static let field = (light: UInt32(0xF2F0EA), dark: UInt32(0x2C2C27))
+    static let askBackground = (light: UInt32(0xF6F5F2), dark: UInt32(0x14140F))
+    static let askSurface = (light: UInt32(0xFFFFFF), dark: UInt32(0x1F1F1A))
+    static let askBubble = (light: UInt32(0xEFEDE8), dark: UInt32(0x2C2C27))
+    static let askUser = (light: UInt32(0x121211), dark: UInt32(0xEDE9DF))
+    static let askUserText = (light: UInt32(0xF7F6F4), dark: UInt32(0x17170F))
+}
+
+/// 状态色的亮/暗取值。
+enum StatusTokens {
+    static let runningBackground = (light: UInt32(0xEAF0EC), dark: UInt32(0x1B2A23))
+    static let runningForeground = (light: UInt32(0x3D6B5C), dark: UInt32(0x8FD3B5))
+    static let missedBackground = (light: UInt32(0xEFEDE7), dark: UInt32(0x2A2823))
+    static let missedForeground = (light: UInt32(0x53514A), dark: UInt32(0xB5B1A6))
+    static let failedBackground = (light: UInt32(0xFAF0EC), dark: UInt32(0x2E1E19))
+    static let failedForeground = (light: UInt32(0xA5452A), dark: UInt32(0xE79C80))
+}
+
+
 enum Palette {
     // 编辑风：日报与频道
-    static let canvas = Color(hex: 0xFBFAF7)
-    static let paper = Color(hex: 0xF1EFE9)
-    static let surface = Color(hex: 0xFFFFFF)
-    static let ink = Color(hex: 0x14140F)
-    static let inkSecondary = Color(hex: 0x53514A)
-    static let inkTertiary = Color(hex: 0x8B877E)
-    static let line = Color(hex: 0x14140F).opacity(0.10)
-    static let lineStrong = Color(hex: 0x14140F).opacity(0.16)
-    static let chip = Color(hex: 0xF2F0EA)
-    static let field = Color(hex: 0xF2F0EA)
+    //
+    // 每个中性色都是亮/暗成对的：暗色不是把亮色整体反相，
+    // 而是保持同一套暖灰秩序（画布最暗 → 纸面 → 卡片 → 分隔线 → 正文），
+    // 保证层级之间仍有对比，而不是糊成一片。
+    static let canvas = Color(light: NeutralTokens.canvas.light, dark: NeutralTokens.canvas.dark)
+    static let paper = Color(light: NeutralTokens.paper.light, dark: NeutralTokens.paper.dark)
+    static let surface = Color(light: NeutralTokens.surface.light, dark: NeutralTokens.surface.dark)
+    static let ink = Color(light: NeutralTokens.ink.light, dark: NeutralTokens.ink.dark)
+    static let inkSecondary = Color(light: NeutralTokens.inkSecondary.light, dark: NeutralTokens.inkSecondary.dark)
+    static let inkTertiary = Color(light: NeutralTokens.inkTertiary.light, dark: NeutralTokens.inkTertiary.dark)
+    static let line = Color(light: 0x14140F, dark: 0xFFFFFF).opacity(0.12)
+    static let lineStrong = Color(light: 0x14140F, dark: 0xFFFFFF).opacity(0.20)
+    static let chip = Color(light: NeutralTokens.chip.light, dark: NeutralTokens.chip.dark)
+    static let field = Color(light: NeutralTokens.field.light, dark: NeutralTokens.field.dark)
 
     // 追问风：近单色
-    static let askBackground = Color(hex: 0xF6F5F2)
-    static let askSurface = Color(hex: 0xFFFFFF)
-    static let askBubble = Color(hex: 0xEFEDE8)
-    static let askUser = Color(hex: 0x121211)
-    static let askUserText = Color(hex: 0xF7F6F4)
+    static let askBackground = Color(light: NeutralTokens.askBackground.light, dark: NeutralTokens.askBackground.dark)
+    static let askSurface = Color(light: NeutralTokens.askSurface.light, dark: NeutralTokens.askSurface.dark)
+    static let askBubble = Color(light: NeutralTokens.askBubble.light, dark: NeutralTokens.askBubble.dark)
+    static let askUser = Color(light: NeutralTokens.askUser.light, dark: NeutralTokens.askUser.dark)
+    static let askUserText = Color(light: NeutralTokens.askUserText.light, dark: NeutralTokens.askUserText.dark)
 
     // 正文链接：全局 tint 是近黑的 ink，链接若沿用 tint 就会与正文同色而看不见。
     // 取色板里的 azure，与频道标识色同一明度区间，不与状态色混淆。
-    static let link = Color(hex: 0x2F6F9E)
+    static let link = Color(light: 0x2F6F9E, dark: 0x7FB6DC)
 
     // 状态：运行中 / 错过 / 失败
-    static let runningBackground = Color(hex: 0xEAF0EC)
-    static let runningForeground = Color(hex: 0x3D6B5C)
-    static let missedBackground = Color(hex: 0xEFEDE7)
-    static let missedForeground = Color(hex: 0x53514A)
-    static let failedBackground = Color(hex: 0xFAF0EC)
-    static let failedForeground = Color(hex: 0xA5452A)
+    static let runningBackground = Color(light: StatusTokens.runningBackground.light, dark: StatusTokens.runningBackground.dark)
+    static let runningForeground = Color(light: StatusTokens.runningForeground.light, dark: StatusTokens.runningForeground.dark)
+    static let missedBackground = Color(light: StatusTokens.missedBackground.light, dark: StatusTokens.missedBackground.dark)
+    static let missedForeground = Color(light: StatusTokens.missedForeground.light, dark: StatusTokens.missedForeground.dark)
+    static let failedBackground = Color(light: StatusTokens.failedBackground.light, dark: StatusTokens.failedBackground.dark)
+    static let failedForeground = Color(light: StatusTokens.failedForeground.light, dark: StatusTokens.failedForeground.dark)
 
     // 频道标识：steel / moss / clay / plum
     /// 频道标识色板：足够区分常见频道数，同时保持整体克制。

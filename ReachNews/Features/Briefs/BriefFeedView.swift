@@ -42,7 +42,7 @@ struct BriefFeedView: View {
 
     private var brandHeader: some View {
         HStack(spacing: Space.s) {
-            BrandMark(assetName: "LogoMarkInk", size: 24)
+            BrandMark(size: 24)
             Text("Reach News")
                 .font(TypeFace.heading(15))
                 .foregroundStyle(Palette.ink)

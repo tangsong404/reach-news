@@ -36,6 +36,8 @@ struct ConnectorPicker: View {
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Palette.canvas)
             .sheetContentInset()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

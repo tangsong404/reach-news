@@ -139,9 +139,10 @@
 "me.connection" = "Connection";
 "me.preferences" = "Preferences";
 "me.saved" = "Saved";
-"me.saved.empty.message" = "Briefs you save appear here.";
+"me.saved.empty.message" = "Tap the bookmark button on a brief to keep it here.";
 "me.saved.empty.title" = "Nothing saved yet";
 "me.saved.remove" = "Remove";
+"me.saved.add" = "Save";
 "me.account.plan.free" = "free";
 "me.account.plan.ultra" = "ultra";
 "preferences.baseURL.heading" = "Service address";

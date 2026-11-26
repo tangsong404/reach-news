@@ -21,18 +21,17 @@ struct ChannelEditView: View {
         content
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
-            .confirmationDialog(
-                L10n.string("channelEdit.delete.confirm.title", locale: locale),
+            .confirmationCard(
                 isPresented: $showsDeleteConfirm,
-                titleVisibility: .visible
-            ) {
-                Button(L10n.string("channelEdit.delete.confirm.action", locale: locale), role: .destructive) {
+                title: L10n.string("channelEdit.delete.confirm.title", locale: locale),
+                message: L10n.string("channelEdit.delete.confirm.message", locale: locale),
+                confirmTitle: L10n.string("channelEdit.delete.confirm.action", locale: locale),
+                cancelTitle: L10n.string("common.cancel", locale: locale),
+                isDestructive: true,
+                onConfirm: {
                     Task { await performDelete() }
                 }
-                Button(L10n.string("common.cancel", locale: locale), role: .cancel) {}
-            } message: {
-                Text(L10n.string("channelEdit.delete.confirm.message", locale: locale))
-            }
+            )
             .sheet(isPresented: $showsConnectorPicker) {
                 ConnectorPicker(
                     connectors: env.channels.connectors,

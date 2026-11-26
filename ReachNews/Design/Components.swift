@@ -504,11 +504,20 @@ struct NavTitle: View {
 // MARK: - 品牌标识
 
 struct BrandMark: View {
-    let assetName: String
+    /// 指定资源时优先用它；不指定时按当前外观取亮/暗两版。
+    var assetName: String? = nil
     var size: CGFloat = 26
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedAssetName: String {
+        if let assetName { return assetName }
+        // 深底上用浅色版标识，否则一片黑看不见。
+        return colorScheme == .dark ? "LogoMarkPaper" : "LogoMarkInk"
+    }
+
     var body: some View {
-        Image(assetName)
+        Image(resolvedAssetName)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
@@ -534,7 +543,7 @@ struct ChannelToggle: View {
                 .frame(width: 38, height: 22)
                 .overlay {
                     Circle()
-                        .fill(Color.white)
+                        .fill(Palette.canvas)
                         .frame(width: 17, height: 17)
                         .padding(2.5)
                         .frame(maxWidth: .infinity, alignment: isOn ? .trailing : .leading)
@@ -545,5 +554,158 @@ struct ChannelToggle: View {
         .disabled(isPending)
         .accessibilityLabel(Text(String(localized: "channel.toggle.accessibility")))
         .accessibilityValue(Text(isOn ? String(localized: "common.on") : String(localized: "common.off")))
+    }
+}
+
+// MARK: - 二次确认卡
+//
+// 所有需要二次确认的地方统一用它，而不是系统 action sheet / 气泡：
+// 系统弹层在 iPhone 上从底部升起、在 iPad 上贴在触发点附近，
+// 位置和样式都不受控。这里固定为屏幕正中的圆角矩形卡片。
+
+struct ConfirmationCard: View {
+    let title: String
+    var message: String?
+    let confirmTitle: String
+    let cancelTitle: String
+    var isDestructive: Bool = false
+
+    var onConfirm: () -> Void
+    var onCancel: () -> Void
+
+    private var confirmColor: Color {
+        isDestructive ? Palette.failedForeground : Palette.ink
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: Space.s) {
+                Text(title)
+                    .font(TypeFace.heading(16))
+                    .foregroundStyle(Palette.ink)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let message, !message.isEmpty {
+                    Text(message)
+                        .font(TypeFace.body(13))
+                        .foregroundStyle(Palette.inkSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Space.l)
+            .padding(.vertical, Space.l)
+
+            Rectangle()
+                .fill(Palette.line)
+                .frame(height: 1)
+
+            HStack(spacing: 0) {
+                Button(action: onCancel) {
+                    Text(cancelTitle)
+                        .font(TypeFace.body(15))
+                        .foregroundStyle(Palette.inkSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("confirmation-card-cancel")
+
+                Rectangle()
+                    .fill(Palette.line)
+                    .frame(width: 1, height: 48)
+
+                Button(action: onConfirm) {
+                    Text(confirmTitle)
+                        .font(TypeFace.heading(15))
+                        .foregroundStyle(confirmColor)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("confirmation-card-confirm")
+            }
+        }
+        .frame(maxWidth: 300)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.large, style: .continuous)
+                .fill(Palette.surface)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.large, style: .continuous)
+                .strokeBorder(Palette.line, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.24), radius: 28, y: 10)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("confirmation-card")
+    }
+}
+
+extension View {
+    /// 在屏幕正中弹出确认卡；`isPresented` 为真时显示，点遮罩或取消即关闭。
+    func confirmationCard(
+        isPresented: Binding<Bool>,
+        title: String,
+        message: String? = nil,
+        confirmTitle: String,
+        cancelTitle: String,
+        isDestructive: Bool = false,
+        onConfirm: @escaping () -> Void
+    ) -> some View {
+        modifier(
+            ConfirmationCardModifier(
+                isPresented: isPresented,
+                title: title,
+                message: message,
+                confirmTitle: confirmTitle,
+                cancelTitle: cancelTitle,
+                isDestructive: isDestructive,
+                onConfirm: onConfirm
+            )
+        )
+    }
+}
+
+private struct ConfirmationCardModifier: ViewModifier {
+    @Binding var isPresented: Bool
+
+    let title: String
+    var message: String?
+    let confirmTitle: String
+    let cancelTitle: String
+    var isDestructive: Bool = false
+
+    var onConfirm: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if isPresented {
+                    ZStack {
+                        Color.black.opacity(0.32)
+                            .ignoresSafeArea()
+                            .onTapGesture { isPresented = false }
+
+                        ConfirmationCard(
+                            title: title,
+                            message: message,
+                            confirmTitle: confirmTitle,
+                            cancelTitle: cancelTitle,
+                            isDestructive: isDestructive,
+                            onConfirm: {
+                                isPresented = false
+                                onConfirm()
+                            },
+                            onCancel: { isPresented = false }
+                        )
+                        .padding(.horizontal, Space.xl)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.16), value: isPresented)
     }
 }

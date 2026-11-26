@@ -50,15 +50,15 @@ enum ThemeTint: String, CaseIterable, Identifiable {
 
     var labelKey: String { "appearance.tint." + rawValue }
 
-    /// 强调色本身。
+    /// 强调色本身。暗底上用同一色相提亮一档，避免深色强调色在暗底上糊掉。
     var color: Color {
         switch self {
-        case .ink: return Color(hex: 0x14140F)
-        case .azure: return Color(hex: 0x2F6F9E)
-        case .emerald: return Color(hex: 0x2E7D5B)
-        case .ember: return Color(hex: 0xB05A2A)
-        case .violet: return Color(hex: 0x6A4FA0)
-        case .teal: return Color(hex: 0x1F7A76)
+        case .ink: return Palette.ink
+        case .azure: return Color(light: 0x2F6F9E, dark: 0x7FB6DC)
+        case .emerald: return Color(light: 0x2E7D5B, dark: 0x7FC9A6)
+        case .ember: return Color(light: 0xB05A2A, dark: 0xD99366)
+        case .violet: return Color(light: 0x6A4FA0, dark: 0xAB95DB)
+        case .teal: return Color(light: 0x1F7A76, dark: 0x6FC2BD)
         }
     }
 
@@ -72,39 +72,28 @@ enum ThemeTint: String, CaseIterable, Identifiable {
 // 让内容区更接近纯白，减少视觉重量。
 
 enum Theme {
+    // 底色同样走亮/暗成对 token：`mode` 只用于说明调用点属于哪种外观，
+    // 真正取哪一套由当前 trait 决定（`.preferredColorScheme` 已经把它设好）。
+    // 这样同一处调用在亮暗之间不再需要分支，也不会漏掉某个子视图。
+
     static func canvas(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
-        if mode == .dark { return Color(hex: 0x161613) }
-        return canvas(for: style)
+        switch style {
+        case .editorial: return Palette.canvas
+        case .plain: return Color(light: 0xFFFFFF, dark: 0x0F0F0D)
+        }
     }
 
     static func paper(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
-        if mode == .dark { return Color(hex: 0x24241F) }
-        return paper(for: style)
+        switch style {
+        case .editorial: return Palette.paper
+        case .plain: return Color(light: 0xF7F7F5, dark: 0x191917)
+        }
     }
 
     static func surface(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
-        if mode == .dark { return Color(hex: 0x2A2A25) }
-        return surface(for: style)
-    }
-
-    static func canvas(for style: ReaderStyle) -> Color {
-        switch style {
-        case .editorial: return Palette.canvas
-        case .plain: return Color(hex: 0xFFFFFF)
-        }
-    }
-
-    static func paper(for style: ReaderStyle) -> Color {
-        switch style {
-        case .editorial: return Palette.paper
-        case .plain: return Color(hex: 0xF7F7F5)
-        }
-    }
-
-    static func surface(for style: ReaderStyle) -> Color {
         switch style {
         case .editorial: return Palette.surface
-        case .plain: return Color(hex: 0xFFFFFF)
+        case .plain: return Color(light: 0xFFFFFF, dark: 0x212120)
         }
     }
 

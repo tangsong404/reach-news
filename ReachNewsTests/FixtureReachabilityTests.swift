@@ -72,7 +72,7 @@ final class LocalizationTests: XCTestCase {
             "ask.pill", "ask.cited.heading", "ask.cited.deterministic",
             "channel.create.title", "channel.create.submit",
             "error.offline", "error.unauthorized", "error.busy",
-            "me.saved", "me.preferences", "me.connection",
+            "me.saved", "me.saved.add", "me.preferences", "me.connection",
             "me.account.plan.free", "me.account.plan.ultra",
             "subscribed.fork", "subscribed.unsubscribe",
             "error.ownChannel", "error.notPublished", "error.subscriberReadOnly",
