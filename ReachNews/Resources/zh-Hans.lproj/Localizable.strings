@@ -278,3 +278,17 @@
 "register.captcha.failed" = "人机验证加载失败。这通常是服务端 siteKey 配置有误，请联系管理员";
 "register.captcha.open" = "点击完成人机验证";
 "register.captcha.done" = "已完成验证";
+"me.saved.loadFailed.title" = "收藏加载失败";
+"me.saved.loadFailed.message" = "网络不可用，稍后重试";
+"me.saved.rowFailed" = "这一条暂时取不回来";
+"preferences.style" = "界面风格";
+"preferences.style.heading" = "风格";
+"preferences.style.editorial" = "编辑风";
+"preferences.style.plain" = "简洁风";
+"preferences.tint.heading" = "主题色";
+"appearance.tint.ink" = "墨黑";
+"appearance.tint.azure" = "天青";
+"appearance.tint.emerald" = "松绿";
+"appearance.tint.ember" = "赤陶";
+"appearance.tint.violet" = "紫罗兰";
+"appearance.tint.teal" = "深青";

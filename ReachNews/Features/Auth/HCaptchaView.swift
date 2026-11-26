@@ -15,11 +15,14 @@ struct HCaptchaView: UIViewRepresentable {
     /// 页面 origin 必须落在 hCaptcha 后台登记的域名上，否则会返回
     /// `request not allowed`。因此不能用 about:blank 加载。
     let baseURL: URL?
+    /// 内容实际高度；hCaptcha 组件高度会随状态变化（错误提示等），
+    /// 固定高度会把它裁掉，因此由页面自己上报。
+    var onContentHeight: ((CGFloat) -> Void)? = nil
     let onToken: (String) -> Void
     let onFailure: () -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onToken: onToken, onFailure: onFailure)
+        Coordinator(onToken: onToken, onFailure: onFailure, onContentHeight: onContentHeight)
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -69,8 +72,8 @@ struct HCaptchaView: UIViewRepresentable {
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
         <style>
-          html,body{margin:0;padding:0;background:transparent;}
-          .wrap{display:flex;justify-content:center;align-items:center;height:100%;}
+          html,body{margin:0;padding:0;background:transparent;overflow:hidden;}
+          .wrap{display:flex;justify-content:center;padding:8px 0;}
         </style>
         </head>
         <body>
@@ -97,12 +100,26 @@ struct HCaptchaView: UIViewRepresentable {
     final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         private let onToken: (String) -> Void
         private let onFailure: () -> Void
+        private let onContentHeight: ((CGFloat) -> Void)?
         var loadedSiteKey: String?
         var loadedBaseURL: String?
 
-        init(onToken: @escaping (String) -> Void, onFailure: @escaping () -> Void) {
+        init(
+            onToken: @escaping (String) -> Void,
+            onFailure: @escaping () -> Void,
+            onContentHeight: ((CGFloat) -> Void)? = nil
+        ) {
             self.onToken = onToken
             self.onFailure = onFailure
+            self.onContentHeight = onContentHeight
+        }
+
+        /// 读取 body 的实际高度并回传。
+        func reportContentHeight(_ webView: WKWebView) {
+            webView.evaluateJavaScript("document.body.scrollHeight") { [weak self] result, _ in
+                guard let self, let number = result as? NSNumber, number.doubleValue > 0 else { return }
+                self.onContentHeight?(CGFloat(number.doubleValue))
+            }
         }
 
         func userContentController(
@@ -137,6 +154,13 @@ struct HCaptchaView: UIViewRepresentable {
               return 'empty';
             })();
             """
+            reportContentHeight(webView)
+            // hCaptcha 组件异步渲染，稍后再量一次真实高度。
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak webView] in
+                guard let self, let webView else { return }
+                self.reportContentHeight(webView)
+            }
+
             webView.evaluateJavaScript(script) { [weak self] result, _ in
                 guard let self else { return }
                 if let state = result as? String, state == "ok" {
@@ -185,54 +209,67 @@ struct CaptchaSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var failed = false
     @State private var reloadToken = 0
+    /// 由页面上报的真实高度；未上报前用一个够用的初值。
+    @State private var contentHeight: CGFloat = 180
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: Space.l) {
-                if failed {
-                    VStack(spacing: Space.s) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 22, weight: .light))
-                            .foregroundStyle(Palette.failedForeground)
-                        Text(L10n.string("register.captcha.failed", locale: locale))
-                            .font(TypeFace.body(13))
-                            .foregroundStyle(Palette.failedForeground)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Button {
-                            failed = false
-                            reloadToken += 1
-                        } label: {
-                            Text(L10n.string("common.retry", locale: locale))
-                                .font(TypeFace.label(12.5))
+            // 用 ScrollView 兜底：组件实际高度因网络与错误提示而变，
+            // 固定高度会裁掉内容；滚动至少保证任何情况下都能看全。
+            ScrollView {
+                VStack(spacing: Space.l) {
+                    if failed {
+                        VStack(spacing: Space.s) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 22, weight: .light))
+                                .foregroundStyle(Palette.failedForeground)
+                            Text(L10n.string("register.captcha.failed", locale: locale))
+                                .font(TypeFace.body(13))
+                                .foregroundStyle(Palette.failedForeground)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Button {
+                                failed = false
+                                reloadToken += 1
+                            } label: {
+                                Text(L10n.string("common.retry", locale: locale))
+                                    .font(TypeFace.label(12.5))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("captcha-sheet-retry")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("captcha-sheet-retry")
+                        .padding(.horizontal, Space.xl)
+                        .padding(.top, Space.xl)
+                    } else {
+                        HCaptchaView(
+                            siteKey: siteKey,
+                            baseURL: baseURL,
+                            onToken: { token in
+                                failed = false
+                                onToken(token)
+                            },
+                            onFailure: {
+                                failed = true
+                                onFailure()
+                            },
+                            onContentHeight: { height in
+                                // 夹在合理区间：太小时组件会被裁，太大时留白过多。
+                                let clamped = min(max(height, 140), 460)
+                                if abs(clamped - contentHeight) > 1 {
+                                    contentHeight = clamped
+                                }
+                            }
+                        )
+                        .id(reloadToken)
+                        .frame(height: contentHeight)
+                        .padding(.horizontal, Space.m)
+                        .accessibilityIdentifier("captcha-sheet-webview")
                     }
-                    .padding(.horizontal, Space.xl)
-                } else {
-                    HCaptchaView(
-                        siteKey: siteKey,
-                        baseURL: baseURL,
-                        onToken: { token in
-                            failed = false
-                            onToken(token)
-                        },
-                        onFailure: {
-                            failed = true
-                            onFailure()
-                        }
-                    )
-                    .id(reloadToken)
-                    // 给足高度：官方组件约 100pt，加上说明与阴影再留余量。
-                    .frame(height: 220)
-                    .padding(.horizontal, Space.m)
-                    .accessibilityIdentifier("captcha-sheet-webview")
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity)
+                .padding(.top, Space.m)
+                .padding(.bottom, Space.xl)
             }
-            .padding(.top, Space.l)
             .background(Palette.canvas)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

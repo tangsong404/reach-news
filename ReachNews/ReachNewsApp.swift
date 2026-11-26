@@ -11,7 +11,7 @@ struct ReachNewsApp: App {
                 .environment(environment)
                 .environment(\.appEnvironment, environment)
                 .environment(\.appLocale, appLocale)
-                .tint(Palette.ink)
+                .tint(environment.appearance.accent)
                 // 稿子只有纸色外观。
                 .preferredColorScheme(.light)
         }

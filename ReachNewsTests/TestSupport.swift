@@ -90,6 +90,8 @@ final class InMemoryPreferences: PreferencesStoring {
     var languagePreference: String = LanguagePreference.system.rawValue
     var lastSeenAt: Date?
     var lastUserName: String = ""
+    var readerStyle: String = ""
+    var themeTint: String = ""
 }
 
 final class InMemoryChannelColors: ChannelColorStoring {

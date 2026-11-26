@@ -16,6 +16,9 @@ final class AppEnvironment {
     let channelColors: ChannelColorStore
     let preferences: PreferencesStoring
     let profile: ProfileStore
+    let appearance: AppearanceStore
+    /// 收藏页自己的数据源：按 ID 拉取，不依赖首页列表。
+    let savedFeed: SavedFeedStore
 
     @ObservationIgnored private let client: APIClient
 
@@ -39,6 +42,8 @@ final class AppEnvironment {
             makeClient: { url in client.withBaseURL(url) }
         )
         self.profile = ProfileStore(session: session, preferences: preferences)
+        self.appearance = AppearanceStore(preferences: preferences)
+        self.savedFeed = SavedFeedStore(client: client)
     }
 
     /// 正式运行时的装配。

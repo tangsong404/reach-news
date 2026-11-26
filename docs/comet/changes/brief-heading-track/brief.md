@@ -20,6 +20,16 @@
    - 后端已就绪（`PATCH /api/v1/me`、`POST /api/v1/me/password`、`DELETE /api/v1/me/avatar`），这三项从「置灰占位」改为**真实可用**；错误按服务端 code 与中文 message 展示。
    - 改密码成功后**不踢回登录页**：实测服务端采用方案 A（其他设备失效、当前 token 保留）。
 
+5. **收藏修复**：当前「我的 → 收藏」只从首页已加载的日报里筛选（`store.briefs`），
+   收藏过的日报一旦不在当前加载范围内就凭空消失，空态因此误报。
+   改为**收藏页自己按 ID 拉取**：用 `GET /api/v1/briefs/:id` 逐条取回，不依赖首页列表。
+   同时补齐：加载中、单条失败可重试、下拉刷新、取消收藏即时移除。
+
+6. **偏好增加风格与主题色**：
+   - 风格：**两套**（编辑风 / 简洁风），只改变观感基调，不改信息结构。
+   - 主题色：提供若干可选强调色，换色后主要操作与强调元素随之变化。
+   - 两者都持久化在本机，重启与切换账号后保持。
+
 4. **注册页与登录改造**：按 `api-changes-invite-registration.md` 与 `api-changes-account-and-email.md` 增加邀请码注册（昵称/邮箱/密码/确认密码/邀请码），注册成功直接进 App；登录改为接受邮箱或昵称；两者都消费 `user` 与 `capabilities`。
    - **图形验证（hCaptcha）**：进注册页先调 `GET /api/v1/auth/captcha` 取 `{ enabled, siteKey }`；`enabled` 为真时必须先完成人机验证拿到 token，再随注册提交 `captchaToken`。实测生产已启用，所以这是主流程而非可选分支。
    - **邮箱验证码**：是否必需取决于管理员是否配了 SMTP。客户端按「可能需要」处理：点发送验证码 → `POST /api/v1/auth/email-code`（`purpose: "register"` + captchaToken）→ 拿到后随注册提交 `emailCode`；若返回 `mail_not_configured`(503) 则不提交该字段。
@@ -37,9 +47,15 @@
 - `ReachNewsTests/RegistrationTests.swift`：覆盖注册请求编码、错误码到提示的映射、注册成功直接建立会话。
 - `ReachNews/Features/BriefDetail/BriefHeadingActions.swift`：小标题右侧「跟踪」按钮，以及事件预填内容（标题与提示词）的生成。
 - `ReachNewsTests/BriefHeadingTests.swift`：覆盖事件预填标题与提示词的生成。
+- `ReachNews/State/SavedFeedStore.swift`：收藏页自己的数据源，按 ID 拉取日报并缓存，支持单条重试与刷新。
+- `ReachNews/State/AppearanceStore.swift`：风格与主题色的偏好读写，供全局取用。
+- `ReachNews/Design/Theme.swift`：两套风格与主题色的 token 定义与解析。
+- `ReachNewsTests/SavedFeedTests.swift`：覆盖收藏按 ID 拉取、单条失败隔离、取消收藏后的移除。
+- `ReachNewsTests/AppearanceTests.swift`：覆盖风格与主题色的持久化与默认值。
 
 ### 修改
 
+- `ReachNews/Features/Me/MeView.swift`：收藏页改为使用 `SavedFeedStore`；偏好页增加风格与主题色选择。
 - `ReachNews/Data/APIClient.swift`：新增 `POST /api/v1/register`、`GET /api/v1/me`、`POST /api/v1/me/avatar`、`GET /api/v1/users/:id/avatar`。
 - `ReachNews/Data/DTO/DTOs.swift`：登录响应解析新增 `email` / `tier` / `avatarUrl` 与 `capabilities`；新增注册与 me 的 DTO。
 - `ReachNews/State/SessionStore.swift`：登录接受邮箱或昵称；新增注册成功后的建会话路径；恢复会话后拉 `/api/v1/me`。
@@ -100,4 +116,9 @@
 - 创建频道超出上限时按 `channel_quota_exceeded` 提示「已达上限」，不当成网络错误。
 - 单元测试覆盖注册请求编码与错误码到提示的映射。
 - 退出登录后回到登录页，且「我的」页不再残留上一账号的用户名、邮箱、套餐与头像；重新登录另一账号时不显示旧账号信息。
+- 收藏一条日报后，即使把首页列表滚动到别处或重进 App，收藏页仍能找到它（不再依赖首页已加载内容）。
+- 收藏页按需拉取时显示加载态；单条拉取失败显示可重试的提示，不整页报错。
+- 收藏页支持下拉刷新；取消收藏后该项立即从列表移除，全部取消后显示空态。
+- 偏好的风格切换在两套之间生效且持久化；主题色切换后强调元素随之变化且持久化。
+- 风格与主题色只影响观感，不改变任何信息结构与交互位置。
 - 本机用 tree-sitter 静态解析全部 `.swift` 无新增 `ERROR` 节点；CI 结果出来前，构建与测试相关结论记为 `not-run`，不记为通过。

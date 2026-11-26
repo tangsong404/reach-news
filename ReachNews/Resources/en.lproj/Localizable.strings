@@ -278,3 +278,17 @@
 "register.captcha.failed" = "Verification failed to load. This usually means the server siteKey is misconfigured; contact an admin";
 "register.captcha.open" = "Tap to verify";
 "register.captcha.done" = "Verified";
+"me.saved.loadFailed.title" = "Could not load saved briefs";
+"me.saved.loadFailed.message" = "Network unavailable. Try again later";
+"me.saved.rowFailed" = "This one could not be loaded";
+"preferences.style" = "Style";
+"preferences.style.heading" = "Style";
+"preferences.style.editorial" = "Editorial";
+"preferences.style.plain" = "Plain";
+"preferences.tint.heading" = "Accent";
+"appearance.tint.ink" = "Ink";
+"appearance.tint.azure" = "Azure";
+"appearance.tint.emerald" = "Emerald";
+"appearance.tint.ember" = "Ember";
+"appearance.tint.violet" = "Violet";
+"appearance.tint.teal" = "Teal";
