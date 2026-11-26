@@ -364,7 +364,12 @@ private struct HeadingFollowLayout: Layout {
     private func metrics(_ subviews: Subviews, maxWidth: CGFloat) -> Metrics {
         let text = subviews[0].sizeThatFits(.unspecified)
         guard subviews.count > 1 else {
-            return Metrics(text: text, bell: .zero, wrapped: false)
+            // 没有 follow 按钮时也要按容器宽度换行，否则长标题会横着戳出去。
+            guard maxWidth.isFinite, text.width > maxWidth else {
+                return Metrics(text: text, bell: .zero, wrapped: false)
+            }
+            let wrapped = subviews[0].sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
+            return Metrics(text: wrapped, bell: .zero, wrapped: true)
         }
         let bell = subviews[1].sizeThatFits(.unspecified)
         let slot = bell.width + spacing
@@ -378,7 +383,8 @@ private struct HeadingFollowLayout: Layout {
     }
 
     private func textWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
-        m.wrapped ? max(0, maxWidth - (m.bell.width + spacing)) : m.text.width
+        guard m.wrapped else { return m.text.width }
+        return m.bell.width > 0 ? max(0, maxWidth - (m.bell.width + spacing)) : maxWidth
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
