@@ -21,7 +21,7 @@ struct MeView: View {
                     Button {
                         showsPlanUnavailable = true
                     } label: {
-                        Image(systemName: "crown")
+                        Image(systemName: "creditcard")
                     }
                     .accessibilityLabel(Text(L10n.string("me.plan.title", locale: locale)))
                     .accessibilityIdentifier("me-plan")
