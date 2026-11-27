@@ -8,9 +8,10 @@ struct MeView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     @State private var showsPlanUnavailable = false
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             content(env)
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationTitle("")
@@ -55,7 +56,7 @@ struct MeView: View {
                 .listRowSeparator(.hidden)
 
             Section {
-                NavigationLink(value: MeDestination.account) {
+                Button { path.append(MeDestination.account) } label: {
                     AccountHeaderView(profile: env.profile)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -77,7 +78,7 @@ struct MeView: View {
 
             Section {
                 VStack(spacing: 0) {
-                    NavigationLink(value: MeDestination.saved) {
+                    Button { path.append(MeDestination.saved) } label: {
                         SettingsRow(
                             title: L10n.string("me.saved", locale: locale),
                             systemImage: "bookmark",
@@ -89,7 +90,7 @@ struct MeView: View {
                     .padding(.vertical, 8)
                     Divider().padding(.leading, 58)
 
-                    NavigationLink(value: MeDestination.preferences) {
+                    Button { path.append(MeDestination.preferences) } label: {
                         SettingsRow(title: L10n.string("me.preferences", locale: locale), systemImage: "textformat.size")
                     }
                     .accessibilityIdentifier("me-preferences")
@@ -97,7 +98,7 @@ struct MeView: View {
                     .padding(.vertical, 8)
                     Divider().padding(.leading, 58)
 
-                    NavigationLink(value: MeDestination.help) {
+                    Button { path.append(MeDestination.help) } label: {
                         SettingsRow(title: L10n.string("me.help", locale: locale), systemImage: "questionmark.circle")
                     }
                     .accessibilityIdentifier("me-help")
