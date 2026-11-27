@@ -570,3 +570,24 @@ extension ButtonStyle where Self == PressableButtonStyle {
     /// `.buttonStyle(.pressable)`
     static var pressable: PressableButtonStyle { PressableButtonStyle() }
 }
+
+// MARK: - 收起键盘
+
+extension View {
+    /// 点空白处收起键盘。
+    ///
+    /// 用 `simultaneousGesture` 而不是 `onTapGesture`：不抢按钮、行的点击，
+    /// 只在没被别的手势消费时兜底。
+    func dismissKeyboardOnBackgroundTap() -> some View {
+        simultaneousGesture(
+            TapGesture().onEnded {
+                UIApplication.shared.sendAction(
+                    #selector(UIResponder.resignFirstResponder),
+                    to: nil,
+                    from: nil,
+                    for: nil
+                )
+            }
+        )
+    }
+}

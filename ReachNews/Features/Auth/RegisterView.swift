@@ -128,6 +128,8 @@ struct RegisterView: View {
             .padding(.bottom, 44)
         }
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

@@ -36,6 +36,8 @@ struct AccountDetailView: View {
             signOutSection
         }
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
         .background(Theme.canvas(for: env.appearance.style))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

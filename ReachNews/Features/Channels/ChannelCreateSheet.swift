@@ -68,6 +68,8 @@ struct ChannelCreateSheet: View {
                         FieldBox(minHeight: 132) {
                             TextEditor(text: $prompt)
                                 .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
                                 .frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
                                 .accessibilityIdentifier("channel-create-prompt")
                         }

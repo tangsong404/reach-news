@@ -42,6 +42,8 @@ struct BriefDetailView: View {
             .padding(.bottom, 120)
         }
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // 顶部栏只给「日报」：标题已在正文区大字号呈现，重复显示没有意义。
@@ -144,7 +146,7 @@ struct BriefDetailView: View {
 
     private var isSaved: Bool { env.saved.isSaved(brief.id) }
 
-    /// 底部提问条：输入即问，走与追问页相同的 store。
+    /// 底部提问条：悬浮的半透明胶囊（系统材质），像 Messages 的输入区。
     private var askBar: some View {
         HStack(spacing: Space.s) {
             TextField(
@@ -152,11 +154,9 @@ struct BriefDetailView: View {
                 text: $questionDraft,
                 axis: .vertical
             )
-            .font(TypeFace.body(14))
-            .lineLimit(1...3)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 10)
-            .background(Palette.field, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .font(TypeFace.body(15))
+            .lineLimit(1...4)
+            .padding(.leading, 4)
             .submitLabel(.send)
             .onSubmit(sendQuestion)
             .accessibilityIdentifier("brief-ask-field")
@@ -165,20 +165,31 @@ struct BriefDetailView: View {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Palette.onInverse)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
                     .background(env.appearance.accent, in: Circle())
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }
             .buttonStyle(.pressable)
-            .disabled(questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .opacity(questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.4 : 1)
+            .disabled(isQuestionEmpty)
+            .opacity(isQuestionEmpty ? 0.35 : 1)
             .accessibilityLabel(Text(L10n.string("ask.bar.send", locale: locale)))
             .accessibilityIdentifier("brief-ask-send")
         }
+        .padding(.leading, Space.m)
+        .padding(.trailing, Space.xs)
+        .padding(.vertical, 4)
+        // 系统材质 + 胶囊：半透明悬浮在内容之上，而不是一条实心底栏。
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay {
+            Capsule().strokeBorder(Palette.line, lineWidth: 0.5)
+        }
         .padding(.horizontal, Space.l)
-        .padding(.vertical, Space.s)
-        .background(.bar)
+        .padding(.bottom, Space.s)
+    }
+
+    private var isQuestionEmpty: Bool {
+        questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func sendQuestion() {

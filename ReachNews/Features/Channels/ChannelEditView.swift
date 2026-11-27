@@ -96,6 +96,8 @@ struct ChannelEditView: View {
                     FieldBox(minHeight: 132) {
                         TextEditor(text: $editor.draft.prompt)
                             .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
                             .frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
                             .accessibilityIdentifier("channel-edit-prompt")
                     }

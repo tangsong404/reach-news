@@ -22,22 +22,10 @@ struct BriefFeedView: View {
             }
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             // 一级页面用大标题（HIG：大标题帮助定位，滚动时自动收成标准标题）。
-            // 品牌放导航栏正中（与 Apple News 一致）：logo + 字标，
-            // 位置固定、不随内容滚动，也不和标题重复。
+            // 品牌占据原来大标题「日报」的位置：左侧、大字号、随内容滚动。
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: Space.xs) {
-                        BrandMark(size: 20)
-                        Text("Reach News")
-                            .font(TypeFace.heading(16))
-                            .foregroundStyle(Palette.ink)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("feed-brand")
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     filterToolbarButton(store)
                 }
@@ -61,10 +49,12 @@ struct BriefFeedView: View {
         // 品牌行、计数行、日期分组都在 List 里，跟着内容一起滚走；
         // 只有搜索框（系统 searchable）固定在导航栏下方。
         List {
+            brandHeaderRow
+
             metaLines(store)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.s, trailing: Space.xl))
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 2, trailing: Space.xl))
 
             if store.filter.isActive {
                 activeFilterSummary(store)
@@ -104,6 +94,8 @@ struct BriefFeedView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.immediately)
+        .dismissKeyboardOnBackgroundTap()
         .refreshable {
             await store.refresh()
         }
@@ -142,6 +134,23 @@ struct BriefFeedView: View {
         .accessibilityValue(
             Text(dimensions > 0 ? "\(dimensions)" : L10n.string("common.off", locale: locale))
         )
+    }
+
+    /// 首页品牌：图形 + 字标，占原来大标题的位置（左侧、大字号、随内容滚动）。
+    private var brandHeaderRow: some View {
+        HStack(spacing: Space.s) {
+            BrandMark(size: 30)
+            Text("Reach News")
+                .font(TypeFace.display(28))
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityIdentifier("feed-brand")
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
     }
 
     /// 只保留频道数与期数；不显示当日日期，也不显示排序说明。
@@ -219,11 +228,10 @@ struct BriefFeedView: View {
                 .foregroundStyle(Palette.inkTertiary)
                 .textCase(nil)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, Space.s)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-                // 分组之间只留一点点空隙，避免行与行被撑得很开。
-                .listRowInsets(EdgeInsets(top: Space.m, leading: Space.xl, bottom: 2, trailing: Space.xl))
+                // 分组标题与正文之间只留最小呼吸，不再撑开。
+                .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: 0, trailing: Space.xl))
 
             ForEach(group.briefs) { brief in
                 NavigationLink(value: brief) {
