@@ -245,43 +245,22 @@ enum MarkdownBlockBuilder {
         onTrackHeading: ((String) -> Void)?,
         style: ReaderStyle
     ) -> some View {
-        // 用自定义布局把 follow 钉在标题**最后一个文字**的右侧：
-        // 单行时跟在这一行文字后面，折行时贴最后一行文字之后。
-        // 不用 HStack（会把按钮顶到最右），也不用单个 Text（无法接收点击）。
-        HeadingFollowLayout(
-            text: block.plainText,
-            fontSize: size,
-            style: style,
-            spacing: 2,
-            hitInset: 11
-        ) {
-            Text(block.text)
-                .font(Theme.headingFont(size: size, style: style))
-                .foregroundStyle(Palette.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-
+        // 铃铛必须紧贴最后一个字：文字与铃铛放进同一段 TextKit 文本里，
+        // 位置天然正确，点击由内联附件的命中测试处理。
+        Group {
             if let onTrackHeading {
-                Button {
-                    onTrackHeading(block.plainText)
-                } label: {
-                    // 给一点按钮外观：看得出这里可以点，而不是一段装饰字符。
-                    Image(systemName: "bell")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Palette.inkSecondary)
-                        .frame(width: 22, height: 22)
-                        .background(Circle().fill(Palette.chip))
-                        .overlay {
-                            Circle().strokeBorder(Palette.line, lineWidth: 1)
-                        }
-                        // 视觉 22pt，可点范围撑到 44pt（HIG 默认最小值）。
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.pressable)
-                .fixedSize()
-                .accessibilityLabel(Text(L10n.string("brief.heading.follow", locale: .current)))
-                .accessibilityIdentifier("brief-heading-follow")
+                InlineFollowHeading(
+                    text: block.plainText,
+                    fontSize: size,
+                    style: style,
+                    followLabel: L10n.string("brief.heading.follow", locale: .current),
+                    onFollow: { onTrackHeading(block.plainText) }
+                )
+            } else {
+                Text(block.text)
+                    .font(Theme.headingFont(size: size, style: style))
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -370,138 +349,5 @@ enum MarkdownBlockBuilder {
                     .frame(maxWidth: .infinity, alignment: .leading)
             )
         }
-    }
-}
-
-
-/// 小标题与 follow 的排布。
-///
-/// 目标：follow 紧贴标题**最后一个文字**的右侧，而不是被挤到整块最右侧。
-/// - 单行放得下：follow 跟在这一行文字之后。
-/// - 需要折行：先给 follow 预留宽度再排版；follow 的位置由 CoreText
-///   复算最后一行的排版宽度得到，因此它贴的是最后一行文字之后，
-///   而不是最宽那一行的右边缘。
-///
-/// 用普通 `Text` 拼接虽然也能让图标随文字流式换行，但图标就读不到点击了，
-/// 所以由布局显式算出两个子视图的位置。
-private struct HeadingFollowLayout: Layout {
-    /// 量自然宽度时用的「足够大」的宽度。
-    static let unboundedWidth: CGFloat = 100_000
-
-    /// 标题纯文本，用于复算换行。
-    var text: String
-    var fontSize: CGFloat
-    var style: ReaderStyle
-    var spacing: CGFloat
-    /// 按钮可点区比视觉圆点大出来的那一圈（44pt 命中区 / 22pt 圆点 → 11）。
-    /// 排版时要扣掉它，否则铃铛看起来离文字很远。
-    var hitInset: CGFloat = 0
-    /// 圆点本身的直径：换行时只需给它留位置，不必把 44pt 命中区都留出来，
-    /// 否则最后一行会提前 20 多 pt 折行，铃铛看起来离文字很远。
-    var visualWidth: CGFloat = 22
-
-    private struct Metrics {
-        var text: CGSize
-        var bell: CGSize
-        var wrapped: Bool
-    }
-
-    private func metrics(_ subviews: Subviews, maxWidth: CGFloat) -> Metrics {
-        // 用一个足够大的确定宽度取「不折行时的自然宽度」：直接 `.unspecified`
-        // 在可伸缩的 Text 上可能返回容器宽度，那样 follow 永远会跑到最右侧；
-        // 传 infinity 又被当成「未指定」，所以给一个具体的极大值。
-        let ideal = subviews[0].sizeThatFits(ProposedViewSize(width: Self.unboundedWidth, height: nil))
-        guard subviews.count > 1 else {
-            guard maxWidth.isFinite, ideal.width > maxWidth else {
-                return Metrics(text: ideal, bell: .zero, wrapped: false)
-            }
-            let wrapped = subviews[0].sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
-            return Metrics(text: wrapped, bell: .zero, wrapped: true)
-        }
-        let bell = subviews[1].sizeThatFits(.unspecified)
-        let slot = visualWidth + spacing
-        if !maxWidth.isFinite || ideal.width + slot <= maxWidth {
-            return Metrics(text: ideal, bell: bell, wrapped: false)
-        }
-        let wrapped = subviews[0].sizeThatFits(
-            ProposedViewSize(width: max(0, maxWidth - slot), height: nil)
-        )
-        return Metrics(text: wrapped, bell: bell, wrapped: true)
-    }
-
-    private func wrapWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
-        guard m.wrapped else { return m.text.width }
-        return m.bell.width > 0 ? max(0, maxWidth - (visualWidth + spacing)) : maxWidth
-    }
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .greatestFiniteMagnitude
-        let m = metrics(subviews, maxWidth: maxWidth)
-        guard m.bell.width > 0 else { return m.text }
-        let width = proposal.width ?? min(maxWidth, m.text.width + spacing + m.bell.width)
-        return CGSize(width: width, height: max(m.text.height, m.bell.height))
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let m = metrics(subviews, maxWidth: bounds.width)
-        let width = wrapWidth(m, maxWidth: bounds.width)
-        subviews[0].place(
-            at: CGPoint(x: bounds.minX, y: bounds.minY),
-            anchor: .topLeading,
-            proposal: ProposedViewSize(width: width, height: nil)
-        )
-        guard subviews.count > 1, m.bell.width > 0 else { return }
-
-        let font = Theme.headingUIFont(size: fontSize, style: style)
-        let lineHeight = max(font.lineHeight, m.bell.height)
-        let x: CGFloat
-        let y: CGFloat
-        if m.wrapped {
-            // 铃铛必须紧贴**最后一个字**的右边。SwiftUI 不暴露末行宽度，
-            // 这里用与渲染完全相同的字体和宽度跑一遍 CoreText 取最后一行宽度。
-            // （早前版本测量字体与渲染字体不一致，断行不同，铃铛会落到文字中间。）
-            let lastLine = HeadingTextMetrics.lastLine(
-                text: text,
-                font: font,
-                maxWidth: width
-            )
-            let endX = lastLine?.width ?? m.text.width
-            x = bounds.minX + max(
-                0,
-                min(bounds.width - m.bell.width, endX + spacing - hitInset)
-            )
-            let lastLineCenterY = bounds.minY + m.text.height - lineHeight / 2
-            y = max(bounds.minY, lastLineCenterY - m.bell.height / 2)
-        } else {
-            x = bounds.minX + m.text.width + spacing - hitInset
-            let lineCenterY = bounds.minY + m.text.height / 2
-            y = max(bounds.minY, lineCenterY - m.bell.height / 2)
-        }
-        subviews[1].place(
-            at: CGPoint(x: x, y: y),
-            anchor: .topLeading,
-            proposal: ProposedViewSize(m.bell)
-        )
-    }
-}
-
-
-/// 用 CoreText 复算最后一行：SwiftUI 的 `Text` 只暴露整块尺寸，
-/// 拿不到「最后一行到哪儿结束」，而 follow 必须贴最后一个字。
-enum HeadingTextMetrics {
-    static func lastLine(text: String, font: UIFont, maxWidth: CGFloat) -> (width: CGFloat, height: CGFloat)? {
-        guard maxWidth.isFinite, maxWidth > 0, !text.isEmpty else { return nil }
-        let attributed = NSAttributedString(string: text, attributes: [.font: font])
-        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
-        let path = CGPath(
-            rect: CGRect(x: 0, y: 0, width: maxWidth, height: 100_000),
-            transform: nil
-        )
-        let frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, 0), path, nil)
-        guard let lines = CTFrameGetLines(frame) as? [CTLine], let last = lines.last else {
-            return nil
-        }
-        let width = CGFloat(CTLineGetTypographicBounds(last, nil, nil, nil))
-        return width.isFinite ? (width, font.lineHeight) : nil
     }
 }
