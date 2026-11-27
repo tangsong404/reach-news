@@ -171,6 +171,8 @@ struct SubscribedChannelDetail: View {
             Text(L10n.string("subscribed.fork.confirm.message", locale: locale))
         }
         .accessibilityIdentifier("subscribed-channel-detail")
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
     }
 
     // MARK: 头部

@@ -45,27 +45,39 @@ struct BriefFeedView: View {
     private func content(_ store: BriefFeedStore) -> some View {
         @Bindable var store = store
 
-        VStack(spacing: 0) {
+        // 品牌行、计数行、日期分组都在 List 里，跟着内容一起滚走；
+        // 只有搜索框（系统 searchable）固定在导航栏下方。
+        List {
+            brandRow
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
+
             metaLines(store)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.s, trailing: Space.xl))
 
             if store.filter.isActive {
                 activeFilterSummary(store)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: Space.s, trailing: 0))
             }
 
             if store.isLoadingFirstPage {
-                Spacer()
                 LoadingLine(text: L10n.string("feed.loading", locale: locale))
-                Spacer()
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             } else if let error = store.error, store.briefs.isEmpty {
-                Spacer()
                 errorState(error, store: store)
-                Spacer()
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             } else if store.isEmpty {
-                Spacer()
                 emptyState()
-                Spacer()
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
             } else if store.hasNoResults {
-                Spacer()
                 MessageStateView(
                     title: L10n.string("feed.noResults.title", locale: locale),
                     message: L10n.string("feed.noResults.message", locale: locale),
@@ -76,11 +88,18 @@ struct BriefFeedView: View {
                         store.filter = FeedFilter()
                     }
                 )
-                Spacer()
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             } else {
-                feedList(store)
+                feedRows(store)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            await store.refresh()
+        }
+        .accessibilityIdentifier("feed-list")
         // 系统搜索框：自带查找图标、清除按钮、键盘联动与滚动固定行为。
         .searchable(
             text: $store.searchText,
@@ -94,6 +113,20 @@ struct BriefFeedView: View {
         }
     }
 
+    /// 首页品牌区：图形 + 字标，随内容滚动，不占导航栏。
+    private var brandRow: some View {
+        HStack(spacing: Space.s) {
+            BrandMark(size: 26)
+            Text("Reach News")
+                .font(TypeFace.heading(19))
+                .foregroundStyle(Palette.ink)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityIdentifier("feed-brand")
+    }
+
     /// 筛选入口放工具栏：HIG 工具栏承载作用于内容的命令，搜索框则由系统 searchable 承担。
     @ViewBuilder
     private func filterToolbarButton(_ store: BriefFeedStore?) -> some View {
@@ -102,12 +135,10 @@ struct BriefFeedView: View {
         Button {
             showFilter = true
         } label: {
-            Image(
-                systemName: isActive
-                    ? "line.3.horizontal.decrease.circle.fill"
-                    : "line.3.horizontal.decrease.circle"
-            )
-            .font(.system(size: 17, weight: .regular))
+            // 三道递减的横线是系统里表示「筛选/排序」的图形；
+            // 带圈的版本容易被读成列表，所以用不带圈的。
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(isActive ? env.appearance.accent : Palette.ink)
         }
         .buttonStyle(.pressable)
@@ -127,8 +158,6 @@ struct BriefFeedView: View {
             MetaLine(text: L10n.format("feed.briefCount", locale: locale, store.briefs.count))
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, Space.xl)
-        .padding(.top, Space.m)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("feed-meta")
     }
@@ -185,50 +214,52 @@ struct BriefFeedView: View {
         .background(Palette.chip, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
-    /// HIG：用 List 承载列表数据——分隔线、行内边距、选中高亮、滑动操作都由系统提供。
-    /// 行内容仍是自定义的 BriefRow，但外框交给 List。
-    private func feedList(_ store: BriefFeedStore) -> some View {
-        List {
-            ForEach(store.groupedBriefs, id: \.day) { group in
-                Section {
-                    ForEach(group.briefs) { brief in
-                        NavigationLink(value: brief) {
-                            BriefRow(
-                                brief: brief,
-                                channelName: store.displayName(for: brief),
-                                channelID: brief.channelID,
-                                isNew: store.isNew(brief),
-                                colorIndex: env.channelColors.colorIndex(for: brief.channelID)
-                            )
-                        }
-                        .listRowBackground(Color.clear)
-                        .task {
-                            await store.loadMoreIfNeeded(appearing: brief)
-                        }
-                    }
-                } header: {
-                    DayRule(title: DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
+    /// 日期分组与行都作为普通 List 行（不是 Section 头），
+    /// 这样向下滚动时它们跟着内容走，不会吸顶留在原地。
+    @ViewBuilder
+    private func feedRows(_ store: BriefFeedStore) -> some View {
+        ForEach(store.groupedBriefs, id: \.day) { group in
+            Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
+                .font(TypeFace.label(11))
+                .tracking(1)
+                .foregroundStyle(Palette.inkTertiary)
+                .textCase(nil)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, Space.l)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
+
+            ForEach(group.briefs) { brief in
+                NavigationLink(value: brief) {
+                    BriefRow(
+                        brief: brief,
+                        channelName: store.displayName(for: brief),
+                        channelID: brief.channelID,
+                        isNew: store.isNew(brief),
+                        colorIndex: env.channelColors.colorIndex(for: brief.channelID)
+                    )
+                }
+                .listRowBackground(Color.clear)
+                .task {
+                    await store.loadMoreIfNeeded(appearing: brief)
                 }
             }
+        }
 
-            if store.isLoadingMore {
-                LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
-                    .listRowSeparator(.hidden)
-            } else if !store.hasMore && !store.briefs.isEmpty {
-                Text(L10n.string("feed.endOfFeed", locale: locale))
-                    .font(TypeFace.body(11.5))
-                    .foregroundStyle(Palette.inkTertiary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Space.l)
-                    .listRowSeparator(.hidden)
-            }
+        if store.isLoadingMore {
+            LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+        } else if !store.hasMore && !store.briefs.isEmpty {
+            Text(L10n.string("feed.endOfFeed", locale: locale))
+                .font(TypeFace.body(11.5))
+                .foregroundStyle(Palette.inkTertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Space.l)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .refreshable {
-            await store.refresh()
-        }
-        .accessibilityIdentifier("feed-list")
     }
 
     private func emptyState() -> some View {

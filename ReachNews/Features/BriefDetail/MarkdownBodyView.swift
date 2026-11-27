@@ -443,21 +443,25 @@ private struct HeadingFollowLayout: Layout {
         )
         guard subviews.count > 1, m.bell.width > 0 else { return }
 
+        let font = Theme.headingUIFont(size: fontSize, style: style)
+        let lineHeight = max(font.lineHeight, m.bell.height)
         let x: CGFloat
         let y: CGFloat
         if m.wrapped {
-            let font = Theme.headingUIFont(size: fontSize, style: style)
             let lastLine = HeadingTextMetrics.lastLineWidth(
                 text: text,
                 font: font,
                 maxWidth: width
             ) ?? m.text.width
             x = bounds.minX + min(bounds.width - m.bell.width, lastLine + spacing)
-            // 与最后一行文字对齐：贴该行底部。
-            y = bounds.minY + max(0, m.text.height - m.bell.height)
+            // 让按钮的视觉中心落在最后一行文字的中线上（按钮可点区是 44pt，
+            // 直接贴底部会把铃铛顶到上一行）。
+            let lastLineCenterY = bounds.minY + m.text.height - lineHeight / 2
+            y = max(bounds.minY, lastLineCenterY - m.bell.height / 2)
         } else {
             x = bounds.minX + m.text.width + spacing
-            y = bounds.minY + max(0, (m.text.height - m.bell.height) / 2)
+            let lineCenterY = bounds.minY + m.text.height / 2
+            y = max(bounds.minY, lineCenterY - m.bell.height / 2)
         }
         subviews[1].place(
             at: CGPoint(x: x, y: y),

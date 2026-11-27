@@ -44,6 +44,8 @@ struct AccountDetailView: View {
             }
         }
         .accessibilityIdentifier("account-detail")
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
         .overlay(alignment: .bottom) {
             if let toast {
                 Text(toast)

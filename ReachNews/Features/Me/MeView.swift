@@ -136,6 +136,8 @@ struct SavedBriefsView: View {
             await env.savedFeed.load(ids: savedIDs)
         }
         .accessibilityIdentifier("saved-list")
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var emptyState: some View {
@@ -309,6 +311,8 @@ struct PreferencesView: View {
                 NavTitle(text: L10n.string("me.preferences", locale: locale))
             }
         }
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
     }
 
     /// 主题色：横向色点，选中项带外圈。

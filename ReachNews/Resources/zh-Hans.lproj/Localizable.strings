@@ -243,6 +243,9 @@
 "account.password.current" = "当前密码";
 "account.password.new" = "新密码";
 "account.password.confirm" = "确认新密码";
+"account.password.changed" = "密码已更新";
+"account.password.emailCode" = "邮箱验证码";
+"account.password.emailCode.hint" = "发送到当前绑定邮箱";
 "account.avatar.change" = "修改头像";
 "account.avatar.failed" = "头像上传失败，请重试";
 

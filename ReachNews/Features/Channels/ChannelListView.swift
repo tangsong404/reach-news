@@ -152,66 +152,64 @@ struct ChannelListView: View {
     }
 
     /// HIG：列表数据用 List 承载（分隔线、行高亮、滑动操作由系统给）。
-    /// 卡片本身仍保留品牌样式，但作为 List 行出现，不再自绘滚动容器。
+    /// 分组标题也用普通行而不是 Section 头，避免吸顶挡住内容。
     private func list(_ store: ChannelStore) -> some View {
         List {
             if !store.myChannels.isEmpty {
-                Section {
-                    ForEach(store.myChannels) { channel in
-                        Button {
-                            path.append(Route.edit(channel))
-                        } label: {
-                            ChannelCard(
-                                channel: channel,
-                                run: store.latestRun(for: channel.id),
-                                isPending: store.pendingChannelIDs.contains(channel.id),
-                                colorIndex: env.channelColors.displayIndex(for: channel),
-                                surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
-                                stroke: Theme.cardStroke(for: env.appearance.style),
-                                onToggle: { enabled in
-                                    Task { await store.setEnabled(enabled, for: channel.id) }
-                                }
-                            )
-                        }
-                        .buttonStyle(.pressable)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
-                        .onAppear { track(channel, store: store) }
-                        .onDisappear { untrack(channel, store: store) }
+                sectionHeaderRow("channel.section.mine")
+                ForEach(store.myChannels) { channel in
+                    Button {
+                        path.append(Route.edit(channel))
+                    } label: {
+                        ChannelCard(
+                            channel: channel,
+                            run: store.latestRun(for: channel.id),
+                            isPending: store.pendingChannelIDs.contains(channel.id),
+                            colorIndex: env.channelColors.displayIndex(for: channel),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style),
+                            onToggle: { enabled in
+                                Task { await store.setEnabled(enabled, for: channel.id) }
+                            }
+                        )
                     }
-                } header: {
-                    sectionHeader("channel.section.mine")
+                    .buttonStyle(.pressable)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
+                    .onAppear { track(channel, store: store) }
+                    .onDisappear { untrack(channel, store: store) }
                 }
             }
 
             if !store.subscribedChannels.isEmpty {
-                Section {
-                    ForEach(store.subscribedChannels) { channel in
-                        Button {
-                            path.append(Route.subscribed(channel))
-                        } label: {
-                            SubscribedChannelCard(
-                                channel: channel,
-                                run: store.latestRun(for: channel.id),
-                                colorIndex: env.channelColors.displayIndex(for: channel),
-                                surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
-                                stroke: Theme.cardStroke(for: env.appearance.style)
-                            )
-                        }
-                        .buttonStyle(.pressable)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
-                        .onAppear { track(channel, store: store) }
-                        .onDisappear { untrack(channel, store: store) }
+                sectionHeaderRow("channel.section.subscribed")
+                ForEach(store.subscribedChannels) { channel in
+                    Button {
+                        path.append(Route.subscribed(channel))
+                    } label: {
+                        SubscribedChannelCard(
+                            channel: channel,
+                            run: store.latestRun(for: channel.id),
+                            colorIndex: env.channelColors.displayIndex(for: channel),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style)
+                        )
                     }
-                } header: {
-                    sectionHeader("channel.section.subscribed")
+                    .buttonStyle(.pressable)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
+                    .onAppear { track(channel, store: store) }
+                    .onDisappear { untrack(channel, store: store) }
                 }
             }
 
-            detailSection(store)
+            discoverSection(store)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                // 左右内边距与卡片一致，否则「发现更多」会顶到屏幕两边。
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.l, trailing: Space.xl))
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
@@ -221,12 +219,12 @@ struct ChannelListView: View {
         .accessibilityIdentifier("channel-list")
     }
 
-    @ViewBuilder
-    private func detailSection(_ store: ChannelStore) -> some View {
-        discoverSection(store)
+    /// 分组标题：普通行 + 与卡片一致的左右内边距。
+    private func sectionHeaderRow(_ key: String) -> some View {
+        sectionHeader(key)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            .listRowInsets(EdgeInsets(top: Space.l, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
     }
 
     // MARK: 发现更多

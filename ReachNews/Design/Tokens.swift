@@ -70,8 +70,8 @@ enum NeutralTokens {
     /// 三级文字：亮色对奶油底 ≥4.5:1、暗色对卡片 ≥7:1。
     /// 旧值 0x8B877E 只有 3.6:1，小字号下不达标。
     static let inkTertiary = (light: UInt32(0x6E6A61), dark: UInt32(0xB8B4A8))
-    static let chip = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
-    static let field = (light: UInt32(0xF2F0EA), dark: UInt32(0x31312B))
+    static let chip = (light: UInt32(0xECE7DB), dark: UInt32(0x2E2C26))
+    static let field = (light: UInt32(0xF0EBE1), dark: UInt32(0x2A2822))
     static let askBackground = (light: UInt32(0xF6F5F2), dark: UInt32(0x14140F))
     static let askSurface = (light: UInt32(0xFFFFFF), dark: UInt32(0x1F1F1A))
     static let askBubble = (light: UInt32(0xEFEDE8), dark: UInt32(0x31312B))
@@ -121,10 +121,10 @@ enum Palette {
     /// 比手写一个透明度黑更稳。
     static let line = Color(uiColor: .separator)
     static let lineStrong = Color(uiColor: .opaqueSeparator)
-    // 填充类用系统语义填充色：亮/暗与提高对比度都由系统调好，
-    // 比手写一个暖灰更稳（品牌底色仍留给 canvas / surface）。
-    static let chip = Color(uiColor: .tertiarySystemFill)
-    static let field = Color(uiColor: .tertiarySystemFill)
+    // 填充类用与纸面同族的暖灰：系统 tertiarySystemFill 在亮色下几乎纯白，
+    // 放进编辑风的奶油底里会突兀地「发亮」，所以这里保留品牌色系。
+    static let chip = Color(light: NeutralTokens.chip.light, dark: NeutralTokens.chip.dark)
+    static let field = Color(light: NeutralTokens.field.light, dark: NeutralTokens.field.dark)
 
     /// 反色提示面（toast 之类）。刻意与正文色分开：
     /// 同一个颜色既当文字又当背景会让人分不清「这是内容还是控件」。

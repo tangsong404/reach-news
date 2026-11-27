@@ -243,6 +243,9 @@
 "account.password.current" = "Current password";
 "account.password.new" = "New password";
 "account.password.confirm" = "Confirm new password";
+"account.password.changed" = "Password updated";
+"account.password.emailCode" = "Email code";
+"account.password.emailCode.hint" = "Sent to your account email";
 "account.avatar.change" = "Change photo";
 "account.avatar.failed" = "Upload failed. Try again";
 

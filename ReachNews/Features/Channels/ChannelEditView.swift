@@ -20,6 +20,8 @@ struct ChannelEditView: View {
     var body: some View {
         content
             .navigationBarTitleDisplayMode(.inline)
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
             .toolbar { toolbarContent }
             .alert(
                 L10n.string("channelEdit.delete.confirm.title", locale: locale),
