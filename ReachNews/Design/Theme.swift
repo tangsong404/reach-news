@@ -124,8 +124,8 @@ enum Theme {
         let scaled = TypeFace.scaledSize(size)
         // `.serif` 对中文不生效（会回退到黑体）。编辑风改用系统的宋体，
         // 中英文都能看出「衬线感」，两套风格的差异才立得住。
-        if style == .editorial, UIFont(name: Theme.cjkSerifName, size: scaled) != nil {
-            return .custom(Theme.cjkSerifName, size: scaled, relativeTo: .body)
+        if style == .editorial, let serif = cjkSerifName(for: scaled) {
+            return .custom(serif, size: scaled, relativeTo: .body)
         }
         return .system(
             size: scaled,
@@ -134,13 +134,20 @@ enum Theme {
         )
     }
 
-    /// 系统自带的衬线中文字体名。
-    static let cjkSerifName = "Songti SC"
+    /// 系统自带的中文衬线字体：`UIFont(name:)` 要 PostScript 名，
+    /// 家族名 "Songti SC" 在部分系统上取不到，所以按序回退。
+    static let cjkSerifNames = ["SongtiSC-Regular", "Songti SC", "STSongti-SC-Regular"]
+
+    /// 可用的中文衬线字体名（取不到就返回 nil，调用方回退到系统字体）。
+    static func cjkSerifName(for size: CGFloat) -> String? {
+        cjkSerifNames.first { UIFont(name: $0, size: size) != nil }
+    }
 
     /// 与 `headingFont` 对应的 UIKit 字体，供 CoreText 复算换行位置。
     static func headingUIFont(size: CGFloat, style: ReaderStyle) -> UIFont {
         let scaled = TypeFace.scaledSize(size)
-        if style == .editorial, let serif = UIFont(name: Theme.cjkSerifName, size: scaled) {
+        if style == .editorial, let name = cjkSerifName(for: scaled),
+           let serif = UIFont(name: name, size: scaled) {
             return serif
         }
         let weight: UIFont.Weight = style == .editorial ? .semibold : .medium
