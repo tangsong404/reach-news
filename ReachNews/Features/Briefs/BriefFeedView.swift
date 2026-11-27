@@ -64,6 +64,7 @@ struct BriefFeedView: View {
                     identifier: "feed-search-field"
                 )
                 .padding(.horizontal, Space.l - 8)
+                .padding(.bottom, 8)
 
                 if store.filter.isActive {
                     activeFilterSummary(store)

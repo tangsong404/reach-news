@@ -73,10 +73,13 @@ struct AppearanceReadingView: View {
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
+            .listSectionSeparator(.hidden, edges: .all)
+                .listRowSeparator(.hidden)
             } header: {
                 SettingsSectionHeader(title: L10n.string("preferences.appearance.heading", locale: locale))
             }
             .listRowBackground(Color.clear)
+            .listSectionSeparator(.hidden, edges: .all)
 
             Section {
                 SettingsCard {
@@ -90,10 +93,13 @@ struct AppearanceReadingView: View {
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
+            .listSectionSeparator(.hidden, edges: .all)
+                .listRowSeparator(.hidden)
             } header: {
                 SettingsSectionHeader(title: L10n.string("preferences.language.heading", locale: locale))
             }
             .listRowBackground(Color.clear)
+            .listSectionSeparator(.hidden, edges: .all)
 
         }
         .settingsListStyle()

@@ -59,10 +59,11 @@ struct MeView: View {
                 Button { path.append(MeDestination.account) } label: {
                     AccountHeaderView(profile: env.profile)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("me-account-card")
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
                 .buttonStyle(.pressable)
                 .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
                 .overlay {

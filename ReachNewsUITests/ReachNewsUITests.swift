@@ -144,6 +144,18 @@ final class ReachNewsUITests: XCTestCase {
         screenshot("updates-unavailable")
     }
 
+    func testAccountCardHitRegions() throws {
+        let app = launch()
+        app.tabBars.buttons["我的"].tap()
+        for point in [CGVector(dx: 0.03, dy: 0.10), CGVector(dx: 0.85, dy: 0.5), CGVector(dx: 0.5, dy: 0.90)] {
+            let card = element("me-account-card", in: app)
+            XCTAssertTrue(card.waitForExistence(timeout: 5))
+            card.coordinate(withNormalizedOffset: point).tap()
+            XCTAssertTrue(element("account-detail", in: app).waitForExistence(timeout: 10))
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+    }
+
     func testRootTitlesUseLeadingNavigationSpace() throws {
         let app = launch()
         let feed = element("feed-brand", in: app)

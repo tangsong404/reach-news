@@ -227,6 +227,7 @@ struct AccountDetailView: View {
             SettingsCard {
                 Button(role: .destructive) { showsSignOutConfirmation = true } label: {
                     Label(L10n.string("connection.signOut", locale: locale), systemImage: "rectangle.portrait.and.arrow.right")
+                        .foregroundStyle(.red)
                         .font(typography.body(17))
                         .frame(minHeight: 28)
                 }
