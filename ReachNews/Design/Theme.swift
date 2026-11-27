@@ -122,39 +122,31 @@ enum Theme {
     /// 这是两套风格最好辨认的差异，切换时第一眼就该看出来。
     static func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
         let scaled = TypeFace.scaledSize(size)
-        // `.serif` 对中文不生效（会回退到黑体）。编辑风改用系统的宋体，
-        // 中英文都能看出「衬线感」，两套风格的差异才立得住。
-        if style == .editorial, let serif = cjkSerifName(for: scaled) {
-            return .custom(serif, size: scaled, relativeTo: .body)
+        switch style {
+        case .editorial:
+            // 系统里没有可用的中文衬线字体（CI 字体探测：Songti 全部为 nil），
+            // 所以编辑风靠「更大更粗 + 暖纸底」立住层级。
+            return .system(size: scaled * Theme.editorialHeadingScale, weight: .bold)
+        case .plain:
+            return .system(size: scaled * Theme.plainHeadingScale, weight: .regular)
         }
-        return .system(
-            size: scaled,
-            weight: headingWeight(for: style),
-            design: style == .editorial ? .serif : .default
-        )
     }
 
-    /// 系统自带的中文衬线字体：`UIFont(name:)` 要 PostScript 名，
-    /// 家族名 "Songti SC" 在部分系统上取不到，所以按序回退。
-    static let cjkSerifNames = ["SongtiSC-Regular", "Songti SC", "STSongti-SC-Regular"]
+    /// 编辑风标题放大比例。
+    static let editorialHeadingScale: CGFloat = 1.06
+    /// 简洁风标题收敛比例。
+    static let plainHeadingScale: CGFloat = 0.94
 
-    /// 可用的中文衬线字体名（取不到就返回 nil，调用方回退到系统字体）。
-    static func cjkSerifName(for size: CGFloat) -> String? {
-        cjkSerifNames.first { UIFont(name: $0, size: size) != nil }
-    }
-
-    /// 与 `headingFont` 对应的 UIKit 字体，供 CoreText 复算换行位置。
+    /// 与 `headingFont` 对应的 UIKit 字体：给 CoreText 复算换行用，
+    /// 必须和渲染字体完全一致，否则铃铛会偏离最后一个字。
     static func headingUIFont(size: CGFloat, style: ReaderStyle) -> UIFont {
         let scaled = TypeFace.scaledSize(size)
-        if style == .editorial, let name = cjkSerifName(for: scaled),
-           let serif = UIFont(name: name, size: scaled) {
-            return serif
+        switch style {
+        case .editorial:
+            return .systemFont(ofSize: scaled * editorialHeadingScale, weight: .bold)
+        case .plain:
+            return .systemFont(ofSize: scaled * plainHeadingScale, weight: .regular)
         }
-        let weight: UIFont.Weight = style == .editorial ? .semibold : .medium
-        let base = UIFont.systemFont(ofSize: scaled, weight: weight)
-        guard style == .editorial,
-              let descriptor = base.fontDescriptor.withDesign(.serif)
-        else { return base }
-        return UIFont(descriptor: descriptor, size: scaled)
     }
+
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import CoreText
 import UIKit
 
 // MARK: - 正文 Markdown 渲染（原生实现）
@@ -456,12 +457,19 @@ private struct HeadingFollowLayout: Layout {
         let x: CGFloat
         let y: CGFloat
         if m.wrapped {
-            // 折行时把 follow 放在**已为它预留的槽位**末尾（也就是最后一行的右端）。
-            // 之前用 CoreText 复算最后一行的宽度，但 SwiftUI 的断行与 CoreText
-            // 未必逐字一致（衬线/字重回退时更明显），铃铛会落到文字中间。
-            // 预留槽位在最后一行右端：把 44pt 命中区往左收回 hitInset，
-            // 圆点就正好落在留白处、紧贴最后一个字。
-            x = bounds.minX + max(0, bounds.width - visualWidth - spacing - hitInset)
+            // 铃铛必须紧贴**最后一个字**的右边。SwiftUI 不暴露末行宽度，
+            // 这里用与渲染完全相同的字体和宽度跑一遍 CoreText 取最后一行宽度。
+            // （早前版本测量字体与渲染字体不一致，断行不同，铃铛会落到文字中间。）
+            let lastLine = HeadingTextMetrics.lastLine(
+                text: text,
+                font: font,
+                maxWidth: width
+            )
+            let endX = lastLine?.width ?? m.text.width
+            x = bounds.minX + max(
+                0,
+                min(bounds.width - m.bell.width, endX + spacing - hitInset)
+            )
             let lastLineCenterY = bounds.minY + m.text.height - lineHeight / 2
             y = max(bounds.minY, lastLineCenterY - m.bell.height / 2)
         } else {
@@ -474,5 +482,26 @@ private struct HeadingFollowLayout: Layout {
             anchor: .topLeading,
             proposal: ProposedViewSize(m.bell)
         )
+    }
+}
+
+
+/// 用 CoreText 复算最后一行：SwiftUI 的 `Text` 只暴露整块尺寸，
+/// 拿不到「最后一行到哪儿结束」，而 follow 必须贴最后一个字。
+enum HeadingTextMetrics {
+    static func lastLine(text: String, font: UIFont, maxWidth: CGFloat) -> (width: CGFloat, height: CGFloat)? {
+        guard maxWidth.isFinite, maxWidth > 0, !text.isEmpty else { return nil }
+        let attributed = NSAttributedString(string: text, attributes: [.font: font])
+        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
+        let path = CGPath(
+            rect: CGRect(x: 0, y: 0, width: maxWidth, height: 100_000),
+            transform: nil
+        )
+        let frame = CTFramesetterCreateFrame(framesetter, CFRangeMake(0, 0), path, nil)
+        guard let lines = CTFrameGetLines(frame) as? [CTLine], let last = lines.last else {
+            return nil
+        }
+        let width = CGFloat(CTLineGetTypographicBounds(last, nil, nil, nil))
+        return width.isFinite ? (width, font.lineHeight) : nil
     }
 }
