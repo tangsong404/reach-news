@@ -31,7 +31,9 @@ struct BriefFeedView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     MainPageHeading(title: "Reach News", showsBrand: true)
                         .accessibilityIdentifier("feed-brand")
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
                     filterToolbarButton(store)
                 }

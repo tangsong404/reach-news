@@ -20,7 +20,9 @@ struct MeView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     MainPageHeading(title: L10n.string("tab.me", locale: locale))
                         .accessibilityIdentifier("main-heading-me")
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showsPlanUnavailable = true

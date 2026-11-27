@@ -32,7 +32,9 @@ struct ChannelListView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     MainPageHeading(title: L10n.string("tab.channels", locale: locale))
                         .accessibilityIdentifier("main-heading-channels")
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
                     if env.session.capabilities.channelLimit == nil ||
                         env.channels.myChannels.count < (env.session.capabilities.channelLimit ?? 0) {
