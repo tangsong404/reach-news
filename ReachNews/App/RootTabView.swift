@@ -32,7 +32,7 @@ struct RootTabView: View {
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         // Theme B keeps one system font family; hierarchy varies only by size/weight.
         .fontDesign(.default)
-        .readingTypography(textSize: env.appearance.textSize)
+        .readingTypography(textScale: env.appearance.textScale)
         .preferredColorScheme(env.appearance.resolvedColorScheme)
         .task {
             // 启动时若已有会话，静默验证一次，不弹登录页。

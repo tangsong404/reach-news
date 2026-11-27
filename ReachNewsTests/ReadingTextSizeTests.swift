@@ -12,6 +12,40 @@ final class ReadingTextSizeTests: XCTestCase {
         XCTAssertEqual(AppearanceStore(preferences: preferences).textSize, .standard)
     }
 
+    func testContinuousScaleClampsAndPersists() {
+        let preferences = InMemoryPreferences()
+        let store = AppearanceStore(preferences: preferences)
+        for (input, expected) in [(-1.0, 0.90), (0.977, 0.977), (1.1234, 1.1234), (9.0, 1.15), (Double.nan, 1.0), (Double.infinity, 1.0)] {
+            store.select(textScale: input)
+            XCTAssertEqual(store.textScale, expected, accuracy: 0.00001)
+            XCTAssertEqual(preferences.readingTextScale ?? 0, expected, accuracy: 0.00001)
+            XCTAssertEqual(AppearanceStore(preferences: preferences).textScale, expected, accuracy: 0.00001)
+        }
+    }
+
+    func testLegacySizeMigratesOnlyWhenNumericScaleAbsent() {
+        for legacy in ReadingTextSize.allCases {
+            let preferences = InMemoryPreferences()
+            preferences.readingTextSize = legacy.rawValue
+            let store = AppearanceStore(preferences: preferences)
+            XCTAssertEqual(store.textScale, Double(legacy.scale), accuracy: 0.00001)
+            XCTAssertNotNil(preferences.readingTextScale)
+            preferences.readingTextSize = "large"
+            XCTAssertEqual(AppearanceStore(preferences: preferences).textScale, store.textScale)
+        }
+    }
+
+    func testContinuousScaleRespectsAllSystemCategories() {
+        for category in [DynamicTypeSize.large, .xxxLarge, .accessibility3, .accessibility5] {
+            let smaller = ResolvedTypography(textScale: 0.90, dynamicTypeSize: category).scaledSize(17)
+            let standard = ResolvedTypography(textScale: 1, dynamicTypeSize: category).scaledSize(17)
+            let larger = ResolvedTypography(textScale: 1.15, dynamicTypeSize: category).scaledSize(17)
+            XCTAssertLessThan(smaller, standard)
+            XCTAssertLessThan(standard, larger)
+        }
+        XCTAssertGreaterThan(ResolvedTypography(textScale: 0.90, dynamicTypeSize: .accessibility5).scaledSize(17), ResolvedTypography().scaledSize(17))
+    }
+
     func testSelectingTextSizePersistsAndRestoresStore() {
         let preferences = InMemoryPreferences()
         let appearance = AppearanceStore(preferences: preferences)
@@ -28,9 +62,9 @@ final class ReadingTextSizeTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let first = UserDefaultsPreferences(defaults: defaults)
-        AppearanceStore(preferences: first).select(textSize: .large)
+        AppearanceStore(preferences: first).select(textScale: 1.1234)
         let restored = UserDefaultsPreferences(defaults: defaults)
-        XCTAssertEqual(AppearanceStore(preferences: restored).textSize, .large)
+        XCTAssertEqual(AppearanceStore(preferences: restored).textScale, 1.1234, accuracy: 0.00001)
     }
 
     func testAppPreferenceCombinesWithSystemDynamicType() {

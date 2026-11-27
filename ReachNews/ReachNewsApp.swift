@@ -18,7 +18,7 @@ struct ReachNewsApp: App {
                 .environment(\.appLocale, appLocale)
                 .tint(environment.appearance.accent)
                 .fontDesign(.default)
-                .readingTypography(textSize: environment.appearance.textSize)
+                .readingTypography(textScale: environment.appearance.textScale)
                 // 稿子只有纸色外观。
                 .preferredColorScheme(environment.appearance.resolvedColorScheme)
         }

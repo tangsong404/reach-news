@@ -13,7 +13,13 @@ final class AppearanceStore {
     private(set) var style: ReaderStyle
     private(set) var tint: ThemeTint
     private(set) var mode: AppearanceMode
-    private(set) var textSize: ReadingTextSize
+    private(set) var textScale: Double
+    /// Legacy compatibility; continuous consumers use textScale directly.
+    var textSize: ReadingTextSize {
+        if textScale < 0.97 { return .small }
+        if textScale > 1.04 { return .large }
+        return .standard
+    }
 
     @ObservationIgnored private let preferences: PreferencesStoring
 
@@ -22,7 +28,10 @@ final class AppearanceStore {
         self.style = ReaderStyle(rawValue: preferences.readerStyle) ?? .editorial
         self.tint = ThemeTint(rawValue: preferences.themeTint) ?? .ink
         self.mode = AppearanceMode(rawValue: preferences.appearanceMode) ?? .system
-        self.textSize = ReadingTextSize(rawValue: preferences.readingTextSize) ?? .standard
+        let legacy = ReadingTextSize(rawValue: preferences.readingTextSize) ?? .standard
+        let resolved = ReadingTextScale.clamped(preferences.readingTextScale ?? Double(legacy.scale))
+        self.textScale = resolved
+        preferences.readingTextScale = resolved
     }
 
     func select(style: ReaderStyle) {
@@ -41,8 +50,14 @@ final class AppearanceStore {
     }
 
     func select(textSize: ReadingTextSize) {
-        self.textSize = textSize
         preferences.readingTextSize = textSize.rawValue
+        select(textScale: Double(textSize.scale))
+    }
+
+    func select(textScale: Double) {
+        let value = ReadingTextScale.clamped(textScale)
+        self.textScale = value
+        preferences.readingTextScale = value
     }
 
     /// 当前强调色。
@@ -55,7 +70,7 @@ final class AppearanceStore {
     func apply<V: View>(to view: V) -> some View {
         view
             .tint(accent)
-            .readingTypography(textSize: textSize)
+            .readingTypography(textScale: textScale)
             .background(Theme.canvas(for: style))
     }
 }

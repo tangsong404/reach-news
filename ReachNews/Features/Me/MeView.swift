@@ -37,8 +37,16 @@ struct MeView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .accessibilityIdentifier("me-account-card")
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: 20))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(Palette.lineStrong, lineWidth: 1)
+                }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             }
 
             Section {

@@ -372,7 +372,7 @@ struct ChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(typography.heading(15))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                 if channel.kind.isFollow {
                     ChannelBadge(textKey: "channel.kind.follow")
@@ -383,7 +383,7 @@ struct ChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(typography.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -474,7 +474,7 @@ struct SubscribedChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(typography.heading(15))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                 ChannelBadge(textKey: "channel.kind.subscribed")
                 if channel.kind.isFollow {
@@ -485,7 +485,7 @@ struct SubscribedChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(typography.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)

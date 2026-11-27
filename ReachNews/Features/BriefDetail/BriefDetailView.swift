@@ -186,7 +186,7 @@ struct BriefDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text(store.brief.title)
-                .font(typography.headingFont(size: 25, style: env.appearance.style))
+                .font(typography.titleFont(size: 25, style: env.appearance.style))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 

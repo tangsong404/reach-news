@@ -24,12 +24,22 @@ struct AppearanceReadingView: View {
                     }
                 }
                 .accessibilityIdentifier("preferences-style")
-                selectionRow("preferences.textSize", symbol: "textformat.size",
-                             value: env.appearance.textSize.labelKey) {
-                    ForEach(ReadingTextSize.allCases) { option in
-                        Button(L10n.string(option.labelKey, locale: locale)) { env.appearance.select(textSize: option) }
-                            .accessibilityIdentifier("text-size-\(option.rawValue)")
+                VStack(spacing: 0) {
+                    SettingsRow(title: L10n.string("preferences.textSize", locale: locale),
+                                systemImage: "textformat.size",
+                                value: "\(Int((env.appearance.textScale * 100).rounded()))%")
+                    Slider(value: Binding(
+                        get: { env.appearance.textScale },
+                        set: { env.appearance.select(textScale: $0) }
+                    ), in: 0.90...1.15) {
+                        Text(L10n.string("preferences.textSize", locale: locale))
+                    } minimumValueLabel: {
+                        Image(systemName: "textformat.size.smaller")
+                    } maximumValueLabel: {
+                        Image(systemName: "textformat.size.larger")
                     }
+                    .accessibilityIdentifier("preferences-text-size-slider")
+                    .padding(.bottom, 4)
                 }
                 .accessibilityIdentifier("preferences-text-size")
                 VStack(alignment: .leading, spacing: 8) {
@@ -72,16 +82,6 @@ struct AppearanceReadingView: View {
             }
             .listRowBackground(Theme.surface(for: env.appearance.style))
 
-            Section {
-                Text(L10n.string("preferences.preview.body", locale: locale))
-                    .font(typography.body(17))
-                    .foregroundStyle(Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("preferences-text-preview")
-            } header: {
-                SettingsSectionHeader(title: L10n.string("preferences.preview.heading", locale: locale))
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
         }
         .settingsListStyle()
         .scrollContentBackground(.hidden)

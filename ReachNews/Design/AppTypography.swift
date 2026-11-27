@@ -18,21 +18,34 @@ enum ReadingTextSize: String, CaseIterable, Identifiable {
     }
 }
 
-private struct ReadingTextSizeKey: EnvironmentKey {
-    static let defaultValue: ReadingTextSize = .standard
+enum ReadingTextScale {
+    static let range: ClosedRange<Double> = 0.90...1.15
+    static func clamped(_ value: Double) -> Double {
+        guard value.isFinite else { return 1 }
+        return min(range.upperBound, max(range.lowerBound, value))
+    }
+}
+
+private struct ReadingTextScaleKey: EnvironmentKey {
+    static let defaultValue: Double = 1
 }
 
 extension EnvironmentValues {
-    var readingTextSize: ReadingTextSize {
-        get { self[ReadingTextSizeKey.self] }
-        set { self[ReadingTextSizeKey.self] = newValue }
+    var readingTextScale: Double {
+        get { self[ReadingTextScaleKey.self] }
+        set { self[ReadingTextScaleKey.self] = ReadingTextScale.clamped(newValue) }
     }
 }
 
 extension View {
-    /// Does not replace the user's system Dynamic Type category or scale icons/navigation chrome.
+    /// Does not replace system Dynamic Type or resize navigation chrome/icons.
+    func readingTypography(textScale: Double) -> some View {
+        environment(\.readingTextScale, ReadingTextScale.clamped(textScale))
+    }
+
+    /// Compatibility for older previews; live screens use continuous textScale.
     func readingTypography(textSize: ReadingTextSize) -> some View {
-        environment(\.readingTextSize, textSize)
+        readingTypography(textScale: Double(textSize.scale))
     }
 }
 
@@ -40,20 +53,29 @@ extension View {
 /// Explicit fonts cannot inherit a parent `.font`; consumers must use this resolver.
 @propertyWrapper
 struct AppTypography: DynamicProperty {
-    @Environment(\.readingTextSize) private var textSize
+    @Environment(\.readingTextScale) private var textScale
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var wrappedValue: ResolvedTypography {
-        ResolvedTypography(textSize: textSize, dynamicTypeSize: dynamicTypeSize)
+        ResolvedTypography(textScale: textScale, dynamicTypeSize: dynamicTypeSize)
     }
 }
 
 struct ResolvedTypography {
-    var textSize: ReadingTextSize = .standard
+    var textScale: Double = 1
     var dynamicTypeSize: DynamicTypeSize = .large
 
+    init(textScale: Double = 1, dynamicTypeSize: DynamicTypeSize = .large) {
+        self.textScale = ReadingTextScale.clamped(textScale)
+        self.dynamicTypeSize = dynamicTypeSize
+    }
+
+    init(textSize: ReadingTextSize, dynamicTypeSize: DynamicTypeSize = .large) {
+        self.init(textScale: Double(textSize.scale), dynamicTypeSize: dynamicTypeSize)
+    }
+
     func scaledSize(_ size: CGFloat) -> CGFloat {
-        let base = max(TypeFace.minimumSize, size * textSize.scale)
+        let base = max(TypeFace.minimumSize, size * CGFloat(ReadingTextScale.clamped(textScale)))
         return UIFontMetrics(forTextStyle: .body).scaledValue(
             for: base,
             compatibleWith: UITraitCollection(preferredContentSizeCategory: dynamicTypeSize.contentSizeCategory)
@@ -75,7 +97,13 @@ struct ResolvedTypography {
 
     func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
         let multiplier = style == .editorial ? Theme.editorialHeadingScale : Theme.plainHeadingScale
-        return font(size * multiplier, weight: style == .editorial ? .bold : .regular)
+        return font(size * multiplier, weight: style == .editorial ? .bold : .semibold)
+    }
+
+    /// Page/article title remains stronger than a subsection heading in either theme.
+    func titleFont(size: CGFloat, style: ReaderStyle) -> Font {
+        let multiplier = style == .editorial ? Theme.editorialHeadingScale : Theme.plainHeadingScale
+        return font(size * multiplier, weight: .bold)
     }
 
     /// The inline TextKit attachment shares the same resolved point size as SwiftUI headings.
@@ -83,7 +111,7 @@ struct ResolvedTypography {
         let multiplier = style == .editorial ? Theme.editorialHeadingScale : Theme.plainHeadingScale
         return .systemFont(
             ofSize: scaledSize(size * multiplier),
-            weight: style == .editorial ? .bold : .regular
+            weight: style == .editorial ? .bold : .semibold
         )
     }
 

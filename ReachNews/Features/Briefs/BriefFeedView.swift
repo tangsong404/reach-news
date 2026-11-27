@@ -273,10 +273,10 @@ struct BriefRow: View {
     @Environment(\.appLocale) private var locale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(brief.title)
-                    .font(typography.heading(14.5))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -294,7 +294,7 @@ struct BriefRow: View {
             // 描述非空时展示在标题下，一到两行截断；为空时不留空洞。
             if let summary = brief.displaySummary {
                 Text(summary)
-                    .font(typography.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkTertiary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -305,7 +305,7 @@ struct BriefRow: View {
             HStack(spacing: 7) {
                 ChannelDot(channelID: channelID, colorIndex: colorIndex)
                 Text(channelName)
-                    .font(typography.label(11))
+                    .font(typography.label(12))
                     .foregroundStyle(Palette.inkSecondary)
                 DotSeparator()
                 MetaLine(text: DisplayTime.clock(brief.createdAt, locale: locale))

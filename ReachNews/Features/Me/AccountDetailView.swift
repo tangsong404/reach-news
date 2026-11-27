@@ -211,7 +211,7 @@ struct AccountDetailView: View {
             Button(role: .destructive) { showsSignOutConfirmation = true } label: {
                 Label(L10n.string("connection.signOut", locale: locale), systemImage: "rectangle.portrait.and.arrow.right")
                     .font(typography.body(17))
-                    .frame(minHeight: 44)
+                    .frame(minHeight: 28)
             }
             .accessibilityIdentifier("account-signout")
         }

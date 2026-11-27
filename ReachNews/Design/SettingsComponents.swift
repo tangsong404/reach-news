@@ -30,7 +30,7 @@ struct SettingsRow: View {
                 }
             }
         }
-        .frame(minHeight: 44)
+        .frame(minHeight: 28)
         .contentShape(Rectangle())
         .alignmentGuide(.listRowSeparatorLeading) { _ in 42 }
     }
@@ -71,6 +71,7 @@ struct SettingsListStyle: ViewModifier {
         content
             .listStyle(.insetGrouped)
             .environment(\.defaultMinListRowHeight, 52)
+            .listSectionSpacing(16)
             .font(.body)
             .fontDesign(.default)
             .scrollContentBackground(.hidden)

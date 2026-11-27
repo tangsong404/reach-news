@@ -114,7 +114,7 @@ enum Theme {
     static func headingWeight(for style: ReaderStyle) -> Font.Weight {
         switch style {
         case .editorial: return .semibold
-        case .plain: return .medium
+        case .plain: return .semibold
         }
     }
 
@@ -128,7 +128,7 @@ enum Theme {
             // 所以编辑风靠「更大更粗 + 暖纸底」立住层级。
             return .system(size: scaled * Theme.editorialHeadingScale, weight: .bold)
         case .plain:
-            return .system(size: scaled * Theme.plainHeadingScale, weight: .regular)
+            return .system(size: scaled * Theme.plainHeadingScale, weight: .semibold)
         }
     }
 
@@ -145,7 +145,7 @@ enum Theme {
         case .editorial:
             return .systemFont(ofSize: scaled * editorialHeadingScale, weight: .bold)
         case .plain:
-            return .systemFont(ofSize: scaled * plainHeadingScale, weight: .regular)
+            return .systemFont(ofSize: scaled * plainHeadingScale, weight: .semibold)
         }
     }
 

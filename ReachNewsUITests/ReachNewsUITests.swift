@@ -7,14 +7,14 @@ final class ReachNewsUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(appearance: String = "light", accessibilityText: Bool = false) -> XCUIApplication {
+    private func launch(appearance: String = "light", accessibilityText: Bool = false, style: String = "editorial") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-ui-testing", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
         if accessibilityText {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         }
         app.launchEnvironment["UI_TEST_APPEARANCE"] = appearance
-        app.launchEnvironment["UI_TEST_STYLE"] = "editorial"
+        app.launchEnvironment["UI_TEST_STYLE"] = style
         app.launch()
         XCTAssertTrue(element("feed-row-ui-fixture-brief", in: app).waitForExistence(timeout: 15))
         return app
@@ -102,6 +102,9 @@ final class ReachNewsUITests: XCTestCase {
         app.tabBars.buttons["我的"].tap()
         XCTAssertTrue(element("me-preferences", in: app).waitForExistence(timeout: 10))
         screenshot("settings-me-light")
+        app.tabBars.buttons["频道"].tap()
+        screenshot("density-channels")
+        app.tabBars.buttons["我的"].tap()
         element("me-account-card", in: app).tap()
         XCTAssertTrue(element("account-detail", in: app).waitForExistence(timeout: 10))
         screenshot("settings-account-light")
@@ -117,13 +120,13 @@ final class ReachNewsUITests: XCTestCase {
         element("me-preferences", in: app).tap()
         XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
         screenshot("settings-appearance-light")
-        let preview = element("preferences-text-preview", in: app)
-        let initialHeight = preview.frame.height
-        element("preferences-text-size", in: app).tap()
-        app.buttons["较大"].firstMatch.tap()
-        XCTAssertTrue(preview.waitForExistence(timeout: 5))
-        XCTAssertGreaterThanOrEqual(preview.frame.height, initialHeight)
-        screenshot("settings-text-larger")
+        let styleRow = element("preferences-style", in: app)
+        XCTAssertLessThanOrEqual(styleRow.frame.height, 64, "Ordinary settings rows should use medium density, not stacked minimum heights")
+        XCTAssertFalse(element("preferences-text-preview", in: app).exists)
+        let slider = app.sliders["preferences-text-size-slider"]
+        XCTAssertTrue(slider.waitForExistence(timeout: 5))
+        slider.adjust(toNormalizedSliderPosition: 0.8)
+        screenshot("settings-text-slider-larger")
         app.navigationBars.buttons.element(boundBy: 0).tap()
         element("me-help", in: app).tap()
         XCTAssertTrue(element("help-about", in: app).waitForExistence(timeout: 10))
@@ -137,6 +140,14 @@ final class ReachNewsUITests: XCTestCase {
         element("me-preferences", in: app).tap()
         XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
         screenshot("settings-appearance-dark")
+    }
+
+    func testPlainTitleHierarchyAndDensityScreenshots() throws {
+        let app = launch(style: "plain")
+        screenshot("density-feed-plain")
+        element("feed-row-ui-fixture-brief", in: app).tap()
+        XCTAssertTrue(element("brief-detail", in: app).waitForExistence(timeout: 10))
+        screenshot("density-detail-plain-headings")
     }
 
     func testSettingsAccessibilityTextLayout() throws {

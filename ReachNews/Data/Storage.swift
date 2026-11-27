@@ -131,9 +131,15 @@ protocol PreferencesStoring: AnyObject {
     var themeTint: String { get set }
     var appearanceMode: String { get set }
     var readingTextSize: String { get set }
+    /// nil means no continuous choice has been stored; migrate legacy discrete size.
+    var readingTextScale: Double? { get set }
 }
 
 extension PreferencesStoring {
+    var readingTextScale: Double? {
+        get { nil }
+        set {}
+    }
     /// Older test/preview stores remain compatible; durable stores override this property.
     var readingTextSize: String {
         get { ReadingTextSize.standard.rawValue }
@@ -152,6 +158,7 @@ final class UserDefaultsPreferences: PreferencesStoring {
         static let themeTint = "preferences.themeTint"
         static let appearanceMode = "preferences.appearanceMode"
         static let readingTextSize = "preferences.readingTextSize"
+        static let readingTextScale = "preferences.readingTextScale"
     }
 
     private let defaults: UserDefaults
@@ -204,6 +211,14 @@ final class UserDefaultsPreferences: PreferencesStoring {
     var appearanceMode: String {
         get { defaults.string(forKey: Keys.appearanceMode) ?? "" }
         set { defaults.set(newValue, forKey: Keys.appearanceMode) }
+    }
+
+    var readingTextScale: Double? {
+        get { (defaults.object(forKey: Keys.readingTextScale) as? NSNumber)?.doubleValue }
+        set {
+            if let newValue { defaults.set(newValue, forKey: Keys.readingTextScale) }
+            else { defaults.removeObject(forKey: Keys.readingTextScale) }
+        }
     }
 
     var readingTextSize: String {
