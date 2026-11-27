@@ -139,7 +139,7 @@
 "login.username.heading" = "账号";
 "login.username.placeholder" = "管理员分配的用户名";
 "me.connection" = "连接信息";
-"me.preferences" = "偏好";
+"me.preferences" = "外观与阅读";
 "me.saved" = "收藏";
 "me.saved.empty.message" = "在日报详情页点右上角的收藏按钮，会出现在这里。";
 "me.saved.empty.title" = "还没有收藏";
@@ -311,3 +311,16 @@
 "appearance.mode.dark" = "暗色";
 "appearance.style.editorial" = "编辑风";
 "appearance.style.plain" = "简洁风";
+
+"me.library.heading" = "阅读";
+"me.settings.heading" = "设置";
+"me.support.heading" = "支持";
+"me.help" = "帮助与关于";
+"me.help.placeholder" = "内容待补充";
+"preferences.appearance.heading" = "外观与阅读";
+"preferences.textSize" = "文字大小";
+"appearance.textSize.small" = "较小";
+"appearance.textSize.standard" = "标准";
+"appearance.textSize.large" = "较大";
+"preferences.preview.heading" = "阅读预览";
+"preferences.preview.body" = "在这里预览文字大小。阅读与界面文字会随设置调整。";

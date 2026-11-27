@@ -6,6 +6,8 @@ import SwiftUI
 // 旧的长期 Bearer Token 已全部失效，因此这里不再有 Token 输入。
 
 struct ConnectionView: View {
+    @AppTypography private var typography
+
     @Bindable var session: SessionStore
     var isReplacingCredential: Bool = false
 
@@ -91,7 +93,7 @@ struct ConnectionView: View {
                         showsRegister = true
                     } label: {
                         Text(L10n.string("login.goRegister", locale: locale))
-                            .font(TypeFace.body(13))
+                            .font(typography.body(13))
                             .foregroundStyle(Palette.inkSecondary)
                             .underline()
                     }
@@ -114,7 +116,7 @@ struct ConnectionView: View {
                         dismiss()
                     } label: {
                         Text(L10n.string("common.cancel", locale: locale))
-                            .font(TypeFace.body(14))
+                            .font(typography.body(14))
                             .foregroundStyle(Palette.inkSecondary)
                     }
                 }
@@ -146,11 +148,11 @@ struct ConnectionView: View {
     private func field<Content: View>(labelKey: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()
-                .font(TypeFace.body(14))
+                .font(typography.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
                 .background(Theme.surface(for: env.appearance.style, mode: env.appearance.mode), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -167,7 +169,7 @@ struct ConnectionView: View {
         HStack(spacing: Space.s) {
             BrandMark(size: 30)
             Text("Reach News")
-                .font(TypeFace.heading(19))
+                .font(typography.heading(19))
                 .foregroundStyle(Palette.ink)
         }
         .accessibilityIdentifier("connection-brand")

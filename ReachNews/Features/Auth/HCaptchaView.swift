@@ -204,6 +204,8 @@ struct HCaptchaView: UIViewRepresentable {
 // 让组件居中显示。
 
 struct CaptchaSheet: View {
+    @AppTypography private var typography
+
     let siteKey: String?
     let baseURL: URL?
     let onToken: (String) -> Void
@@ -251,7 +253,7 @@ struct CaptchaSheet: View {
                     }
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
-                            .font(TypeFace.body(14))
+                            .font(typography.body(14))
                     }
                 }
             }
@@ -264,7 +266,7 @@ struct CaptchaSheet: View {
                 .font(.system(size: 22, weight: .light))
                 .foregroundStyle(Palette.failedForeground)
             Text(L10n.string("register.captcha.failed", locale: locale))
-                .font(TypeFace.body(13))
+                .font(typography.body(13))
                 .foregroundStyle(Palette.failedForeground)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -273,7 +275,7 @@ struct CaptchaSheet: View {
                 reloadToken += 1
             } label: {
                 Text(L10n.string("common.retry", locale: locale))
-                    .font(TypeFace.label(12.5))
+                    .font(typography.label(12.5))
             }
             .buttonStyle(.pressable)
             .accessibilityIdentifier("captcha-sheet-retry")

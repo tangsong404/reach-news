@@ -30,8 +30,9 @@ struct RootTabView: View {
         .tint(env.appearance.accent)
         // 风格切换后底色随之变化。
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-        // 编辑风用衬线、简洁风用无衬线：让两套风格的差异一眼可辨。
-        .fontDesign(env.appearance.style == .editorial ? .serif : .default)
+        // Theme B keeps one system font family; hierarchy varies only by size/weight.
+        .fontDesign(.default)
+        .readingTypography(textSize: env.appearance.textSize)
         .preferredColorScheme(env.appearance.resolvedColorScheme)
         .task {
             // 启动时若已有会话，静默验证一次，不弹登录页。

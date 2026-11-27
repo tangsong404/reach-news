@@ -11,6 +11,8 @@ import SwiftUI
 //    本地文案只作为 message 缺失时的兜底，避免两份文案漂移。
 
 struct RegisterView: View {
+    @AppTypography private var typography
+
     @Bindable var session: SessionStore
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
@@ -143,7 +145,7 @@ struct RegisterView: View {
                         ProgressView().controlSize(.small)
                     } else {
                         Text(L10n.string("register.submit", locale: locale))
-                            .font(TypeFace.heading(15))
+                            .font(typography.heading(15))
                             .foregroundStyle(canSubmit ? Palette.ink : Palette.inkTertiary)
                     }
                 }
@@ -186,13 +188,13 @@ struct RegisterView: View {
     private var emailCodeSection: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string("register.emailCode", locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
 
             HStack(spacing: Space.s) {
                 TextField("", text: $emailCode)
-                    .font(TypeFace.body(14))
+                    .font(typography.body(14))
                     .keyboardType(.numberPad)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 11)
@@ -212,7 +214,7 @@ struct RegisterView: View {
                         Text(resendCountdown > 0
                              ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
                              : L10n.string("register.emailCode.send", locale: locale))
-                            .font(TypeFace.label(12))
+                            .font(typography.label(12))
                             .foregroundStyle(canSendCode ? Palette.ink : Palette.inkTertiary)
                             .lineLimit(1)
                     }
@@ -223,13 +225,13 @@ struct RegisterView: View {
 
             if codeSent && codeFailure == nil {
                 Text(L10n.string("register.emailCode.sent", locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.runningForeground)
             }
 
             if let codeFailure {
                 Text(codeFailureMessage(codeFailure))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("register-email-code-error")
@@ -307,7 +309,7 @@ struct RegisterView: View {
     private var captchaSection: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string("register.captcha", locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
 
@@ -334,7 +336,7 @@ struct RegisterView: View {
                         showsCaptchaSheet = true
                     } label: {
                         Text(L10n.string("register.captcha.redo", locale: locale))
-                            .font(TypeFace.label(11))
+                            .font(typography.label(11))
                             .foregroundStyle(Palette.inkTertiary)
                     }
                     .buttonStyle(.pressable)
@@ -356,13 +358,13 @@ struct RegisterView: View {
 
             if captchaFailed {
                 Text(L10n.string("register.captcha.failed", locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("register-captcha-error")
             } else if captchaToken == nil {
                 Text(L10n.string("register.captcha.hint", locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.inkTertiary)
             }
         }
@@ -389,15 +391,15 @@ struct RegisterView: View {
     private var statusText: some View {
         if captchaToken != nil {
             Text(L10n.string("register.captcha.done", locale: locale))
-                .font(TypeFace.body(13.5))
+                .font(typography.body(13.5))
                 .foregroundStyle(Palette.runningForeground)
         } else if captchaFailed {
             Text(L10n.string("register.captcha.open", locale: locale))
-                .font(TypeFace.body(13.5))
+                .font(typography.body(13.5))
                 .foregroundStyle(Palette.failedForeground)
         } else {
             Text(L10n.string("register.captcha.open", locale: locale))
-                .font(TypeFace.body(13.5))
+                .font(typography.body(13.5))
                 .foregroundStyle(Palette.ink)
         }
     }
@@ -473,11 +475,11 @@ struct RegisterView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()
-                .font(TypeFace.body(14))
+                .font(typography.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
                 .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -487,7 +489,7 @@ struct RegisterView: View {
                 }
             if let hintKey {
                 Text(L10n.string(hintKey, locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.inkTertiary)
             }
         }

@@ -6,6 +6,8 @@ import SwiftUI
 // 服务端回答是确定性拼接：不流式、不逐字、不显示「正在思考」。
 
 struct AskView: View {
+    @AppTypography private var typography
+
     let brief: Brief
     @State var store: AskStore
     /// 从详情页底栏带过来的问题：进页面后自动发出一次。
@@ -73,7 +75,7 @@ struct AskView: View {
                             Button(L10n.string("ask.loadEarlier", locale: locale)) {
                                 Task { await store.loadMore() }
                             }
-                            .font(TypeFace.label(11.5))
+                            .font(typography.label(11.5))
                             .foregroundStyle(Palette.inkSecondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, Space.s)
@@ -82,7 +84,7 @@ struct AskView: View {
                         ForEach(Array(store.turns.enumerated()), id: \.element.id) { index, turn in
                             if showsDateDivider(at: index) {
                                 Text(DisplayTime.monthDayTime(turn.createdAt, locale: locale))
-                                    .font(TypeFace.condensed(10.5, weight: .medium))
+                                    .font(typography.condensed(10.5, weight: .medium))
                                     .foregroundStyle(Palette.inkTertiary)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, Space.m)
@@ -132,34 +134,34 @@ struct AskView: View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(spacing: Space.xs) {
                 Text(L10n.string("ask.cited.heading", locale: locale))
-                    .font(TypeFace.label(11))
+                    .font(typography.label(11))
                     .foregroundStyle(Palette.inkTertiary)
                 Spacer(minLength: 0)
                 Text(L10n.format("ask.cited.count", locale: locale, store.lastCitedItemIDs.count))
-                    .font(TypeFace.condensed(10.5, weight: .medium))
+                    .font(typography.condensed(10.5, weight: .medium))
                     .foregroundStyle(Palette.inkTertiary)
             }
 
             if store.lastCitedItemIDs.isEmpty {
                 Text(L10n.string("ask.cited.empty", locale: locale))
-                    .font(TypeFace.body(11.5))
+                    .font(typography.body(11.5))
                     .foregroundStyle(Palette.inkTertiary)
             } else {
                 ForEach(Array(store.lastCitedItemIDs.enumerated()), id: \.offset) { index, itemID in
                     HStack(alignment: .top, spacing: Space.s) {
                         Text(Self.indexLabel(index))
-                            .font(TypeFace.condensed(10, weight: .bold))
+                            .font(typography.condensed(10, weight: .bold))
                             .foregroundStyle(Palette.inkTertiary)
                             .frame(width: 11, alignment: .leading)
                             .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(store.materialTitle(for: itemID))
-                                .font(TypeFace.body(12.5))
+                                .font(typography.body(12.5))
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
                             if let host = store.materialHost(for: itemID) {
                                 Text(host)
-                                    .font(TypeFace.condensed(10, weight: .medium))
+                                    .font(typography.condensed(10, weight: .medium))
                                     .foregroundStyle(Palette.inkTertiary)
                                     .lineLimit(1)
                             }
@@ -171,7 +173,7 @@ struct AskView: View {
 
             if store.lastAnswerWasDeterministic {
                 Text(L10n.string("ask.cited.deterministic", locale: locale))
-                    .font(TypeFace.body(10.5))
+                    .font(typography.body(10.5))
                     .foregroundStyle(Palette.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 2)
@@ -217,7 +219,7 @@ struct AskView: View {
 
                 @Bindable var store = store
                 TextField(String(localized: "ask.composer.placeholder"), text: $store.draft, axis: .vertical)
-                    .font(TypeFace.body(13))
+                    .font(typography.body(13))
                     .lineLimit(1...4)
                     .focused($isComposerFocused)
                     .padding(.horizontal, Space.l)
@@ -250,6 +252,8 @@ struct AskView: View {
 // MARK: - 气泡
 
 struct AskBubble: View {
+    @AppTypography private var typography
+
     let turn: AskTurn
     var isLast: Bool
 
@@ -258,7 +262,7 @@ struct AskBubble: View {
             if turn.role == .user { Spacer(minLength: 40) }
 
             Text(turn.message)
-                .font(TypeFace.body(13.5))
+                .font(typography.body(13.5))
                 .foregroundStyle(turn.role == .user ? Palette.askUserText : Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, Space.l)

@@ -139,7 +139,7 @@
 "login.username.heading" = "Username";
 "login.username.placeholder" = "Username from your administrator";
 "me.connection" = "Connection";
-"me.preferences" = "Preferences";
+"me.preferences" = "Appearance & Reading";
 "me.saved" = "Saved";
 "me.saved.empty.message" = "Tap the bookmark button on a brief to keep it here.";
 "me.saved.empty.title" = "Nothing saved yet";
@@ -311,3 +311,16 @@
 "appearance.mode.dark" = "Dark";
 "appearance.style.editorial" = "Editorial";
 "appearance.style.plain" = "Plain";
+
+"me.library.heading" = "Reading";
+"me.settings.heading" = "Settings";
+"me.support.heading" = "Support";
+"me.help" = "Help & About";
+"me.help.placeholder" = "Content coming soon";
+"preferences.appearance.heading" = "Appearance & Reading";
+"preferences.textSize" = "Text Size";
+"appearance.textSize.small" = "Smaller";
+"appearance.textSize.standard" = "Standard";
+"appearance.textSize.large" = "Larger";
+"preferences.preview.heading" = "Reading Preview";
+"preferences.preview.body" = "Preview the text size here. Reading and interface text follow your selection.";

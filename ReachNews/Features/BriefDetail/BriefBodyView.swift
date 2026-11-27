@@ -7,6 +7,8 @@ import SwiftUI
 // body 缺失或全为空白段落时，显示一句说明，不回退到分组列表。
 
 struct BriefBodyView: View {
+    @AppTypography private var typography
+
     /// 输入正文。命名避开 `body`，否则会与 `View.body` 冲突。
     let content: BriefBody?
     var onOpenURL: (URL) -> Void
@@ -36,7 +38,7 @@ struct BriefBodyView: View {
             .accessibilityIdentifier("brief-body")
         } else {
             Text(L10n.string("brief.body.empty", locale: locale))
-                .font(TypeFace.body(14))
+                .font(typography.body(14))
                 .foregroundStyle(Palette.inkTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, Space.m)

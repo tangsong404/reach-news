@@ -6,6 +6,8 @@ import SwiftUI
 // 频道本身对订阅者只读，因此这里不出现保存、删除、立即运行入口。
 
 struct SubscribedChannelDetail: View {
+    @AppTypography private var typography
+
     let channel: Channel
     var onUpdated: (Channel) -> Void
     var onForked: (Channel) -> Void
@@ -79,7 +81,7 @@ struct SubscribedChannelDetail: View {
                                 .fill(ChannelTint.color(at: colorSelection))
                                 .frame(width: 16, height: 16)
                             Text(ChannelColorName.name(for: colorSelection, locale: locale))
-                                .font(TypeFace.body(15))
+                                .font(typography.body(15))
                                 .foregroundStyle(Palette.ink)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
@@ -186,10 +188,10 @@ struct SubscribedChannelDetail: View {
                     colorIndex: env.channelColors.displayIndex(for: displayed)
                 )
                 Text(displayed.name)
-                    .font(TypeFace.heading(19))
+                    .font(typography.heading(19))
                     .foregroundStyle(Palette.ink)
                 Text(L10n.string("channel.kind.subscribed", locale: locale))
-                    .font(TypeFace.condensed(9.5, weight: .semibold))
+                    .font(typography.condensed(9.5, weight: .semibold))
                     .foregroundStyle(Palette.inkTertiary)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1.5)
@@ -266,7 +268,7 @@ struct SubscribedChannelDetail: View {
 
     private func readonlyBox(text: String, isPlaceholder: Bool = false) -> some View {
         Text(text)
-            .font(TypeFace.body(14))
+            .font(typography.body(14))
             .foregroundStyle(isPlaceholder ? Palette.inkTertiary : Palette.inkSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
@@ -287,7 +289,7 @@ struct SubscribedChannelDetail: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()

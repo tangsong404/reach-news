@@ -5,6 +5,8 @@ import SwiftUI
 // 分组吸顶、条目内联展开素材；右下角追问胶囊随滚动收起。
 
 struct BriefDetailView: View {
+    @AppTypography private var typography
+
     let brief: Brief
     @State var store: BriefDetailStore
     @Environment(\.appLocale) private var locale
@@ -184,14 +186,14 @@ struct BriefDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             Text(store.brief.title)
-                .font(Theme.headingFont(size: 25, style: env.appearance.style))
+                .font(typography.headingFont(size: 25, style: env.appearance.style))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
             // 描述紧跟在标题下；为空时整块不渲染，不留空洞。
             if let summary = store.brief.displaySummary {
                 Text(summary)
-                    .font(TypeFace.body(15))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("brief-summary")

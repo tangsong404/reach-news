@@ -11,6 +11,7 @@ import PhotosUI
 // 邮箱只读——服务端没有换绑接口。
 
 struct AccountDetailView: View {
+    @AppTypography private var typography
     let session: SessionStore
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
@@ -35,23 +36,18 @@ struct AccountDetailView: View {
             securitySection
             signOutSection
         }
-        .scrollContentBackground(.hidden)
+        .settingsListStyle()
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnBackgroundTap()
-        .background(Theme.canvas(for: env.appearance.style))
+        .navigationTitle(L10n.string("account.title", locale: locale))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("account.title", locale: locale))
-            }
-        }
         .accessibilityIdentifier("account-detail")
         // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
         .toolbar(.hidden, for: .tabBar)
         .overlay(alignment: .bottom) {
             if let toast {
                 Text(toast)
-                    .font(TypeFace.label(13))
+                    .font(typography.label(13))
                     .foregroundStyle(Palette.onInverse)
                     .padding(.horizontal, Space.l)
                     .padding(.vertical, Space.s)
@@ -79,14 +75,14 @@ struct AccountDetailView: View {
         }
         .sheet(isPresented: $showsNicknameSheet) {
             NicknameSheet(session: session, initialValue: profile.userName)
-                .presentationDetents(SheetMetrics.detents)
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showsPasswordSheet) {
             PasswordChangeSheet(session: session) {
                 // 成功提示：之前改完只无声关闭，用户不知道到底成没成。
                 toast = L10n.string("account.password.changed", locale: locale)
             }
-            .presentationDetents(SheetMetrics.detents)
+            .presentationDetents([.medium, .large])
         }
         .task {
             await session.refreshProfile()
@@ -97,42 +93,42 @@ struct AccountDetailView: View {
 
     private var avatarSection: some View {
         Section {
-            VStack(spacing: Space.m) {
-                AvatarView(url: profile.avatarURL, size: 88)
-
-                PhotosPicker(selection: $photoItem, matching: .images) {
-                    if isUploadingAvatar {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text(L10n.string("account.avatar.change", locale: locale))
-                            .font(TypeFace.label(12.5))
-                            .foregroundStyle(Palette.ink)
-                    }
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                HStack(spacing: 14) {
+                    Image(systemName: "person.crop.circle")
+                        .font(typography.body(17))
+                        .foregroundStyle(Palette.inkSecondary)
+                        .frame(width: 28)
+                    Text(L10n.string("account.avatar.change", locale: locale))
+                        .font(typography.body(17))
+                        .foregroundStyle(Palette.ink)
+                    Spacer(minLength: 8)
+                    if isUploadingAvatar { ProgressView() }
+                    AvatarView(url: profile.avatarURL, size: 56)
                 }
-                .disabled(isUploadingAvatar)
-                .accessibilityIdentifier("account-avatar-change")
-
-                if let avatarError {
-                    Text(avatarError)
-                        .font(TypeFace.footnote)
-                        .foregroundStyle(Palette.failedForeground)
-                }
-
-                // 有头像时才给删除入口：无头像时删了也没有变化。
-                if profile.avatarURL != nil {
-                    Button(role: .destructive) {
-                        Task { await removeAvatar() }
-                    } label: {
-                        Text(L10n.string("account.avatar.remove", locale: locale))
-                            .font(TypeFace.label(12.5))
-                    }
-                    .buttonStyle(.pressable)
-                    .foregroundStyle(Palette.failedForeground)
-                    .accessibilityIdentifier("account-avatar-remove")
-                }
+                .frame(minHeight: 64)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Space.s)
+            .disabled(isUploadingAvatar)
+            .accessibilityIdentifier("account-avatar-change")
+
+            if profile.avatarURL != nil {
+                Button(role: .destructive) {
+                    Task { await removeAvatar() }
+                } label: {
+                    Label(L10n.string("account.avatar.remove", locale: locale), systemImage: "trash")
+                        .font(typography.body(17))
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("account-avatar-remove")
+            }
+            if let avatarError {
+                Text(avatarError)
+                    .font(typography.body(13))
+                    .foregroundStyle(Palette.failedForeground)
+            }
+        } header: {
+            SettingsSectionHeader(title: L10n.string("account.avatar.change", locale: locale))
         }
         .listRowBackground(Theme.surface(for: env.appearance.style))
         .onChange(of: photoItem) { _, newValue in
@@ -170,98 +166,70 @@ struct AccountDetailView: View {
 
     private var profileSection: some View {
         Section {
-            Button {
-                showsNicknameSheet = true
-            } label: {
-                row(
-                    titleKey: "account.nickname.label",
-                    value: profile.userName,
-                    identifier: "account-edit-nickname"
+            Button { showsNicknameSheet = true } label: {
+                actionableRow(
+                    titleKey: "account.nickname.label", systemImage: "person",
+                    value: profile.userName, identifier: "account-edit-nickname"
                 )
             }
             .buttonStyle(.pressable)
 
-            // 邮箱是不可修改项：没有换绑接口，因此不显示进入箭头，
-            // 也不做成可点的行——免得看起来能点却点不动。
-            HStack {
-                Text(L10n.string("account.email.label", locale: locale))
-                    .font(TypeFace.body(13))
-                    .foregroundStyle(Palette.inkSecondary)
-                Spacer(minLength: Space.s)
-                Text(profile.email ?? L10n.string("me.account.email.empty", locale: locale))
-                    .font(TypeFace.label(13))
-                    .foregroundStyle(Palette.inkTertiary)
-                    .lineLimit(1)
-            }
+            SettingsRow(
+                title: L10n.string("account.email.label", locale: locale),
+                systemImage: "envelope",
+                value: profile.email ?? L10n.string("me.account.email.empty", locale: locale)
+            )
             .accessibilityIdentifier("account-email-readonly")
 
-            HStack {
-                Text(L10n.string("account.tier.label", locale: locale))
-                    .font(TypeFace.body(13))
-                    .foregroundStyle(Palette.inkSecondary)
-                Spacer(minLength: Space.s)
+            HStack(spacing: 12) {
+                SettingsRow(title: L10n.string("account.tier.label", locale: locale), systemImage: "seal")
                 TierBadge(tier: profile.planLabel)
             }
         } header: {
-            Text(L10n.string("account.profile.heading", locale: locale))
+            SettingsSectionHeader(title: L10n.string("account.profile.heading", locale: locale))
         }
         .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
-    // MARK: 安全
-
     private var securitySection: some View {
         Section {
-            Button {
-                showsPasswordSheet = true
-            } label: {
-                row(
-                    titleKey: "account.password.label",
-                    value: nil,
-                    identifier: "account-edit-password"
+            Button { showsPasswordSheet = true } label: {
+                actionableRow(
+                    titleKey: "account.password.label", systemImage: "lock",
+                    value: nil, identifier: "account-edit-password"
                 )
             }
             .buttonStyle(.pressable)
         } header: {
-            Text(L10n.string("account.security.heading", locale: locale))
+            SettingsSectionHeader(title: L10n.string("account.security.heading", locale: locale))
         }
         .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
-    // MARK: 退出登录
-
     private var signOutSection: some View {
         Section {
-            Button(role: .destructive) {
-                showsSignOutConfirmation = true
-            } label: {
-                Text(L10n.string("connection.signOut", locale: locale))
-                    .font(TypeFace.body(13.5))
+            Button(role: .destructive) { showsSignOutConfirmation = true } label: {
+                Label(L10n.string("connection.signOut", locale: locale), systemImage: "rectangle.portrait.and.arrow.right")
+                    .font(typography.body(17))
+                    .frame(minHeight: 44)
             }
             .accessibilityIdentifier("account-signout")
         }
         .listRowBackground(Theme.surface(for: env.appearance.style))
     }
 
-    private func row(titleKey: String, value: String?, identifier: String) -> some View {
-        HStack {
-            Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.body(13))
-                .foregroundStyle(Palette.inkSecondary)
-            Spacer(minLength: Space.s)
-            if let value, !value.isEmpty {
-                Text(value)
-                    .font(TypeFace.label(13))
-                    .foregroundStyle(Palette.inkTertiary)
-                    .lineLimit(1)
-            }
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
+    private func actionableRow(titleKey: String, systemImage: String, value: String?, identifier: String) -> some View {
+        HStack(spacing: 8) {
+            SettingsRow(title: L10n.string(titleKey, locale: locale), systemImage: systemImage, value: value)
+            Image(systemName: "chevron.forward")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(Palette.inkTertiary)
+                .accessibilityHidden(true)
         }
         .contentShape(Rectangle())
         .accessibilityIdentifier(identifier)
     }
+
 }
 
 // MARK: - 头像视图
@@ -305,6 +273,7 @@ struct AvatarView: View {
 // 未知档位用中性灰，不猜也不降级成 ultra。
 
 struct TierBadge: View {
+    @AppTypography private var typography
     let tier: String
 
     private var colors: (background: Color, foreground: Color) {
@@ -326,7 +295,7 @@ struct TierBadge: View {
 
     var body: some View {
         Text(tier)
-            .font(TypeFace.label(10.5))
+            .font(typography.label(13))
             .foregroundStyle(colors.foreground)
             .padding(.horizontal, Space.xs)
             .padding(.vertical, 2.5)
@@ -340,6 +309,7 @@ struct TierBadge: View {
 // MARK: - 改昵称
 
 struct NicknameSheet: View {
+    @AppTypography private var typography
     let session: SessionStore
     let initialValue: String
 
@@ -357,42 +327,35 @@ struct NicknameSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: Space.l) {
+            List {
                 if let error {
-                    InlineNotice(text: message(for: error), kind: .error)
-                        .accessibilityIdentifier("nickname-error")
-                }
-
-                TextField("", text: $value)
-                    .font(TypeFace.body(15))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 13)
-                    .background(
-                        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                            .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                            .strokeBorder(Palette.line, lineWidth: 1)
+                    Section {
+                        InlineNotice(text: message(for: error), kind: .error)
+                            .accessibilityIdentifier("nickname-error")
                     }
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .accessibilityIdentifier("nickname-input")
-
-                Spacer(minLength: 0)
+                    .listRowBackground(Theme.surface(for: env.appearance.style))
+                }
+                Section {
+                    TextField(L10n.string("account.nickname.label", locale: locale), text: $value)
+                        .font(typography.body(17))
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("nickname-input")
+                } header: {
+                    SettingsSectionHeader(title: L10n.string("account.nickname.label", locale: locale))
+                }
+                .listRowBackground(Theme.surface(for: env.appearance.style))
             }
-            .padding(.horizontal, Space.xl)
-            .padding(.top, Space.l)
-            .sheetContentInset()
-            .background(Theme.canvas(for: env.appearance.style))
+            .settingsListStyle()
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnBackgroundTap()
+            .navigationTitle(L10n.string("account.nickname.title", locale: locale))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("account.nickname.title", locale: locale))
-                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
-                        .font(TypeFace.body(14))
+                        .font(typography.body(17))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -402,8 +365,7 @@ struct NicknameSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("common.save", locale: locale))
-                                .font(TypeFace.heading(15))
-                                .foregroundStyle(canSave ? Palette.ink : Palette.inkTertiary)
+                                .font(typography.heading(17))
                         }
                     }
                     .disabled(!canSave)
@@ -446,6 +408,7 @@ struct NicknameSheet: View {
 // 当前密码错时验证码不会被消耗，改对后可用同一个码继续。
 
 struct PasswordChangeSheet: View {
+    @AppTypography private var typography
     let session: SessionStore
 
     @Environment(AppEnvironment.self) private var env
@@ -461,10 +424,6 @@ struct PasswordChangeSheet: View {
     @State private var codeSent = false
     @State private var resendCountdown = 0
 
-    /// 输入框底色随风格走，和设置页保持一致。
-    private var fieldSurface: Color {
-        Theme.surface(for: env.appearance.style, mode: env.appearance.mode)
-    }
     /// 成功后的回调：由上层负责弹提示。
     var onChanged: (() -> Void)?
 
@@ -480,80 +439,66 @@ struct PasswordChangeSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Space.l) {
-                    if let error {
+            List {
+                if let error {
+                    Section {
                         InlineNotice(text: message(for: error), kind: .error)
                             .accessibilityIdentifier("password-error")
                     }
+                    .listRowBackground(Theme.surface(for: env.appearance.style))
+                }
 
+                Section {
                     secureField(labelKey: "account.password.current", text: $current, identifier: "password-current")
                     secureField(labelKey: "account.password.new", text: $next, identifier: "password-new")
                     secureField(labelKey: "account.password.confirm", text: $confirm, identifier: "password-confirm")
-
-                    // 邮箱验证码：接口要求，缺少会直接 400。
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        Text(L10n.string("account.password.emailCode", locale: locale))
-                            .font(TypeFace.label(11))
-                            .tracking(1)
-                            .foregroundStyle(Palette.inkTertiary)
-
-                        HStack(spacing: Space.s) {
-                            TextField("", text: $emailCode)
-                                .font(TypeFace.body(14))
-                                .keyboardType(.numberPad)
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 11)
-                                .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(Palette.line, lineWidth: 1)
-                                }
-                                .accessibilityIdentifier("password-email-code")
-
-                            Button {
-                                Task { await sendCode() }
-                            } label: {
-                                if isSendingCode {
-                                    ProgressView().controlSize(.small)
-                                } else {
-                                    Text(resendCountdown > 0
-                                         ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
-                                         : L10n.string("register.emailCode.send", locale: locale))
-                                        .font(TypeFace.label(12))
-                                        .foregroundStyle(canSendCode ? Palette.ink : Palette.inkTertiary)
-                                        .lineLimit(1)
-                                }
-                            }
-                            .disabled(!canSendCode)
-                            .accessibilityIdentifier("password-email-code-send")
-                        }
-
-                        if codeSent {
-                            Text(L10n.string("register.emailCode.sent", locale: locale))
-                                .font(TypeFace.footnote)
-                                .foregroundStyle(Palette.runningForeground)
-                        } else {
-                            Text(L10n.string("account.password.emailCode.hint", locale: locale))
-                                .font(TypeFace.footnote)
-                                .foregroundStyle(Palette.inkTertiary)
-                        }
-                    }
+                } header: {
+                    SettingsSectionHeader(title: L10n.string("account.security.heading", locale: locale))
                 }
-                .padding(.horizontal, Space.xl)
-                .padding(.top, Space.l)
-                .padding(.bottom, 44)
+                .listRowBackground(Theme.surface(for: env.appearance.style))
+
+                Section {
+                    TextField(L10n.string("account.password.emailCode", locale: locale), text: $emailCode)
+                        .font(typography.body(17))
+                        .keyboardType(.numberPad)
+                        .textContentType(.oneTimeCode)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("password-email-code")
+                    Button {
+                        Task { await sendCode() }
+                    } label: {
+                        HStack {
+                            Text(resendCountdown > 0
+                                 ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
+                                 : L10n.string("register.emailCode.send", locale: locale))
+                                .font(typography.body(17))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 8)
+                            if isSendingCode { ProgressView() }
+                        }
+                        .frame(minHeight: 44)
+                    }
+                    .disabled(!canSendCode)
+                    .accessibilityIdentifier("password-email-code-send")
+                    if codeSent {
+                        Text(L10n.string("register.emailCode.sent", locale: locale))
+                            .font(typography.body(13))
+                            .foregroundStyle(Palette.runningForeground)
+                    }
+                } header: {
+                    SettingsSectionHeader(title: L10n.string("account.password.emailCode", locale: locale))
+                }
+                .listRowBackground(Theme.surface(for: env.appearance.style))
             }
-            .sheetContentInset()
-            .background(Theme.canvas(for: env.appearance.style))
+            .settingsListStyle()
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnBackgroundTap()
+            .navigationTitle(L10n.string("account.password.title", locale: locale))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("account.password.title", locale: locale))
-                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button(L10n.string("common.cancel", locale: locale)) { dismiss() }
-                        .font(TypeFace.body(14))
+                        .font(typography.body(17))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -563,8 +508,7 @@ struct PasswordChangeSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("common.save", locale: locale))
-                                .font(TypeFace.heading(15))
-                                .foregroundStyle(canSave ? Palette.ink : Palette.inkTertiary)
+                                .font(typography.heading(17))
                         }
                     }
                     .disabled(!canSave)
@@ -633,21 +577,10 @@ struct PasswordChangeSheet: View {
     }
 
     private func secureField(labelKey: String, text: Binding<String>, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(11))
-                .tracking(1)
-                .foregroundStyle(Palette.inkTertiary)
-            SecureField("", text: text)
-                .font(TypeFace.body(14))
-                .padding(.horizontal, 13)
-                .padding(.vertical, 11)
-                .background(fieldSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Palette.line, lineWidth: 1)
-                }
-                .accessibilityIdentifier(identifier)
-        }
+        SecureField(L10n.string(labelKey, locale: locale), text: text)
+            .font(typography.body(17))
+            .textContentType(labelKey == "account.password.current" ? .password : .newPassword)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier(identifier)
     }
 }

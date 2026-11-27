@@ -19,6 +19,7 @@ import UIKit
 // 渲染范围严格限定 body：title / summary / sections 一律纯文本，不走这里。
 
 struct MarkdownBodyView: View {
+    @AppTypography private var typography
     let markdown: String
     var onOpenURL: (URL) -> Void
     /// 点小标题右侧「跟踪」按钮时的回调，参数是该标题的文字。
@@ -31,7 +32,8 @@ struct MarkdownBodyView: View {
             let blocks = MarkdownBlockBuilder.parse(
                 markdown,
                 onTrackHeading: onTrackHeading,
-                style: style
+                style: style,
+                typography: typography
             )
             ForEach(blocks) { block in
                 block.view
@@ -82,14 +84,15 @@ enum MarkdownBlockBuilder {
     static func parse(
         _ markdown: String,
         onTrackHeading: ((String) -> Void)? = nil,
-        style: ReaderStyle = .editorial
+        style: ReaderStyle = .editorial,
+        typography: ResolvedTypography = ResolvedTypography()
     ) -> [LaidOutBlock] {
         split(attributed(from: markdown)).enumerated().map { index, block in
             LaidOutBlock(
                 id: index,
                 kind: block.kind,
                 plainText: block.plainText,
-                view: view(for: block, onTrackHeading: onTrackHeading, style: style)
+                view: view(for: block, onTrackHeading: onTrackHeading, style: style, typography: typography)
             )
         }
     }
@@ -243,7 +246,8 @@ enum MarkdownBlockBuilder {
         _ block: Block,
         size: CGFloat,
         onTrackHeading: ((String) -> Void)?,
-        style: ReaderStyle
+        style: ReaderStyle,
+        typography: ResolvedTypography
     ) -> some View {
         // 铃铛必须紧贴最后一个字：文字与铃铛放进同一段 TextKit 文本里，
         // 位置天然正确，点击由内联附件的命中测试处理。
@@ -254,11 +258,12 @@ enum MarkdownBlockBuilder {
                     fontSize: size,
                     style: style,
                     followLabel: L10n.string("brief.heading.follow", locale: .current),
-                    onFollow: { onTrackHeading(block.plainText) }
+                    onFollow: { onTrackHeading(block.plainText) },
+                    typography: typography
                 )
             } else {
                 Text(block.text)
-                    .font(Theme.headingFont(size: size, style: style))
+                    .font(typography.headingFont(size: size, style: style))
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -270,14 +275,15 @@ enum MarkdownBlockBuilder {
     private static func view(
         for block: Block,
         onTrackHeading: ((String) -> Void)?,
-        style: ReaderStyle
+        style: ReaderStyle,
+        typography: ResolvedTypography
     ) -> AnyView {
         switch block.kind {
         case .heading(let level):
             let sizes: [CGFloat] = [22, 19, 17, 16, 16, 16]
             let size = sizes[min(max(level, 1), 6) - 1]
             return AnyView(
-                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading, style: style)
+                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading, style: style, typography: typography)
             )
 
         case .listItem(let ordered, let ordinal):
@@ -285,11 +291,11 @@ enum MarkdownBlockBuilder {
             return AnyView(
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                     Text(marker)
-                        .font(ordered ? TypeFace.condensed(14, weight: .semibold) : TypeFace.body(16))
+                        .font(ordered ? typography.condensed(14, weight: .semibold) : typography.body(16))
                         .foregroundStyle(Palette.inkTertiary)
                         .frame(minWidth: 18, alignment: .trailing)
                     linkText(block)
-                        .font(TypeFace.body(16))
+                        .font(typography.body(16))
                         .lineSpacing(7)
                         .foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
@@ -303,7 +309,7 @@ enum MarkdownBlockBuilder {
                     // 代码块不加行内样式，等宽并保留换行与缩进；不做语法高亮。
                     Text(String(block.text.characters))
                         // 代码块也要跟随 Dynamic Type，否则调大字后正文变了它不变。
-                        .font(.system(size: TypeFace.scaledSize(13.5), design: .monospaced))
+                        .font(.system(size: typography.scaledSize(13.5), design: .monospaced))
                         .foregroundStyle(Palette.ink)
                         .textSelection(.enabled)
                         .padding(Space.m)
@@ -322,7 +328,7 @@ enum MarkdownBlockBuilder {
                         .fill(Palette.lineStrong)
                         .frame(width: 3)
                     linkText(block)
-                        .font(TypeFace.body(15))
+                        .font(typography.body(15))
                         .lineSpacing(6)
                         .foregroundStyle(Palette.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -341,7 +347,7 @@ enum MarkdownBlockBuilder {
         case .paragraph:
             return AnyView(
                 linkText(block)
-                    .font(TypeFace.body(16))
+                    .font(typography.body(16))
                     .lineSpacing(7)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)

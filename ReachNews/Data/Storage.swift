@@ -130,6 +130,15 @@ protocol PreferencesStoring: AnyObject {
     /// 主题色（`ThemeTint.rawValue`）。
     var themeTint: String { get set }
     var appearanceMode: String { get set }
+    var readingTextSize: String { get set }
+}
+
+extension PreferencesStoring {
+    /// Older test/preview stores remain compatible; durable stores override this property.
+    var readingTextSize: String {
+        get { ReadingTextSize.standard.rawValue }
+        set {}
+    }
 }
 
 final class UserDefaultsPreferences: PreferencesStoring {
@@ -142,6 +151,7 @@ final class UserDefaultsPreferences: PreferencesStoring {
         static let readerStyle = "preferences.readerStyle"
         static let themeTint = "preferences.themeTint"
         static let appearanceMode = "preferences.appearanceMode"
+        static let readingTextSize = "preferences.readingTextSize"
     }
 
     private let defaults: UserDefaults
@@ -194,6 +204,11 @@ final class UserDefaultsPreferences: PreferencesStoring {
     var appearanceMode: String {
         get { defaults.string(forKey: Keys.appearanceMode) ?? "" }
         set { defaults.set(newValue, forKey: Keys.appearanceMode) }
+    }
+
+    var readingTextSize: String {
+        get { defaults.string(forKey: Keys.readingTextSize) ?? ReadingTextSize.standard.rawValue }
+        set { defaults.set(newValue, forKey: Keys.readingTextSize) }
     }
 }
 

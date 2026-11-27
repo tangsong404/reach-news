@@ -5,6 +5,8 @@ import SwiftUI
 // 整页一次保存：只提交被改动的字段。运行中 409 busy 时顶部提示且保留全部输入。
 
 struct ChannelEditView: View {
+    @AppTypography private var typography
+
     let channel: Channel
     @Bindable var editor: ChannelEditor
     var onSaved: (Channel) -> Void
@@ -164,7 +166,7 @@ struct ChannelEditView: View {
                     ProgressView().controlSize(.small)
                 } else {
                     Text(L10n.string("channelEdit.save", locale: locale))
-                        .font(TypeFace.heading(15))
+                        .font(typography.heading(15))
                         .foregroundStyle(editor.hasChanges ? Palette.ink : Palette.inkTertiary)
                 }
             }
@@ -219,7 +221,7 @@ struct ChannelEditView: View {
             // 仅当原本有连接器、被用户清空时提示；新频道本来就空，不该一进来就报错。
             if editor.draft.connectorIDs.isEmpty && !channel.connectorIDs.isEmpty {
                 Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
         }
@@ -245,7 +247,7 @@ struct ChannelEditView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()
@@ -256,6 +258,8 @@ struct ChannelEditView: View {
 // MARK: - 采集时间表编辑
 
 struct ScheduleEditor: View {
+    @AppTypography private var typography
+
     @Binding var schedule: Schedule
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
@@ -306,7 +310,7 @@ struct ScheduleEditor: View {
                             toggle(weekday)
                         } label: {
                             Text(L10n.string(weekday.shortKey, locale: locale))
-                                .font(TypeFace.label(13))
+                                .font(typography.label(13))
                                 .foregroundStyle(isOn ? Palette.canvas : Palette.inkSecondary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, Space.s)
@@ -339,7 +343,7 @@ struct ScheduleEditor: View {
                     Button(L10n.string("common.done", locale: locale)) {
                         showsTimePicker = false
                     }
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                     .accessibilityIdentifier("schedule-picker-done")
                 }
             }

@@ -118,8 +118,8 @@ enum Theme {
         }
     }
 
-    /// 标题字形：编辑风用衬线，简洁风用无衬线。
-    /// 这是两套风格最好辨认的差异，切换时第一眼就该看出来。
+    /// Legacy static entry point for tests/previews. Live views use AppTypography
+    /// so preference and system Dynamic Type are resolved from their own environment.
     static func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
         let scaled = TypeFace.scaledSize(size)
         switch style {

@@ -7,9 +7,12 @@ final class ReachNewsUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(appearance: String = "light") -> XCUIApplication {
+    private func launch(appearance: String = "light", accessibilityText: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-ui-testing", "-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh_CN"]
+        if accessibilityText {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        }
         app.launchEnvironment["UI_TEST_APPEARANCE"] = appearance
         app.launchEnvironment["UI_TEST_STYLE"] = "editorial"
         app.launch()
@@ -94,18 +97,71 @@ final class ReachNewsUITests: XCTestCase {
         screenshot("detail-editorial-dark")
     }
 
+    func testGroupedSettingsNavigationAndTextSize() throws {
+        let app = launch()
+        app.tabBars.buttons["我的"].tap()
+        XCTAssertTrue(element("me-preferences", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-me-light")
+        element("me-account-card", in: app).tap()
+        XCTAssertTrue(element("account-detail", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-account-light")
+        element("account-edit-password", in: app).tap()
+        XCTAssertTrue(app.secureTextFields.firstMatch.waitForExistence(timeout: 10))
+        screenshot("settings-password-light")
+        app.buttons["取消"].firstMatch.tap()
+        element("account-edit-nickname", in: app).tap()
+        XCTAssertTrue(app.textFields.firstMatch.waitForExistence(timeout: 10))
+        screenshot("settings-nickname-light")
+        app.buttons["取消"].firstMatch.tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        element("me-preferences", in: app).tap()
+        XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-appearance-light")
+        let preview = element("preferences-text-preview", in: app)
+        let initialHeight = preview.frame.height
+        element("preferences-text-size", in: app).tap()
+        app.buttons["较大"].firstMatch.tap()
+        XCTAssertTrue(preview.waitForExistence(timeout: 5))
+        XCTAssertGreaterThanOrEqual(preview.frame.height, initialHeight)
+        screenshot("settings-text-larger")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        element("me-help", in: app).tap()
+        XCTAssertTrue(element("help-about", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-help-light")
+    }
+
+    func testGroupedSettingsDarkScreenshots() throws {
+        let app = launch(appearance: "dark")
+        app.tabBars.buttons["我的"].tap()
+        screenshot("settings-me-dark")
+        element("me-preferences", in: app).tap()
+        XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-appearance-dark")
+    }
+
+    func testSettingsAccessibilityTextLayout() throws {
+        let app = launch(accessibilityText: true)
+        app.tabBars.buttons["我的"].tap()
+        element("me-preferences", in: app).tap()
+        XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
+        screenshot("settings-accessibility-text")
+        let row = element("preferences-style", in: app)
+        XCTAssertTrue(row.exists)
+        XCTAssertLessThanOrEqual(row.frame.maxX, app.frame.maxX + 1)
+        XCTAssertGreaterThanOrEqual(row.frame.minX, app.frame.minX - 1)
+    }
+
     private func assertFeedLayout(in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         let brand = element("feed-brand", in: app)
         let search = app.searchFields["feed-search-field"]
-        let meta = element("feed-meta", in: app)
+        XCTAssertFalse(element("feed-meta", in: app).exists, "Removed count row must not reappear")
         let date = element("feed-date-header", in: app)
         let article = element("feed-row-ui-fixture-brief", in: app)
-        for item in [brand, search, meta, date, article] {
+        for item in [brand, search, date, article] {
             XCTAssertTrue(item.waitForExistence(timeout: 10), file: file, line: line)
         }
         XCTAssertLessThanOrEqual(brand.frame.maxY, search.frame.minY + 2, "Brand must be above search, not below it or centered in the toolbar", file: file, line: line)
-        XCTAssertLessThanOrEqual(meta.frame.maxY, date.frame.minY + 2, file: file, line: line)
-        XCTAssertLessThanOrEqual(date.frame.minY - meta.frame.maxY, 28, "Metadata/date gap must not inherit List minimum row height", file: file, line: line)
+        XCTAssertLessThanOrEqual(date.frame.minY - search.frame.maxY, 28, "Search/date gap must remain compact", file: file, line: line)
         XCTAssertLessThanOrEqual(article.frame.minY - date.frame.maxY, 24, "Date/article gap must remain compact", file: file, line: line)
     }
 }

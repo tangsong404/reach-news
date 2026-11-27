@@ -43,6 +43,7 @@ private final class UITestPreferences: PreferencesStoring {
     var readerStyle = ProcessInfo.processInfo.environment["UI_TEST_STYLE"] ?? "editorial"
     var themeTint = "azure"
     var appearanceMode = ProcessInfo.processInfo.environment["UI_TEST_APPEARANCE"] ?? "light"
+    var readingTextSize = ProcessInfo.processInfo.environment["UI_TEST_TEXT_SIZE"] ?? "standard"
 }
 
 private final class UITestSavedBriefs: SavedBriefsStoring {

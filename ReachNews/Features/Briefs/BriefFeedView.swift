@@ -5,6 +5,8 @@ import SwiftUI
 // 日报页即全部历史：日期分组倒序、搜索常驻、筛选收在面板里。
 
 struct BriefFeedView: View {
+    @AppTypography private var typography
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     @State private var store: BriefFeedStore?
@@ -57,9 +59,6 @@ struct BriefFeedView: View {
                     identifier: "feed-search-field"
                 )
                 .padding(.horizontal, Space.l - 8)
-                metaLines(store)
-                    .padding(.horizontal, Space.xl)
-                    .padding(.bottom, 2)
 
                 if store.filter.isActive {
                     activeFilterSummary(store)
@@ -130,7 +129,7 @@ struct BriefFeedView: View {
         HStack(spacing: Space.s) {
             BrandMark(size: 30)
             Text("Reach News")
-                .font(TypeFace.display(28))
+                .font(typography.display(28))
                 .foregroundStyle(Palette.ink)
             Spacer(minLength: 0)
         }
@@ -140,18 +139,6 @@ struct BriefFeedView: View {
         .padding(.horizontal, Space.xl)
         .padding(.top, Space.s)
         .padding(.bottom, Space.xs)
-    }
-
-    /// 只保留频道数与期数；不显示当日日期，也不显示排序说明。
-    private func metaLines(_ store: BriefFeedStore) -> some View {
-        HStack(spacing: 7) {
-            MetaLine(text: L10n.format("feed.channelCount", locale: locale, store.totalChannelCount))
-            DotSeparator()
-            MetaLine(text: L10n.format("feed.briefCount", locale: locale, store.briefs.count))
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("feed-meta")
     }
 
     private func activeFilterSummary(_ store: BriefFeedStore) -> some View {
@@ -191,7 +178,7 @@ struct BriefFeedView: View {
                 )
             }
             Text(title)
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .foregroundStyle(Palette.inkSecondary)
             Button(action: onRemove) {
                 Image(systemName: "xmark")
@@ -212,7 +199,7 @@ struct BriefFeedView: View {
         ForEach(store.groupedBriefs, id: \.day) { group in
             Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
                 .accessibilityIdentifier("feed-date-header")
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
                 .textCase(nil)
@@ -244,7 +231,7 @@ struct BriefFeedView: View {
             LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
         } else if !store.hasMore && !store.briefs.isEmpty {
             Text(L10n.string("feed.endOfFeed", locale: locale))
-                .font(TypeFace.body(11.5))
+                .font(typography.body(11.5))
                 .foregroundStyle(Palette.inkTertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Space.l)
@@ -275,6 +262,8 @@ struct BriefFeedView: View {
 // MARK: - 日报行
 
 struct BriefRow: View {
+    @AppTypography private var typography
+
     let brief: Brief
     let channelName: String
     let channelID: String
@@ -287,13 +276,13 @@ struct BriefRow: View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                 Text(brief.title)
-                    .font(TypeFace.heading(14.5))
+                    .font(typography.heading(14.5))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if isNew {
                     Text(L10n.string("feed.new", locale: locale))
-                        .font(TypeFace.condensed(9, weight: .bold))
+                        .font(typography.condensed(9, weight: .bold))
                         .foregroundStyle(Palette.onInverse)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1.5)
@@ -305,7 +294,7 @@ struct BriefRow: View {
             // 描述非空时展示在标题下，一到两行截断；为空时不留空洞。
             if let summary = brief.displaySummary {
                 Text(summary)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(12.5))
                     .foregroundStyle(Palette.inkTertiary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -316,7 +305,7 @@ struct BriefRow: View {
             HStack(spacing: 7) {
                 ChannelDot(channelID: channelID, colorIndex: colorIndex)
                 Text(channelName)
-                    .font(TypeFace.label(11))
+                    .font(typography.label(11))
                     .foregroundStyle(Palette.inkSecondary)
                 DotSeparator()
                 MetaLine(text: DisplayTime.clock(brief.createdAt, locale: locale))
@@ -336,6 +325,8 @@ struct BriefRow: View {
 // MARK: - 筛选面板
 
 struct FeedFilterSheet: View {
+    @AppTypography private var typography
+
     @Bindable var store: BriefFeedStore
     @Binding var isPresented: Bool
     @Environment(\.appLocale) private var locale
@@ -384,7 +375,7 @@ struct FeedFilterSheet: View {
 
                     if store.allChannels.isEmpty {
                         Text(L10n.string("filter.channel.none", locale: locale))
-                            .font(TypeFace.body(12.5))
+                            .font(typography.body(12.5))
                             .foregroundStyle(Palette.inkTertiary)
                             .padding(.vertical, Space.s)
                     }
@@ -405,7 +396,7 @@ struct FeedFilterSheet: View {
                         customStart = Date()
                         customEnd = Date()
                     }
-                    .font(TypeFace.body(15))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkSecondary)
                     .accessibilityIdentifier("filter-reset")
                 }
@@ -417,7 +408,7 @@ struct FeedFilterSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("filter.apply.short", locale: locale))
-                                .font(TypeFace.heading(15))
+                                .font(typography.heading(15))
                         }
                     }
                     .disabled(isApplying)
@@ -462,7 +453,7 @@ struct FeedFilterSheet: View {
 
     private func sheetHeading(_ key: String) -> some View {
         Text(L10n.string(key, locale: locale))
-            .font(TypeFace.label(11))
+            .font(typography.label(11))
             .tracking(1)
             .foregroundStyle(Palette.inkTertiary)
             .padding(.bottom, Space.s)
@@ -478,7 +469,7 @@ struct FeedFilterSheet: View {
                     )
                 }
                 Text(title)
-                    .font(TypeFace.body(14))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
                 ZStack {
@@ -509,7 +500,7 @@ struct FeedFilterSheet: View {
         HStack(spacing: Space.m) {
             dateField(labelKey: "filter.custom.start", date: $customStart)
             Text("–")
-                .font(TypeFace.body(12))
+                .font(typography.body(12))
                 .foregroundStyle(Palette.inkTertiary)
             dateField(labelKey: "filter.custom.end", date: $customEnd)
         }
@@ -522,7 +513,7 @@ struct FeedFilterSheet: View {
     private func dateField(labelKey: String, date: Binding<Date>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(9.5))
+                .font(typography.label(9.5))
                 .tracking(0.8)
                 .foregroundStyle(Palette.inkTertiary)
             DatePicker(

@@ -11,6 +11,7 @@ final class LocalizationCoverageTests: XCTestCase {
     func testEveryEnumLabelKeyExistsInBothLanguages() throws {
         var keys: [String] = []
         for value in ReaderStyle.allCases { keys.append(value.labelKey) }
+        for value in ReadingTextSize.allCases { keys.append(value.labelKey) }
         for value in AppearanceMode.allCases { keys.append(value.labelKey) }
         for value in ThemeTint.allCases { keys.append(value.labelKey) }
         for value in LanguagePreference.allCases { keys.append(value.labelKey) }

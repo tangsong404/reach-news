@@ -93,6 +93,7 @@ final class InMemoryPreferences: PreferencesStoring {
     var readerStyle: String = ""
     var themeTint: String = ""
     var appearanceMode: String = ""
+    var readingTextSize: String = "standard"
 }
 
 final class InMemoryChannelColors: ChannelColorStoring {

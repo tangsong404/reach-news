@@ -7,6 +7,8 @@ import SwiftUI
 // 预设模板已整体下线（订阅是关系，不是类型），新建只有「空白新建」一条路径。
 
 struct ChannelCreateSheet: View {
+    @AppTypography private var typography
+
     @Bindable var store: ChannelStore
     @Binding var isPresented: Bool
     var onCreated: (Channel) -> Void
@@ -115,7 +117,7 @@ struct ChannelCreateSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("channel.create.submit", locale: locale))
-                                .font(TypeFace.heading(14))
+                                .font(typography.heading(14))
                                 .foregroundStyle(canSubmit ? Palette.ink : Palette.inkTertiary)
                         }
                     }
@@ -195,7 +197,7 @@ struct ChannelCreateSheet: View {
             // 用户还没提交时不报错；只有点了创建仍为空才提示。
             if showConnectorValidation && selectedConnectorIDs.isEmpty {
                 Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
-                    .font(TypeFace.footnote)
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
         }
@@ -216,7 +218,7 @@ struct ChannelCreateSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()

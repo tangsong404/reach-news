@@ -19,66 +19,77 @@ struct MeView: View {
                 case .saved:
                     SavedBriefsView(saved: env.saved)
                 case .preferences:
-                    PreferencesView(session: env.session, preferences: env.preferences)
+                    AppearanceReadingView(preferences: env.preferences)
                 case .account:
                     AccountDetailView(session: env.session)
+                case .help:
+                    HelpAboutView()
                 }
             }
         }
-    }
-
-    private var savedRowTitle: String {
-        let count = env.saved.savedIDs.count
-        let title = L10n.string("me.saved", locale: locale)
-        return count > 0 ? "\(title) \(count)" : title
     }
 
     private func content(_ env: AppEnvironment) -> some View {
         List {
-            // 整张账号卡片点进个人页；连接信息不再单列入口。
-            NavigationLink(value: MeDestination.account) {
-                AccountHeaderView(profile: env.profile)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
+            Section {
+                NavigationLink(value: MeDestination.account) {
+                    AccountHeaderView(profile: env.profile)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .accessibilityIdentifier("me-account-card")
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-            .buttonStyle(.pressable)
-            .listRowInsets(EdgeInsets(top: Space.s, leading: Space.l, bottom: Space.s, trailing: Space.l))
-            .listRowBackground(Theme.surface(for: env.appearance.style))
-            .accessibilityIdentifier("me-account-card")
 
             Section {
                 NavigationLink(value: MeDestination.saved) {
-                    Label {
-                        // HIG：badge 只留给真正的「新/未读」信息，
-                        // 收藏数量放进行标题，不用红点式角标。
-                        Text(savedRowTitle)
-                    } icon: {
-                        Image(systemName: "bookmark")
-                    }
+                    SettingsRow(
+                        title: L10n.string("me.saved", locale: locale),
+                        systemImage: "bookmark",
+                        value: env.saved.savedIDs.isEmpty ? nil : String(env.saved.savedIDs.count)
+                    )
                 }
                 .accessibilityIdentifier("me-saved")
+            } header: {
+                SettingsSectionHeader(title: L10n.string("me.library.heading", locale: locale))
+            }
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
+            Section {
                 NavigationLink(value: MeDestination.preferences) {
-                    Label {
-                        Text(L10n.string("me.preferences", locale: locale))
-                    } icon: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
+                    SettingsRow(
+                        title: L10n.string("me.preferences", locale: locale),
+                        systemImage: "textformat.size"
+                    )
                 }
                 .accessibilityIdentifier("me-preferences")
+            } header: {
+                SettingsSectionHeader(title: L10n.string("me.settings.heading", locale: locale))
+            }
+            .listRowBackground(Theme.surface(for: env.appearance.style))
 
+            Section {
+                NavigationLink(value: MeDestination.help) {
+                    SettingsRow(title: L10n.string("me.help", locale: locale), systemImage: "questionmark.circle")
+                }
+                .accessibilityIdentifier("me-help")
+            } header: {
+                SettingsSectionHeader(title: L10n.string("me.support.heading", locale: locale))
             }
             .listRowBackground(Theme.surface(for: env.appearance.style))
         }
+        .settingsListStyle()
         .scrollContentBackground(.hidden)
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .accessibilityIdentifier("me-list")
     }
+
 }
 
 enum MeDestination: Hashable {
     case saved
     case preferences
+    case help
     /// 账号卡片点进去的个人页：资料、头像、密码与退出登录都在这里。
     case account
 }
@@ -90,6 +101,7 @@ enum MeDestination: Hashable {
 
 struct SavedBriefsView: View {
     let saved: SavedStore
+    @AppTypography private var typography
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
 
@@ -123,12 +135,8 @@ struct SavedBriefsView: View {
             }
         }
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .navigationTitle(L10n.string("me.saved", locale: locale))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("me.saved", locale: locale))
-            }
-        }
         .navigationDestination(for: Brief.self) { brief in
             BriefDetailView(brief: brief, store: env.makeDetailStore(brief: brief))
         }
@@ -155,6 +163,7 @@ struct SavedBriefsView: View {
                 NavigationLink(value: brief) {
                     row(for: brief)
                 }
+                .listRowBackground(Theme.surface(for: env.appearance.style))
                 .swipeActions {
                     Button(role: .destructive) {
                         saved.toggle(brief.id)
@@ -171,6 +180,7 @@ struct SavedBriefsView: View {
                 pendingRow(for: id)
             }
         }
+        .settingsListStyle()
         .scrollContentBackground(.hidden)
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .refreshable {
@@ -192,20 +202,20 @@ struct SavedBriefsView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.failedForeground)
                 Text(L10n.string("me.saved.rowFailed", locale: locale))
-                    .font(TypeFace.body(12))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkTertiary)
                 Spacer(minLength: 0)
                 Button {
                     Task { await env.savedFeed.retry(id: id) }
                 } label: {
                     Text(L10n.string("common.retry", locale: locale))
-                        .font(TypeFace.label(12))
+                        .font(typography.label(12))
                 }
                 .buttonStyle(.pressable)
             } else {
                 ProgressView().controlSize(.small)
                 Text(L10n.string("common.loading", locale: locale))
-                    .font(TypeFace.body(12))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkTertiary)
                 Spacer(minLength: 0)
             }
@@ -215,158 +225,23 @@ struct SavedBriefsView: View {
     private func row(for brief: Brief) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(brief.title)
-                .font(TypeFace.heading(14.5))
+                .font(typography.heading(17))
                 .foregroundStyle(Palette.ink)
                 .lineLimit(2)
             if let summary = brief.displaySummary {
                 Text(summary)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
             }
             HStack(spacing: 7) {
                 ChannelDot(channelID: brief.channelID, colorIndex: env.channelColors.colorIndex(for: brief.channelID))
                 Text(brief.channelName ?? "")
-                    .font(TypeFace.label(11))
+                    .font(typography.label(13))
                     .foregroundStyle(Palette.inkSecondary)
                 DotSeparator()
                 MetaLine(text: DisplayTime.monthDayTime(brief.createdAt, locale: locale))
             }
-        }
-        .padding(.vertical, Space.xxs)
-    }
-}
-
-// MARK: - 偏好
-
-struct PreferencesView: View {
-    let session: SessionStore
-    let preferences: PreferencesStoring
-    @Environment(\.appLocale) private var locale
-    @Environment(AppEnvironment.self) private var env
-
-    var body: some View {
-        List {
-            Section {
-                menuRow(
-                    titleKey: "preferences.language",
-                    value: L10n.string(currentLanguage.labelKey, locale: locale)
-                ) {
-                    ForEach(LanguagePreference.allCases) { option in
-                        Button(L10n.string(option.labelKey, locale: locale)) {
-                            preferences.languagePreference = option.rawValue
-                        }
-                    }
-                }
-                .accessibilityIdentifier("preferences-language")
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
-
-            // 亮/暗/跟随系统：独立于编辑风/简洁风。
-            Section {
-                menuRow(
-                    titleKey: "preferences.appearanceMode",
-                    value: L10n.string(env.appearance.mode.labelKey, locale: locale)
-                ) {
-                    ForEach(AppearanceMode.allCases) { option in
-                        Button(L10n.string(option.labelKey, locale: locale)) {
-                            env.appearance.select(mode: option)
-                        }
-                    }
-                }
-                .accessibilityIdentifier("preferences-appearance-mode")
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
-
-            // 风格：只显示「编辑风 / 简洁风」，不显示任何内部标识。
-            Section {
-                menuRow(
-                    titleKey: "preferences.style",
-                    value: L10n.string(env.appearance.style.labelKey, locale: locale)
-                ) {
-                    ForEach(ReaderStyle.allCases) { option in
-                        Button(L10n.string(option.labelKey, locale: locale)) {
-                            env.appearance.select(style: option)
-                        }
-                    }
-                }
-                .accessibilityIdentifier("preferences-style")
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
-
-            // 主题色：一行色点，点选即生效。
-            Section {
-                tintRow
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
-
-        }
-        .scrollContentBackground(.hidden)
-        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("me.preferences", locale: locale))
-            }
-        }
-        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
-        .toolbar(.hidden, for: .tabBar)
-    }
-
-    private var currentLanguage: LanguagePreference {
-        LanguagePreference(rawValue: preferences.languagePreference) ?? .system
-    }
-
-    /// 菜单式选择行：右侧显示当前值，点开是系统菜单。
-    /// 不用 Picker 是为了保证显示的永远是本地化文案，而不是内部标识。
-    private func menuRow<MenuItems: View>(
-        titleKey: String,
-        value: String,
-        @ViewBuilder items: () -> MenuItems
-    ) -> some View {
-        Menu {
-            items()
-        } label: {
-            HStack(spacing: Space.s) {
-                Text(L10n.string(titleKey, locale: locale))
-                    .foregroundStyle(Palette.ink)
-                Spacer(minLength: 0)
-                Text(value)
-                    .foregroundStyle(Palette.inkSecondary)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Palette.inkTertiary)
-            }
-            .frame(minHeight: 32)
-        }
-        .buttonStyle(.pressable)
-    }
-
-    /// 主题色：横向色点，选中项带外圈。
-    private var tintRow: some View {
-        HStack(spacing: Space.m) {
-            ForEach(ThemeTint.allCases) { option in
-                Button {
-                    env.appearance.select(tint: option)
-                } label: {
-                    Circle()
-                        .fill(option.color)
-                        .frame(width: 26, height: 26)
-                        .overlay {
-                            Circle()
-                                .strokeBorder(env.appearance.accent, lineWidth: env.appearance.tint == option ? 2 : 0)
-                                .padding(-4)
-                        }
-                        // 视觉 26pt，可点范围 44pt（HIG 默认最小值）。
-                        .frame(width: 44, height: 44)
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.pressable)
-                .accessibilityAddTraits(env.appearance.tint == option ? [.isSelected] : [])
-                .accessibilityLabel(Text(L10n.string(option.labelKey, locale: locale)))
-                .accessibilityIdentifier("preferences-tint-\(option.rawValue)")
-            }
-            Spacer(minLength: 0)
         }
         .padding(.vertical, Space.xxs)
     }

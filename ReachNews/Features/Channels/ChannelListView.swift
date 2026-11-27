@@ -7,6 +7,8 @@ import SwiftUI
 // enabled 行上直接切换、失败回滚；运行状态只轮询可见行。
 
 struct ChannelListView: View {
+    @AppTypography private var typography
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     /// 减弱动态效果时展开/收起不做动画。
@@ -246,12 +248,12 @@ struct ChannelListView: View {
             } label: {
                 HStack(spacing: Space.s) {
                     Text(L10n.string("channel.section.discover", locale: locale))
-                        .font(TypeFace.label(11))
+                        .font(typography.label(11))
                         .tracking(1)
                         .foregroundStyle(Palette.inkTertiary)
                     if !store.discoverableChannels.isEmpty {
                         Text("\(store.discoverableChannels.count)")
-                            .font(TypeFace.condensed(10.5, weight: .semibold))
+                            .font(typography.condensed(10.5, weight: .semibold))
                             .foregroundStyle(Palette.inkTertiary)
                     }
                     Rectangle()
@@ -277,7 +279,7 @@ struct ChannelListView: View {
                     Button(L10n.string("common.retry", locale: locale)) {
                         Task { await store.loadDiscoverable() }
                     }
-                    .font(TypeFace.heading(13))
+                    .font(typography.heading(13))
                     .foregroundStyle(Palette.ink)
                     .accessibilityIdentifier("channel-discover-retry")
                 }
@@ -288,7 +290,7 @@ struct ChannelListView: View {
                     EmptyView()
                 } else if store.discoverableChannels.isEmpty {
                     Text(L10n.string("channel.discover.empty", locale: locale))
-                        .font(TypeFace.footnote)
+                        .font(typography.footnote)
                         .foregroundStyle(Palette.inkTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
@@ -321,7 +323,7 @@ struct ChannelListView: View {
     private func sectionHeader(_ key: String) -> some View {
         HStack(spacing: Space.s) {
             Text(L10n.string(key, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             Rectangle()
@@ -352,6 +354,8 @@ struct ChannelListView: View {
 // MARK: - 我的频道卡
 
 struct ChannelCard: View {
+    @AppTypography private var typography
+
     let channel: Channel
     let run: Run?
     let isPending: Bool
@@ -368,7 +372,7 @@ struct ChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                     .foregroundStyle(Palette.ink)
                 if channel.kind.isFollow {
                     ChannelBadge(textKey: "channel.kind.follow")
@@ -379,7 +383,7 @@ struct ChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(12.5))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -392,7 +396,7 @@ struct ChannelCard: View {
                 }
                 if let scheduleText {
                     Text(scheduleText)
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.inkTertiary)
                 }
                 Spacer(minLength: 0)
@@ -404,7 +408,7 @@ struct ChannelCard: View {
                 HStack(spacing: Space.xs) {
                     ForEach(channel.connectors) { connector in
                         Text(connector.displayName)
-                            .font(TypeFace.condensed(10.5, weight: .medium))
+                            .font(typography.condensed(10.5, weight: .medium))
                             .foregroundStyle(connector.isUnavailable ? Palette.failedForeground : Palette.inkTertiary)
                             .lineLimit(1)
                     }
@@ -455,6 +459,8 @@ struct ChannelCard: View {
 // 不渲染开关、编辑、立即运行、删除：服务端对这些操作返回 403 / 404。
 
 struct SubscribedChannelCard: View {
+    @AppTypography private var typography
+
     let channel: Channel
     let run: Run?
     var colorIndex: Int?
@@ -468,7 +474,7 @@ struct SubscribedChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                     .foregroundStyle(Palette.ink)
                 ChannelBadge(textKey: "channel.kind.subscribed")
                 if channel.kind.isFollow {
@@ -479,7 +485,7 @@ struct SubscribedChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(12.5))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -492,7 +498,7 @@ struct SubscribedChannelCard: View {
                 }
                 if let scheduleText {
                     Text(scheduleText)
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.inkTertiary)
                 }
                 Spacer(minLength: 0)
@@ -524,6 +530,8 @@ struct SubscribedChannelCard: View {
 // MARK: - 可订阅行
 
 struct DiscoverableChannelRow: View {
+    @AppTypography private var typography
+
     let channel: Channel
     var colorIndex: Int?
     let isPending: Bool
@@ -540,12 +548,12 @@ struct DiscoverableChannelRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(channel.name)
-                    .font(TypeFace.body(14.5))
+                    .font(typography.body(14.5))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                 if !channel.prompt.isEmpty {
                     Text(channel.prompt)
-                        .font(TypeFace.footnote)
+                        .font(typography.footnote)
                         .foregroundStyle(Palette.inkTertiary)
                         .lineLimit(1)
                 }
@@ -558,7 +566,7 @@ struct DiscoverableChannelRow: View {
                     ProgressView().controlSize(.small)
                 } else {
                     Text(L10n.string("channel.subscribe.action", locale: locale))
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.canvas)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -586,12 +594,14 @@ struct DiscoverableChannelRow: View {
 // MARK: - 小徽标
 
 struct ChannelBadge: View {
+    @AppTypography private var typography
+
     let textKey: String
     @Environment(\.appLocale) private var locale
 
     var body: some View {
         Text(L10n.string(textKey, locale: locale))
-            .font(TypeFace.condensed(9.5, weight: .semibold))
+            .font(typography.condensed(9.5, weight: .semibold))
             .foregroundStyle(Palette.inkTertiary)
             .padding(.horizontal, 4)
             .padding(.vertical, 1.5)

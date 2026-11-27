@@ -266,7 +266,9 @@ extension View {
 
 // MARK: - 字体
 //
-// 中文用系统字（苹方／思源黑），数字用压缩体（对应稿子的 Arial Narrow 角色）。
+// Legacy default helpers for tests/previews; production views use @AppTypography
+// to combine their environment's text-size preference and system Dynamic Type.
+// Both themes use the default system family; numeric metadata may use condensed width.
 
 enum TypeFace {
     /// 设计稿字号下限：低于 11 pt 小屏不可读，HIG 也不建议。

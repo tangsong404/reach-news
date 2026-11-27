@@ -7,6 +7,8 @@ import SwiftUI
 // 整卡可点，进入个人页（`AccountDetailView`）。
 
 struct AccountHeaderView: View {
+    @AppTypography private var typography
+
     let profile: ProfileStore
     @Environment(\.appLocale) private var locale
 
@@ -19,14 +21,14 @@ struct AccountHeaderView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(profile.userName)
-                    .font(TypeFace.heading(19))
+                    .font(typography.heading(22))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                     .accessibilityIdentifier("account-name")
 
                 // 邮箱可能为 null：显示占位而不是空行，也不显示字面 null。
                 Text(profile.email ?? L10n.string("me.account.email.empty", locale: locale))
-                    .font(TypeFace.body(13))
+                    .font(typography.body(15))
                     .foregroundStyle(profile.email == nil ? Palette.inkTertiary : Palette.inkSecondary)
                     .lineLimit(1)
                     .accessibilityIdentifier("account-email")

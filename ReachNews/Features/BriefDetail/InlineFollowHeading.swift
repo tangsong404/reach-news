@@ -17,6 +17,7 @@ struct InlineFollowHeading: UIViewRepresentable {
     let style: ReaderStyle
     let followLabel: String
     let onFollow: () -> Void
+    var typography = ResolvedTypography()
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onFollow: onFollow, followLabel: followLabel)
@@ -69,16 +70,17 @@ struct InlineFollowHeading: UIViewRepresentable {
     // MARK: 内容
 
     private func makeAttributedText() -> (NSAttributedString, NSRange) {
-        Self.attributedText(text: text, fontSize: fontSize, style: style)
+        Self.attributedText(text: text, fontSize: fontSize, style: style, typography: typography)
     }
 
     /// 纯函数版本：单测直接调用，验证铃铛附件的位置。
     static func attributedText(
         text: String,
         fontSize: CGFloat,
-        style: ReaderStyle
+        style: ReaderStyle,
+        typography: ResolvedTypography = ResolvedTypography()
     ) -> (NSAttributedString, NSRange) {
-        let font = Theme.headingUIFont(size: fontSize, style: style)
+        let font = typography.headingUIFont(size: fontSize, style: style)
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byWordWrapping
 
