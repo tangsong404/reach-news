@@ -121,20 +121,33 @@ enum Theme {
     /// 标题字形：编辑风用衬线，简洁风用无衬线。
     /// 这是两套风格最好辨认的差异，切换时第一眼就该看出来。
     static func headingFont(size: CGFloat, style: ReaderStyle) -> Font {
-        .system(
-            size: TypeFace.scaledSize(size),
+        let scaled = TypeFace.scaledSize(size)
+        // `.serif` 对中文不生效（会回退到黑体）。编辑风改用系统的宋体，
+        // 中英文都能看出「衬线感」，两套风格的差异才立得住。
+        if style == .editorial, UIFont(name: Theme.cjkSerifName, size: scaled) != nil {
+            return .custom(Theme.cjkSerifName, size: scaled, relativeTo: .body)
+        }
+        return .system(
+            size: scaled,
             weight: headingWeight(for: style),
             design: style == .editorial ? .serif : .default
         )
     }
 
+    /// 系统自带的衬线中文字体名。
+    static let cjkSerifName = "Songti SC"
+
     /// 与 `headingFont` 对应的 UIKit 字体，供 CoreText 复算换行位置。
     static func headingUIFont(size: CGFloat, style: ReaderStyle) -> UIFont {
+        let scaled = TypeFace.scaledSize(size)
+        if style == .editorial, let serif = UIFont(name: Theme.cjkSerifName, size: scaled) {
+            return serif
+        }
         let weight: UIFont.Weight = style == .editorial ? .semibold : .medium
-        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        let base = UIFont.systemFont(ofSize: scaled, weight: weight)
         guard style == .editorial,
               let descriptor = base.fontDescriptor.withDesign(.serif)
         else { return base }
-        return UIFont(descriptor: descriptor, size: size)
+        return UIFont(descriptor: descriptor, size: scaled)
     }
 }
