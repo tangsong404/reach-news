@@ -12,6 +12,10 @@ struct BriefDetailView: View {
     @Environment(AppEnvironment.self) private var env
 
     @State private var showsAsk = false
+    /// 底部输入框里正在输入的问题。
+    @State private var questionDraft = ""
+    /// 带着问题跳进追问页时，那一句要自动发出。
+    @State private var pendingQuestion: String?
     /// 点了「跟踪事件」后要预填到创建页的标题；nil 表示不是事件模式。
     @State private var trackedEventHeading: String?
     @State private var pendingFollowHeading: String?
@@ -74,10 +78,17 @@ struct BriefDetailView: View {
                 .accessibilityIdentifier("brief-save")
             }
         }
+        // 底栏是直接提问入口；右上角工具栏入口仍然保留。
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if env.session.capabilities.ask {
+                askBar
+            }
+        }
         .navigationDestination(isPresented: $showsAsk) {
             AskView(
                 brief: brief,
-                store: env.makeAskStore(briefID: brief.id)
+                store: env.makeAskStore(briefID: brief.id),
+                initialQuestion: pendingQuestion
             )
         }
         .accessibilityIdentifier("brief-detail")
@@ -132,6 +143,51 @@ struct BriefDetailView: View {
     }
 
     private var isSaved: Bool { env.saved.isSaved(brief.id) }
+
+    /// 底部提问条：输入即问，走与追问页相同的 store。
+    private var askBar: some View {
+        HStack(spacing: Space.s) {
+            TextField(
+                L10n.string("ask.bar.placeholder", locale: locale),
+                text: $questionDraft,
+                axis: .vertical
+            )
+            .font(TypeFace.body(14))
+            .lineLimit(1...3)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 10)
+            .background(Palette.field, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .submitLabel(.send)
+            .onSubmit(sendQuestion)
+            .accessibilityIdentifier("brief-ask-field")
+
+            Button(action: sendQuestion) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.onInverse)
+                    .frame(width: 34, height: 34)
+                    .background(env.appearance.accent, in: Circle())
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.pressable)
+            .disabled(questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.4 : 1)
+            .accessibilityLabel(Text(L10n.string("ask.bar.send", locale: locale)))
+            .accessibilityIdentifier("brief-ask-send")
+        }
+        .padding(.horizontal, Space.l)
+        .padding(.vertical, Space.s)
+        .background(.bar)
+    }
+
+    private func sendQuestion() {
+        let question = questionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty else { return }
+        pendingQuestion = question
+        questionDraft = ""
+        showsAsk = true
+    }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.m) {

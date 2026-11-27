@@ -8,6 +8,8 @@ import SwiftUI
 struct AskView: View {
     let brief: Brief
     @State var store: AskStore
+    /// 从详情页底栏带过来的问题：进页面后自动发出一次。
+    var initialQuestion: String?
     @Environment(\.appLocale) private var locale
     /// 减弱动态效果时不做滚动动画（HIG：Reduce Motion 时减少自动与重复动画）。
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -31,6 +33,11 @@ struct AskView: View {
         .toolbarBackground(Palette.askBackground, for: .navigationBar)
         .task {
             await store.loadHistoryIfNeeded()
+            guard let question = initialQuestion,
+                  !question.isEmpty,
+                  store.turns.isEmpty else { return }
+            store.draft = question
+            await store.send()
         }
         .accessibilityIdentifier("ask-view")
         // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。

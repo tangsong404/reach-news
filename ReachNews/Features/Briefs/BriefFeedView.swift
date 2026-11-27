@@ -22,9 +22,22 @@ struct BriefFeedView: View {
             }
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             // 一级页面用大标题（HIG：大标题帮助定位，滚动时自动收成标准标题）。
-            .navigationTitle(L10n.string("tab.briefs", locale: locale))
-            .navigationBarTitleDisplayMode(.large)
+            // 品牌放导航栏正中（与 Apple News 一致）：logo + 字标，
+            // 位置固定、不随内容滚动，也不和标题重复。
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: Space.xs) {
+                        BrandMark(size: 20)
+                        Text("Reach News")
+                            .font(TypeFace.heading(16))
+                            .foregroundStyle(Palette.ink)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("feed-brand")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     filterToolbarButton(store)
                 }
@@ -48,11 +61,6 @@ struct BriefFeedView: View {
         // 品牌行、计数行、日期分组都在 List 里，跟着内容一起滚走；
         // 只有搜索框（系统 searchable）固定在导航栏下方。
         List {
-            brandRow
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
-
             metaLines(store)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
@@ -111,20 +119,6 @@ struct BriefFeedView: View {
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
         }
-    }
-
-    /// 首页品牌区：图形 + 字标，随内容滚动，不占导航栏。
-    private var brandRow: some View {
-        HStack(spacing: Space.s) {
-            BrandMark(size: 26)
-            Text("Reach News")
-                .font(TypeFace.heading(19))
-                .foregroundStyle(Palette.ink)
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        .accessibilityIdentifier("feed-brand")
     }
 
     /// 筛选入口放工具栏：HIG 工具栏承载作用于内容的命令，搜索框则由系统 searchable 承担。
@@ -225,10 +219,11 @@ struct BriefFeedView: View {
                 .foregroundStyle(Palette.inkTertiary)
                 .textCase(nil)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, Space.l)
+                .padding(.top, Space.s)
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
+                // 分组之间只留一点点空隙，避免行与行被撑得很开。
+                .listRowInsets(EdgeInsets(top: Space.m, leading: Space.xl, bottom: 2, trailing: Space.xl))
 
             ForEach(group.briefs) { brief in
                 NavigationLink(value: brief) {

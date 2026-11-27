@@ -248,16 +248,15 @@ struct PreferencesView: View {
     var body: some View {
         List {
             Section {
-                Picker(selection: Binding(
-                    get: { LanguagePreference(rawValue: preferences.languagePreference) ?? .system },
-                    set: { preferences.languagePreference = $0.rawValue }
-                )) {
+                menuRow(
+                    titleKey: "preferences.language",
+                    value: L10n.string(currentLanguage.labelKey, locale: locale)
+                ) {
                     ForEach(LanguagePreference.allCases) { option in
-                        Text(L10n.string(option.labelKey, locale: locale))
-                            .tag(option)
+                        Button(L10n.string(option.labelKey, locale: locale)) {
+                            preferences.languagePreference = option.rawValue
+                        }
                     }
-                } label: {
-                    Text(L10n.string("preferences.language", locale: locale))
                 }
                 .accessibilityIdentifier("preferences-language")
             }
@@ -265,32 +264,31 @@ struct PreferencesView: View {
 
             // 亮/暗/跟随系统：独立于编辑风/简洁风。
             Section {
-                Picker(selection: Binding(
-                    get: { env.appearance.mode },
-                    set: { env.appearance.select(mode: $0) }
-                )) {
+                menuRow(
+                    titleKey: "preferences.appearanceMode",
+                    value: L10n.string(env.appearance.mode.labelKey, locale: locale)
+                ) {
                     ForEach(AppearanceMode.allCases) { option in
-                        Text(L10n.string(option.labelKey, locale: locale)).tag(option)
+                        Button(L10n.string(option.labelKey, locale: locale)) {
+                            env.appearance.select(mode: option)
+                        }
                     }
-                } label: {
-                    Text(L10n.string("preferences.appearanceMode", locale: locale))
                 }
                 .accessibilityIdentifier("preferences-appearance-mode")
             }
             .listRowBackground(Theme.surface(for: env.appearance.style))
 
-            // 风格：两套观感，只改基调不改结构。
+            // 风格：只显示「编辑风 / 简洁风」，不显示任何内部标识。
             Section {
-                Picker(selection: Binding(
-                    get: { env.appearance.style },
-                    set: { env.appearance.select(style: $0) }
-                )) {
+                menuRow(
+                    titleKey: "preferences.style",
+                    value: L10n.string(env.appearance.style.labelKey, locale: locale)
+                ) {
                     ForEach(ReaderStyle.allCases) { option in
-                        Text(L10n.string(option.labelKey, locale: locale))
-                            .tag(option)
+                        Button(L10n.string(option.labelKey, locale: locale)) {
+                            env.appearance.select(style: option)
+                        }
                     }
-                } label: {
-                    Text(L10n.string("preferences.style", locale: locale))
                 }
                 .accessibilityIdentifier("preferences-style")
             }
@@ -313,6 +311,35 @@ struct PreferencesView: View {
         }
         // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var currentLanguage: LanguagePreference {
+        LanguagePreference(rawValue: preferences.languagePreference) ?? .system
+    }
+
+    /// 菜单式选择行：右侧显示当前值，点开是系统菜单。
+    /// 不用 Picker 是为了保证显示的永远是本地化文案，而不是内部标识。
+    private func menuRow<MenuItems: View>(
+        titleKey: String,
+        value: String,
+        @ViewBuilder items: () -> MenuItems
+    ) -> some View {
+        Menu {
+            items()
+        } label: {
+            HStack(spacing: Space.s) {
+                Text(L10n.string(titleKey, locale: locale))
+                    .foregroundStyle(Palette.ink)
+                Spacer(minLength: 0)
+                Text(value)
+                    .foregroundStyle(Palette.inkSecondary)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Palette.inkTertiary)
+            }
+            .frame(minHeight: 32)
+        }
+        .buttonStyle(.pressable)
     }
 
     /// 主题色：横向色点，选中项带外圈。

@@ -12,6 +12,8 @@
 "ask.loadEarlier" = "加载更早的追问";
 "ask.nav.title" = "本期日报";
 "ask.pill" = "追问";
+"ask.bar.placeholder" = "就这期日报提问";
+"ask.bar.send" = "发送";
 "briefDetail.entryCount" = "%d 条";
 "briefDetail.materialCount" = "%d 条素材";
 "briefDetail.materialFailed" = "素材加载失败";

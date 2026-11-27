@@ -250,7 +250,8 @@ enum MarkdownBlockBuilder {
             text: block.plainText,
             fontSize: size,
             style: style,
-            spacing: Space.xs
+            spacing: 2,
+            hitInset: 11
         ) {
             Text(block.text)
                 .font(Theme.headingFont(size: size, style: style))
@@ -390,6 +391,9 @@ private struct HeadingFollowLayout: Layout {
     var fontSize: CGFloat
     var style: ReaderStyle
     var spacing: CGFloat
+    /// 按钮可点区比视觉圆点大出来的那一圈（44pt 命中区 / 22pt 圆点 → 11）。
+    /// 排版时要扣掉它，否则铃铛看起来离文字很远。
+    var hitInset: CGFloat = 0
 
     private struct Metrics {
         var text: CGSize
@@ -453,13 +457,13 @@ private struct HeadingFollowLayout: Layout {
                 font: font,
                 maxWidth: width
             ) ?? m.text.width
-            x = bounds.minX + min(bounds.width - m.bell.width, lastLine + spacing)
+            x = bounds.minX + min(bounds.width - m.bell.width, lastLine + spacing - hitInset)
             // 让按钮的视觉中心落在最后一行文字的中线上（按钮可点区是 44pt，
             // 直接贴底部会把铃铛顶到上一行）。
             let lastLineCenterY = bounds.minY + m.text.height - lineHeight / 2
             y = max(bounds.minY, lastLineCenterY - m.bell.height / 2)
         } else {
-            x = bounds.minX + m.text.width + spacing
+            x = bounds.minX + m.text.width + spacing - hitInset
             let lineCenterY = bounds.minY + m.text.height / 2
             y = max(bounds.minY, lineCenterY - m.bell.height / 2)
         }

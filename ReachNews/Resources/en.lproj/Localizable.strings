@@ -12,6 +12,8 @@
 "ask.loadEarlier" = "Load earlier questions";
 "ask.nav.title" = "This brief";
 "ask.pill" = "Ask";
+"ask.bar.placeholder" = "Ask about this brief";
+"ask.bar.send" = "Send";
 "briefDetail.entryCount" = "%d entries";
 "briefDetail.materialCount" = "%d materials";
 "briefDetail.materialFailed" = "Couldn't load material";
