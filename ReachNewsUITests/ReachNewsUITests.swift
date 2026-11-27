@@ -102,12 +102,17 @@ final class ReachNewsUITests: XCTestCase {
         app.tabBars.buttons["我的"].tap()
         XCTAssertTrue(element("me-preferences", in: app).waitForExistence(timeout: 10))
         screenshot("settings-me-light")
+        element("me-plan", in: app).tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        screenshot("subscription-unavailable")
+        app.alerts.buttons["完成"].tap()
         app.tabBars.buttons["频道"].tap()
         screenshot("density-channels")
         app.tabBars.buttons["我的"].tap()
         element("me-account-card", in: app).tap()
         XCTAssertTrue(element("account-detail", in: app).waitForExistence(timeout: 10))
         screenshot("settings-account-light")
+        XCTAssertFalse(app.staticTexts["套餐"].exists)
         element("account-edit-password", in: app).tap()
         XCTAssertTrue(app.secureTextFields.firstMatch.waitForExistence(timeout: 10))
         screenshot("settings-password-light")
@@ -131,6 +136,23 @@ final class ReachNewsUITests: XCTestCase {
         element("me-help", in: app).tap()
         XCTAssertTrue(element("help-about", in: app).waitForExistence(timeout: 10))
         screenshot("settings-help-light")
+        element("help-check-updates", in: app).tap()
+        XCTAssertTrue(element("update-check-page", in: app).waitForExistence(timeout: 10))
+        element("update-check-button", in: app).tap()
+        XCTAssertTrue(app.staticTexts["更新检查暂不可用，等待服务端接口接入。"].waitForExistence(timeout: 5))
+        screenshot("updates-unavailable")
+    }
+
+    func testQuestionUsesKeyboardSendOnly() throws {
+        let app = launch()
+        element("feed-row-ui-fixture-brief", in: app).tap()
+        let field = app.searchFields["brief-ask-field"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertFalse(element("brief-ask-send", in: app).exists)
+        field.tap()
+        field.typeText("后续影响是什么\n")
+        XCTAssertTrue(element("ask-view", in: app).waitForExistence(timeout: 10))
+        screenshot("ask-keyboard-send")
     }
 
     func testGroupedSettingsDarkScreenshots() throws {

@@ -181,10 +181,6 @@ struct AccountDetailView: View {
             )
             .accessibilityIdentifier("account-email-readonly")
 
-            HStack(spacing: 12) {
-                SettingsRow(title: L10n.string("account.tier.label", locale: locale), systemImage: "seal")
-                TierBadge(tier: profile.planLabel)
-            }
         } header: {
             SettingsSectionHeader(title: L10n.string("account.profile.heading", locale: locale))
         }

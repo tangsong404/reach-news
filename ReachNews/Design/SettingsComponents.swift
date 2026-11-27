@@ -69,9 +69,11 @@ struct SettingsListStyle: ViewModifier {
     @Environment(AppEnvironment.self) private var env
     func body(content: Content) -> some View {
         content
-            .listStyle(.insetGrouped)
+            .listStyle(.grouped)
+            .contentMargins(.horizontal, 20, for: .scrollContent)
             .environment(\.defaultMinListRowHeight, 52)
-            .listSectionSpacing(16)
+            .listSectionSpacing(12)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             .font(.body)
             .fontDesign(.default)
             .scrollContentBackground(.hidden)

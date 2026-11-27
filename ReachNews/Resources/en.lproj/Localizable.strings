@@ -324,3 +324,12 @@
 "appearance.textSize.large" = "Larger";
 "preferences.preview.heading" = "Reading Preview";
 "preferences.preview.body" = "Preview the text size here. Reading and interface text follow your selection.";
+
+"me.account.heading" = "Account";
+"me.plan.title" = "Subscription Plans";
+"me.plan.unavailable" = "Subscription plans are not available yet";
+"updates.title" = "Check for Updates";
+"updates.currentVersion" = "Current Version";
+"updates.build" = "Build";
+"updates.check" = "Check Latest Version";
+"updates.unavailable" = "Update checks are unavailable until the server interface is connected.";

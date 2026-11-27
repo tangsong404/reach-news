@@ -324,3 +324,12 @@
 "appearance.textSize.large" = "较大";
 "preferences.preview.heading" = "阅读预览";
 "preferences.preview.body" = "在这里预览文字大小。阅读与界面文字会随设置调整。";
+
+"me.account.heading" = "账户";
+"me.plan.title" = "订阅计划";
+"me.plan.unavailable" = "订阅计划暂未开放";
+"updates.title" = "检查更新";
+"updates.currentVersion" = "当前版本";
+"updates.build" = "构建号";
+"updates.check" = "检查最新版本";
+"updates.unavailable" = "更新检查暂不可用，等待服务端接口接入。";

@@ -7,13 +7,30 @@ import SwiftUI
 struct MeView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
+    @State private var showsPlanUnavailable = false
 
     var body: some View {
         NavigationStack {
             content(env)
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-            .navigationTitle(L10n.string("tab.me", locale: locale))
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsPlanUnavailable = true
+                    } label: {
+                        Image(systemName: "crown")
+                    }
+                    .accessibilityLabel(Text(L10n.string("me.plan.title", locale: locale)))
+                    .accessibilityIdentifier("me-plan")
+                }
+            }
+            .alert(L10n.string("me.plan.title", locale: locale), isPresented: $showsPlanUnavailable) {
+                Button(L10n.string("common.done", locale: locale), role: .cancel) {}
+            } message: {
+                Text(L10n.string("me.plan.unavailable", locale: locale))
+            }
             .navigationDestination(for: MeDestination.self) { destination in
                 switch destination {
                 case .saved:
@@ -31,6 +48,12 @@ struct MeView: View {
 
     private func content(_ env: AppEnvironment) -> some View {
         List {
+            MainPageHeading(title: L10n.string("tab.me", locale: locale))
+                .accessibilityIdentifier("main-heading-me")
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 0, trailing: Space.xl))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
             Section {
                 NavigationLink(value: MeDestination.account) {
                     AccountHeaderView(profile: env.profile)
@@ -39,52 +62,59 @@ struct MeView: View {
                 .accessibilityIdentifier("me-account-card")
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: 20))
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: Radius.medium)
                         .strokeBorder(Palette.lineStrong, lineWidth: 1)
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-            }
-
-            Section {
-                NavigationLink(value: MeDestination.saved) {
-                    SettingsRow(
-                        title: L10n.string("me.saved", locale: locale),
-                        systemImage: "bookmark",
-                        value: env.saved.savedIDs.isEmpty ? nil : String(env.saved.savedIDs.count)
-                    )
-                }
-                .accessibilityIdentifier("me-saved")
             } header: {
-                SettingsSectionHeader(title: L10n.string("me.library.heading", locale: locale))
+                SettingsSectionHeader(title: L10n.string("me.account.heading", locale: locale))
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
 
             Section {
-                NavigationLink(value: MeDestination.preferences) {
-                    SettingsRow(
-                        title: L10n.string("me.preferences", locale: locale),
-                        systemImage: "textformat.size"
-                    )
+                VStack(spacing: 0) {
+                    NavigationLink(value: MeDestination.saved) {
+                        SettingsRow(
+                            title: L10n.string("me.saved", locale: locale),
+                            systemImage: "bookmark",
+                            value: env.saved.savedIDs.isEmpty ? nil : String(env.saved.savedIDs.count)
+                        )
+                    }
+                    .accessibilityIdentifier("me-saved")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    Divider().padding(.leading, 58)
+
+                    NavigationLink(value: MeDestination.preferences) {
+                        SettingsRow(title: L10n.string("me.preferences", locale: locale), systemImage: "textformat.size")
+                    }
+                    .accessibilityIdentifier("me-preferences")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    Divider().padding(.leading, 58)
+
+                    NavigationLink(value: MeDestination.help) {
+                        SettingsRow(title: L10n.string("me.help", locale: locale), systemImage: "questionmark.circle")
+                    }
+                    .accessibilityIdentifier("me-help")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
                 }
-                .accessibilityIdentifier("me-preferences")
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.medium)
+                        .strokeBorder(Palette.line, lineWidth: 1)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             } header: {
                 SettingsSectionHeader(title: L10n.string("me.settings.heading", locale: locale))
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
 
-            Section {
-                NavigationLink(value: MeDestination.help) {
-                    SettingsRow(title: L10n.string("me.help", locale: locale), systemImage: "questionmark.circle")
-                }
-                .accessibilityIdentifier("me-help")
-            } header: {
-                SettingsSectionHeader(title: L10n.string("me.support.heading", locale: locale))
-            }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
         }
         .settingsListStyle()
         .scrollContentBackground(.hidden)

@@ -10,6 +10,7 @@ struct AppearanceReadingView: View {
     var body: some View {
         List {
             Section {
+                SettingsCard {
                 selectionRow("preferences.appearanceMode", symbol: "circle.lefthalf.filled",
                              value: env.appearance.mode.labelKey) {
                     ForEach(AppearanceMode.allCases) { option in
@@ -17,6 +18,8 @@ struct AppearanceReadingView: View {
                     }
                 }
                 .accessibilityIdentifier("preferences-appearance-mode")
+                .settingsCardRow()
+                Divider().padding(.leading, 42)
                 selectionRow("preferences.style", symbol: "paintpalette",
                              value: env.appearance.style.labelKey) {
                     ForEach(ReaderStyle.allCases) { option in
@@ -24,6 +27,8 @@ struct AppearanceReadingView: View {
                     }
                 }
                 .accessibilityIdentifier("preferences-style")
+                .settingsCardRow()
+                Divider().padding(.leading, 42)
                 VStack(spacing: 0) {
                     SettingsRow(title: L10n.string("preferences.textSize", locale: locale),
                                 systemImage: "textformat.size",
@@ -41,6 +46,7 @@ struct AppearanceReadingView: View {
                     .accessibilityIdentifier("preferences-text-size-slider")
                     .padding(.bottom, 4)
                 }
+                Divider().padding(.leading, 42)
                 VStack(alignment: .leading, spacing: 8) {
                     SettingsRow(title: L10n.string("preferences.tint.heading", locale: locale), systemImage: "paintbrush.pointed")
                     // Adaptive grid keeps 44pt targets without overflowing small/large-text layouts.
@@ -63,23 +69,31 @@ struct AppearanceReadingView: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .padding(.bottom, 4)
+                .padding(.bottom, 12)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             } header: {
                 SettingsSectionHeader(title: L10n.string("preferences.appearance.heading", locale: locale))
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
+            .listRowBackground(Color.clear)
 
             Section {
+                SettingsCard {
                 selectionRow("preferences.language", symbol: "globe", value: language.labelKey) {
                     ForEach(LanguagePreference.allCases) { option in
                         Button(L10n.string(option.labelKey, locale: locale)) { preferences.languagePreference = option.rawValue }
                     }
                 }
                 .accessibilityIdentifier("preferences-language")
+                .settingsCardRow()
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             } header: {
                 SettingsSectionHeader(title: L10n.string("preferences.language.heading", locale: locale))
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
+            .listRowBackground(Color.clear)
 
         }
         .settingsListStyle()

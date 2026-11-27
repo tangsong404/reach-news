@@ -149,30 +149,16 @@ struct BriefDetailView: View {
 
     private var isSaved: Bool { env.saved.isSaved(brief.id) }
 
-    /// System search-field appearance rather than a hand-drawn input capsule.
+    /// Native search-style field; the keyboard Send key is the only submit control.
     private var askBar: some View {
-        HStack(spacing: 0) {
-            NativeSearchField(
-                text: $questionDraft,
-                placeholder: L10n.string("ask.bar.placeholder", locale: locale),
-                identifier: "brief-ask-field",
-                sendsQuestion: true,
-                onSubmit: sendQuestion
-            )
-            Button(action: sendQuestion) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title2)
-                    .frame(width: 44, height: 44)
-            }
-            .disabled(isQuestionEmpty)
-            .accessibilityLabel(Text(L10n.string("ask.bar.send", locale: locale)))
-            .accessibilityIdentifier("brief-ask-send")
-        }
+        NativeSearchField(
+            text: $questionDraft,
+            placeholder: L10n.string("ask.bar.placeholder", locale: locale),
+            identifier: "brief-ask-field",
+            sendsQuestion: true,
+            onSubmit: sendQuestion
+        )
         .padding(.horizontal, Space.s)
-    }
-
-    private var isQuestionEmpty: Bool {
-        questionDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func sendQuestion() {

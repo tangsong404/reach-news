@@ -126,13 +126,7 @@ struct BriefFeedView: View {
 
     /// 首页品牌：图形 + 字标，占原来大标题的位置（左侧、大字号、随内容滚动）。
     private var brandHeaderRow: some View {
-        HStack(spacing: Space.s) {
-            BrandMark(size: 30)
-            Text("Reach News")
-                .font(typography.display(28))
-                .foregroundStyle(Palette.ink)
-            Spacer(minLength: 0)
-        }
+        MainPageHeading(title: "Reach News", showsBrand: true)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("feed-brand")
@@ -197,13 +191,14 @@ struct BriefFeedView: View {
     @ViewBuilder
     private func feedRows(_ store: BriefFeedStore) -> some View {
         ForEach(store.groupedBriefs, id: \.day) { group in
-            Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
+            HStack(spacing: 10) {
+                Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
+                    .font(typography.label(12))
+                    .foregroundStyle(Palette.inkSecondary)
+                Rectangle().fill(Palette.line).frame(height: 1)
+            }
+                .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("feed-date-header")
-                .font(typography.label(11))
-                .tracking(1)
-                .foregroundStyle(Palette.inkTertiary)
-                .textCase(nil)
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, Space.xl)
                 .padding(.top, Space.s)
 

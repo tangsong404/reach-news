@@ -26,8 +26,8 @@ struct ChannelListView: View {
         NavigationStack(path: $path) {
             content(env.channels)
             .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
-            .navigationTitle(L10n.string("tab.channels", locale: locale))
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if env.session.capabilities.channelLimit == nil ||
@@ -99,7 +99,10 @@ struct ChannelListView: View {
     @ViewBuilder
     private func content(_ store: ChannelStore) -> some View {
         VStack(spacing: 0) {
-            masthead(store)
+            if let error = store.error, !store.channels.isEmpty {
+                InlineNotice(text: L10n.string(error.messageKey, locale: locale))
+                    .padding(.horizontal, Space.xl)
+            }
 
             if store.isLoading && store.myChannels.isEmpty && store.subscribedChannels.isEmpty {
                 Spacer()
@@ -129,34 +132,15 @@ struct ChannelListView: View {
         }
     }
 
-    /// 只有元信息一行；大标题已由导航栏承担，不重复。
-    private func masthead(_ store: ChannelStore) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: Space.s) {
-                MetaLine(text: L10n.format("channel.count", locale: locale, store.channels.count))
-                DotSeparator()
-                MetaLine(
-                    text: L10n.format(
-                        "channel.timezoneNote",
-                        locale: locale,
-                        env.settings.displayTimeZone
-                    )
-                )
-            }
-            if let error = store.error, !store.channels.isEmpty {
-                InlineNotice(text: L10n.string(error.messageKey, locale: locale))
-                    .padding(.top, Space.xs)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.xl)
-        .padding(.top, Space.m)
-    }
-
     /// HIG：列表数据用 List 承载（分隔线、行高亮、滑动操作由系统给）。
     /// 分组标题也用普通行而不是 Section 头，避免吸顶挡住内容。
     private func list(_ store: ChannelStore) -> some View {
         List {
+            MainPageHeading(title: L10n.string("tab.channels", locale: locale))
+                .accessibilityIdentifier("main-heading-channels")
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 0, trailing: Space.xl))
             if !store.myChannels.isEmpty {
                 sectionHeaderRow("channel.section.mine")
                 ForEach(store.myChannels) { channel in
