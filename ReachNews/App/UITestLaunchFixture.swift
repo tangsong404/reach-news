@@ -55,6 +55,7 @@ private final class UITestSavedBriefs: SavedBriefsStoring {
 
 private final class UITestChannelColors: ChannelColorStoring {
     private var values: [String: Int] = [:]
+    var assignments: [String: Int] { values }
     func setColorIndex(_ index: Int, for channelID: String) { values[channelID] = index }
     func colorIndex(for channelID: String) -> Int? { values[channelID] }
     func remove(_ channelID: String) { values.removeValue(forKey: channelID) }
