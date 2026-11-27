@@ -52,7 +52,7 @@ struct AppearanceReadingView: View {
                             .accessibilityIdentifier("preferences-tint-\(tint.rawValue)")
                         }
                     }
-                    .padding(.leading, 40)
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.bottom, 4)
             } header: {

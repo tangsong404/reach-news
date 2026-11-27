@@ -12,7 +12,7 @@ struct SettingsRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             Image(systemName: systemImage)
-                .font(.body)
+                .font(.system(size: 20))
                 .foregroundStyle(Palette.inkSecondary)
                 .frame(width: 28)
                 .accessibilityHidden(true)

@@ -156,7 +156,7 @@
 "preferences.language" = "界面语言";
 "preferences.language.chinese" = "中文";
 "preferences.language.english" = "English";
-"preferences.language.heading" = "界面语言";
+"preferences.language.heading" = "语言";
 "preferences.language.system" = "跟随系统";
 "schedule.addTime" = "添加时间";
 "schedule.everyDay" = "每天 %@";
@@ -317,7 +317,7 @@
 "me.support.heading" = "支持";
 "me.help" = "帮助与关于";
 "me.help.placeholder" = "内容待补充";
-"preferences.appearance.heading" = "外观与阅读";
+"preferences.appearance.heading" = "显示与文字";
 "preferences.textSize" = "文字大小";
 "appearance.textSize.small" = "较小";
 "appearance.textSize.standard" = "标准";

@@ -317,7 +317,7 @@
 "me.support.heading" = "Support";
 "me.help" = "Help & About";
 "me.help.placeholder" = "Content coming soon";
-"preferences.appearance.heading" = "Appearance & Reading";
+"preferences.appearance.heading" = "Display & Text";
 "preferences.textSize" = "Text Size";
 "appearance.textSize.small" = "Smaller";
 "appearance.textSize.standard" = "Standard";

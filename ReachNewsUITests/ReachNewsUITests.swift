@@ -145,6 +145,7 @@ final class ReachNewsUITests: XCTestCase {
         element("me-preferences", in: app).tap()
         XCTAssertTrue(element("appearance-reading", in: app).waitForExistence(timeout: 10))
         screenshot("settings-accessibility-text")
+        // Fixed icon columns must not overflow when text grows to AX5.
         let row = element("preferences-style", in: app)
         XCTAssertTrue(row.exists)
         XCTAssertLessThanOrEqual(row.frame.maxX, app.frame.maxX + 1)
