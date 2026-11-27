@@ -13,23 +13,15 @@ final class VisualSnapshotTests: XCTestCase {
 
     private let longHeading = "## 央行下调存款准备金率与市场影响\n\n正文里有一个 [外部链接](https://example.com) 紧跟其后，用来检查下划线与图标位置。"
 
-    func testHeadingWithFollowEditorial() {
-        snapshot(markdownView(style: .editorial), name: "heading-editorial")
+    /// 正文段落与链接（纯 SwiftUI，可以离屏渲染）。
+    /// 小标题带 UIViewRepresentable，ImageRenderer 渲染不了，
+    /// 那条链路由 InlineFollowLayoutTests 做确定性验证。
+    func testParagraphAndLinkEditorial() {
+        snapshot(markdownView(style: .editorial), name: "paragraph-editorial")
     }
 
-    func testHeadingWithFollowPlain() {
-        snapshot(markdownView(style: .plain), name: "heading-plain")
-    }
-
-    /// 窄宽度强制标题折行，检查折行时铃铛是否贴最后一行文字。
-    func testWrappedHeadingFollow() {
-        let view = MarkdownBodyView(
-            markdown: longHeading,
-            onOpenURL: { _ in },
-            onTrackHeading: { _ in },
-            style: .editorial
-        )
-        snapshot(view, name: "heading-wrapped", width: 300)
+    func testParagraphAndLinkPlain() {
+        snapshot(markdownView(style: .plain), name: "paragraph-plain")
     }
 
     /// 记录当前系统里可用的中文字体，避免再靠猜字体名。
@@ -53,7 +45,7 @@ final class VisualSnapshotTests: XCTestCase {
         MarkdownBodyView(
             markdown: longHeading,
             onOpenURL: { _ in },
-            onTrackHeading: { _ in },
+            onTrackHeading: nil,
             style: style
         )
     }
