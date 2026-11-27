@@ -291,9 +291,6 @@
 "me.saved.loadFailed.message" = "Network unavailable. Try again later";
 "me.saved.rowFailed" = "This one could not be loaded";
 "preferences.style" = "Style";
-"preferences.style.heading" = "Style";
-"preferences.style.editorial" = "Editorial";
-"preferences.style.plain" = "Plain";
 "preferences.tint.heading" = "Accent";
 "appearance.tint.ink" = "Ink";
 "appearance.tint.azure" = "Azure";
@@ -312,3 +309,5 @@
 "appearance.mode.system" = "System";
 "appearance.mode.light" = "Light";
 "appearance.mode.dark" = "Dark";
+"appearance.style.editorial" = "Editorial";
+"appearance.style.plain" = "Plain";

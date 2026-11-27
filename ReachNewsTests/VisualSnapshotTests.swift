@@ -32,6 +32,23 @@ final class VisualSnapshotTests: XCTestCase {
         snapshot(view, name: "heading-wrapped", width: 300)
     }
 
+    /// 记录当前系统里可用的中文字体，避免再靠猜字体名。
+    func testFontAvailabilityReport() {
+        let candidates = ["SongtiSC-Regular", "Songti SC", "STSongti-SC-Regular", "HiraMinProN-W3"]
+        var lines = ["candidate -> resolved"]
+        for name in candidates {
+            lines.append("\(name) -> \(UIFont(name: name, size: 17)?.fontName ?? "nil")")
+        }
+        lines.append("families containing song/serif:")
+        for family in UIFont.familyNames where family.lowercased().contains("song") || family.lowercased().contains("serif") {
+            lines.append("  \(family): \(UIFont.fontNames(forFamilyName: family).prefix(3))")
+        }
+        let attachment = XCTAttachment(string: lines.joined(separator: "\n"))
+        attachment.name = "font-report"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     private func markdownView(style: ReaderStyle) -> some View {
         MarkdownBodyView(
             markdown: longHeading,

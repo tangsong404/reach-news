@@ -291,9 +291,6 @@
 "me.saved.loadFailed.message" = "网络不可用，稍后重试";
 "me.saved.rowFailed" = "这一条暂时取不回来";
 "preferences.style" = "界面风格";
-"preferences.style.heading" = "风格";
-"preferences.style.editorial" = "编辑风";
-"preferences.style.plain" = "简洁风";
 "preferences.tint.heading" = "主题色";
 "appearance.tint.ink" = "墨黑";
 "appearance.tint.azure" = "天青";
@@ -312,3 +309,5 @@
 "appearance.mode.system" = "跟随系统";
 "appearance.mode.light" = "亮色";
 "appearance.mode.dark" = "暗色";
+"appearance.style.editorial" = "编辑风";
+"appearance.style.plain" = "简洁风";
