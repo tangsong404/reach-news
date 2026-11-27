@@ -170,7 +170,8 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertEqual(session.token, "tok-123")
         XCTAssertEqual(session.userName, "admin")
-        XCTAssertFalse(session.isExpired())
+        // Evaluate relative to a fixed instant before fixture expiry, not wall-clock time.
+        XCTAssertFalse(session.isExpired(now: Date(timeIntervalSince1970: 1_700_000_000)))
 
         let request = try XCTUnwrap(transport.recorded.first)
         XCTAssertEqual(request.method, "POST")

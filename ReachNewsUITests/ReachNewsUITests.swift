@@ -47,8 +47,9 @@ final class ReachNewsUITests: XCTestCase {
         let back = app.navigationBars.buttons.element(boundBy: 0)
         XCTAssertTrue(back.isHittable)
         back.tap()
-        XCTAssertTrue(row.waitForExistence(timeout: 10))
-        row.tap()
+        let returnedRow = element("feed-row-ui-fixture-brief", in: app)
+        XCTAssertTrue(returnedRow.waitForExistence(timeout: 10))
+        returnedRow.tap()
         XCTAssertTrue(element("brief-detail", in: app).waitForExistence(timeout: 10), "Navigation must still work after going back")
     }
 
@@ -157,7 +158,8 @@ final class ReachNewsUITests: XCTestCase {
         let me = element("main-heading-me", in: app)
         XCTAssertTrue(me.waitForExistence(timeout: 5))
         XCTAssertLessThan(me.frame.minY, 120)
-        XCTAssertEqual(me.frame.height, channels.frame.height, accuracy: 4)
+        let channelsHeight = feedFrame.height
+        XCTAssertEqual(me.frame.height, channelsHeight, accuracy: 4)
         screenshot("root-me-top")
     }
 
