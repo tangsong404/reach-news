@@ -46,66 +46,55 @@ struct BriefFeedView: View {
     private func content(_ store: BriefFeedStore) -> some View {
         @Bindable var store = store
 
-        // 品牌行、计数行、日期分组都在 List 里，跟着内容一起滚走；
-        // 只有搜索框（系统 searchable）固定在导航栏下方。
-        List {
-            brandHeaderRow
-
-            metaLines(store)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 2, trailing: Space.xl))
-
-            if store.filter.isActive {
-                activeFilterSummary(store)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: Space.s, trailing: 0))
-            }
-
-            if store.isLoadingFirstPage {
-                LoadingLine(text: L10n.string("feed.loading", locale: locale))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            } else if let error = store.error, store.briefs.isEmpty {
-                errorState(error, store: store)
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            } else if store.isEmpty {
-                emptyState()
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            } else if store.hasNoResults {
-                MessageStateView(
-                    title: L10n.string("feed.noResults.title", locale: locale),
-                    message: L10n.string("feed.noResults.message", locale: locale),
-                    kind: .empty,
-                    actionTitle: L10n.string("common.clearFilters", locale: locale),
-                    action: {
-                        store.searchText = ""
-                        store.filter = FeedFilter()
-                    }
+        // One scroll owner: brand, native search, metadata and articles share a flow.
+        // Noninteractive labels must not inherit List's minimum row height.
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                brandHeaderRow
+                NativeSearchField(
+                    text: $store.searchText,
+                    placeholder: L10n.string("feed.search.placeholder", locale: locale),
+                    identifier: "feed-search-field"
                 )
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-            } else {
-                feedRows(store)
+                .padding(.horizontal, Space.l - 8)
+                metaLines(store)
+                    .padding(.horizontal, Space.xl)
+                    .padding(.bottom, 2)
+
+                if store.filter.isActive {
+                    activeFilterSummary(store)
+                }
+
+                if store.isLoadingFirstPage {
+                    LoadingLine(text: L10n.string("feed.loading", locale: locale))
+                        .padding(.vertical, Space.xxl)
+                } else if let error = store.error, store.briefs.isEmpty {
+                    errorState(error, store: store).padding(.vertical, Space.xxl)
+                } else if store.isEmpty {
+                    emptyState().padding(.vertical, Space.xxl)
+                } else if store.hasNoResults {
+                    MessageStateView(
+                        title: L10n.string("feed.noResults.title", locale: locale),
+                        message: L10n.string("feed.noResults.message", locale: locale),
+                        kind: .empty,
+                        actionTitle: L10n.string("common.clearFilters", locale: locale),
+                        action: {
+                            store.searchText = ""
+                            store.filter = FeedFilter()
+                        }
+                    )
+                    .padding(.vertical, Space.xxl)
+                } else {
+                    feedRows(store)
+                }
             }
+            .padding(.bottom, Space.xxl)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.immediately)
-        .dismissKeyboardOnBackgroundTap()
         .refreshable {
             await store.refresh()
         }
         .accessibilityIdentifier("feed-list")
-        // 系统搜索框：自带查找图标、清除按钮、键盘联动与滚动固定行为。
-        .searchable(
-            text: $store.searchText,
-            placement: .navigationBarDrawer(displayMode: .always),
-            prompt: Text(L10n.string("feed.search.placeholder", locale: locale))
-        )
         .sheet(isPresented: $showFilter) {
             FeedFilterSheet(store: store, isPresented: $showFilter)
                 .presentationDetents(SheetMetrics.detents)
@@ -148,9 +137,9 @@ struct BriefFeedView: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("feed-brand")
-        .listRowSeparator(.hidden)
-        .listRowBackground(Color.clear)
-        .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
+        .padding(.horizontal, Space.xl)
+        .padding(.top, Space.s)
+        .padding(.bottom, Space.xs)
     }
 
     /// 只保留频道数与期数；不显示当日日期，也不显示排序说明。
@@ -217,24 +206,24 @@ struct BriefFeedView: View {
         .background(Palette.chip, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
-    /// 日期分组与行都作为普通 List 行（不是 Section 头），
-    /// 这样向下滚动时它们跟着内容走，不会吸顶留在原地。
+    /// 日期和文章共用同一个滚动容器，不使用吸顶 header 或 List 最小行高。
     @ViewBuilder
     private func feedRows(_ store: BriefFeedStore) -> some View {
         ForEach(store.groupedBriefs, id: \.day) { group in
             Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
+                .accessibilityIdentifier("feed-date-header")
                 .font(TypeFace.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
                 .textCase(nil)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                // 分组标题与正文之间只留最小呼吸，不再撑开。
-                .listRowInsets(EdgeInsets(top: Space.s, leading: Space.xl, bottom: 0, trailing: Space.xl))
+                .padding(.horizontal, Space.xl)
+                .padding(.top, Space.s)
 
             ForEach(group.briefs) { brief in
-                NavigationLink(value: brief) {
+                Button {
+                    path.append(brief)
+                } label: {
                     BriefRow(
                         brief: brief,
                         channelName: store.displayName(for: brief),
@@ -243,7 +232,8 @@ struct BriefFeedView: View {
                         colorIndex: env.channelColors.colorIndex(for: brief.channelID)
                     )
                 }
-                .listRowBackground(Color.clear)
+                .buttonStyle(.pressable)
+                .padding(.horizontal, Space.xl)
                 .task {
                     await store.loadMoreIfNeeded(appearing: brief)
                 }
@@ -252,16 +242,12 @@ struct BriefFeedView: View {
 
         if store.isLoadingMore {
             LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
         } else if !store.hasMore && !store.briefs.isEmpty {
             Text(L10n.string("feed.endOfFeed", locale: locale))
                 .font(TypeFace.body(11.5))
                 .foregroundStyle(Palette.inkTertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Space.l)
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
         }
     }
 

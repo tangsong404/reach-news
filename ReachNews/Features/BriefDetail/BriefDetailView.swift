@@ -39,7 +39,7 @@ struct BriefDetailView: View {
                 .padding(.horizontal, Space.xl)
                 .padding(.top, Space.m)
             }
-            .padding(.bottom, 120)
+            .padding(.bottom, Space.l)
         }
         .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .scrollDismissesKeyboard(.interactively)
@@ -55,6 +55,7 @@ struct BriefDetailView: View {
             if env.session.capabilities.ask {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        pendingQuestion = nil
                         showsAsk = true
                     } label: {
                         Image(systemName: "bubble.left.and.text.bubble.right")
@@ -146,46 +147,26 @@ struct BriefDetailView: View {
 
     private var isSaved: Bool { env.saved.isSaved(brief.id) }
 
-    /// 底部提问条：悬浮的半透明胶囊（系统材质），像 Messages 的输入区。
+    /// System search-field appearance rather than a hand-drawn input capsule.
     private var askBar: some View {
-        HStack(spacing: Space.s) {
-            TextField(
-                L10n.string("ask.bar.placeholder", locale: locale),
+        HStack(spacing: 0) {
+            NativeSearchField(
                 text: $questionDraft,
-                axis: .vertical
+                placeholder: L10n.string("ask.bar.placeholder", locale: locale),
+                identifier: "brief-ask-field",
+                sendsQuestion: true,
+                onSubmit: sendQuestion
             )
-            .font(TypeFace.body(15))
-            .lineLimit(1...4)
-            .padding(.leading, 4)
-            .submitLabel(.send)
-            .onSubmit(sendQuestion)
-            .accessibilityIdentifier("brief-ask-field")
-
             Button(action: sendQuestion) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.onInverse)
-                    .frame(width: 30, height: 30)
-                    .background(env.appearance.accent, in: Circle())
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.title2)
                     .frame(width: 44, height: 44)
-                    .contentShape(Circle())
             }
-            .buttonStyle(.pressable)
             .disabled(isQuestionEmpty)
-            .opacity(isQuestionEmpty ? 0.35 : 1)
             .accessibilityLabel(Text(L10n.string("ask.bar.send", locale: locale)))
             .accessibilityIdentifier("brief-ask-send")
         }
-        .padding(.leading, Space.m)
-        .padding(.trailing, Space.xs)
-        .padding(.vertical, 4)
-        // 系统材质 + 胶囊：半透明悬浮在内容之上，而不是一条实心底栏。
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay {
-            Capsule().strokeBorder(Palette.line, lineWidth: 0.5)
-        }
-        .padding(.horizontal, Space.l)
-        .padding(.bottom, Space.s)
+        .padding(.horizontal, Space.s)
     }
 
     private var isQuestionEmpty: Bool {

@@ -576,18 +576,9 @@ extension ButtonStyle where Self == PressableButtonStyle {
 extension View {
     /// 点空白处收起键盘。
     ///
-    /// 用 `simultaneousGesture` 而不是 `onTapGesture`：不抢按钮、行的点击，
-    /// 只在没被别的手势消费时兜底。
+    /// 通过不取消原触摸的观察器处理；不在整棵 SwiftUI 视图上附加 TapGesture，
+    /// 避免干扰文章导航、按钮与文本输入。
     func dismissKeyboardOnBackgroundTap() -> some View {
-        simultaneousGesture(
-            TapGesture().onEnded {
-                UIApplication.shared.sendAction(
-                    #selector(UIResponder.resignFirstResponder),
-                    to: nil,
-                    from: nil,
-                    for: nil
-                )
-            }
-        )
+        background(KeyboardDismissObserver())
     }
 }

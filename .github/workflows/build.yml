@@ -81,6 +81,62 @@ jobs:
           path: snapshots
           if-no-files-found: warn
 
+  ios-ui-tests:
+    name: iOS Offline UI Regression Tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Run actual simulator UI tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          UDID="$(xcrun simctl list devices available --json | python3 -c "
+          import json,sys
+          for runtime, devices in json.load(sys.stdin)['devices'].items():
+              if 'iOS' not in runtime:
+                  continue
+              for device in devices:
+                  if device.get('isAvailable') and 'iPhone' in device['name']:
+                      print(device['udid'])
+                      raise SystemExit
+          raise SystemExit(1)
+          ")"
+          xcodebuild test \
+            -project ReachNews.xcodeproj \
+            -scheme ReachNews \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -resultBundlePath build/UIRegression.xcresult \
+            -parallel-testing-enabled NO \
+            -only-testing:ReachNewsUITests \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Export actual simulator screenshots
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p ui-screenshots
+          if [ -d build/UIRegression.xcresult ]; then
+            xcrun xcresulttool export attachments --path build/UIRegression.xcresult --output-path ui-screenshots
+          fi
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reach-news-ios-ui-screenshots
+          path: ui-screenshots
+          if-no-files-found: warn
+      - name: Upload UI test result bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reach-news-ios-ui-test-results
+          path: build/UIRegression.xcresult
+          if-no-files-found: warn
+
   ios:
     name: iOS SwiftUI Device IPA
     runs-on: macos-26
@@ -127,7 +183,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist"
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           mkdir -p visual-preview
-          xcrun simctl launch "$DEVICE_ID" com.tangsong404.reachnews
+          xcrun simctl launch "$DEVICE_ID" com.tangsong404.reachnews -ui-testing -AppleLanguages '(zh-Hans)' -AppleLocale zh_CN
           sleep 4
           xcrun simctl io "$DEVICE_ID" screenshot visual-preview/reach-news-briefing.png
       - uses: actions/upload-artifact@v4

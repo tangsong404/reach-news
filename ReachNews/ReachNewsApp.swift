@@ -2,7 +2,12 @@ import SwiftUI
 
 @main
 struct ReachNewsApp: App {
-    @State private var environment = AppEnvironment.live()
+    @State private var environment: AppEnvironment = {
+        #if DEBUG
+        if UITestLaunchFixture.isEnabled { return UITestLaunchFixture.makeEnvironment() }
+        #endif
+        return AppEnvironment.live()
+    }()
     @AppStorage("preferences.language") private var languagePreference = LanguagePreference.system.rawValue
     /// 读取字号设置：它变化时整棵树会重算，`TypeFace` 才能取到新的缩放值。
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
