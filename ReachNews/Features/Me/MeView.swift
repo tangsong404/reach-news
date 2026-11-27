@@ -62,6 +62,7 @@ struct MeView: View {
                 .accessibilityIdentifier("me-account-card")
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
+                .buttonStyle(.pressable)
                 .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.medium)
@@ -103,6 +104,7 @@ struct MeView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                 }
+                .buttonStyle(.pressable)
                 .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.medium)
