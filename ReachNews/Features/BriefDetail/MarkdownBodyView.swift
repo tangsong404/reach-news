@@ -395,6 +395,9 @@ private struct HeadingFollowLayout: Layout {
     /// 按钮可点区比视觉圆点大出来的那一圈（44pt 命中区 / 22pt 圆点 → 11）。
     /// 排版时要扣掉它，否则铃铛看起来离文字很远。
     var hitInset: CGFloat = 0
+    /// 圆点本身的直径：换行时只需给它留位置，不必把 44pt 命中区都留出来，
+    /// 否则最后一行会提前 20 多 pt 折行，铃铛看起来离文字很远。
+    var visualWidth: CGFloat = 22
 
     private struct Metrics {
         var text: CGSize
@@ -415,7 +418,7 @@ private struct HeadingFollowLayout: Layout {
             return Metrics(text: wrapped, bell: .zero, wrapped: true)
         }
         let bell = subviews[1].sizeThatFits(.unspecified)
-        let slot = bell.width + spacing
+        let slot = visualWidth + spacing
         if !maxWidth.isFinite || ideal.width + slot <= maxWidth {
             return Metrics(text: ideal, bell: bell, wrapped: false)
         }
@@ -427,7 +430,7 @@ private struct HeadingFollowLayout: Layout {
 
     private func wrapWidth(_ m: Metrics, maxWidth: CGFloat) -> CGFloat {
         guard m.wrapped else { return m.text.width }
-        return m.bell.width > 0 ? max(0, maxWidth - (m.bell.width + spacing)) : maxWidth
+        return m.bell.width > 0 ? max(0, maxWidth - (visualWidth + spacing)) : maxWidth
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -456,7 +459,9 @@ private struct HeadingFollowLayout: Layout {
             // 折行时把 follow 放在**已为它预留的槽位**末尾（也就是最后一行的右端）。
             // 之前用 CoreText 复算最后一行的宽度，但 SwiftUI 的断行与 CoreText
             // 未必逐字一致（衬线/字重回退时更明显），铃铛会落到文字中间。
-            x = bounds.minX + max(0, bounds.width - m.bell.width)
+            // 预留槽位在最后一行右端：把 44pt 命中区往左收回 hitInset，
+            // 圆点就正好落在留白处、紧贴最后一个字。
+            x = bounds.minX + max(0, bounds.width - visualWidth - spacing - hitInset)
             let lastLineCenterY = bounds.minY + m.text.height - lineHeight / 2
             y = max(bounds.minY, lastLineCenterY - m.bell.height / 2)
         } else {
