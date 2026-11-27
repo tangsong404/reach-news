@@ -68,10 +68,14 @@ final class BriefLinkColoringTests: XCTestCase {
             attributed("看这条 [原文](https://example.test/a)。")
         )
 
-        // 不要颜色区分：不得给链接 run 写入强调色。
+        // 链接必须显式写死正文色：不写的话 SwiftUI 会按 tint 上色，
+        // 换主题色或默认 tint 时链接就会变成蓝色。
+        var checked = 0
         for run in marked.runs where run.link != nil {
-            XCTAssertNil(run.foregroundColor)
+            XCTAssertEqual(run.foregroundColor, Palette.ink)
+            checked += 1
         }
+        XCTAssertGreaterThan(checked, 0)
     }
 
     func testNonLinkRunsGetNoUnderlineOrColor() {
