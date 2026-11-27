@@ -41,7 +41,6 @@ struct AppearanceReadingView: View {
                     .accessibilityIdentifier("preferences-text-size-slider")
                     .padding(.bottom, 4)
                 }
-                .accessibilityIdentifier("preferences-text-size")
                 VStack(alignment: .leading, spacing: 8) {
                     SettingsRow(title: L10n.string("preferences.tint.heading", locale: locale), systemImage: "paintbrush.pointed")
                     // Adaptive grid keeps 44pt targets without overflowing small/large-text layouts.
