@@ -28,6 +28,10 @@ struct BriefFeedView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: "Reach News", showsBrand: true)
+                        .accessibilityIdentifier("feed-brand")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     filterToolbarButton(store)
                 }
@@ -52,7 +56,6 @@ struct BriefFeedView: View {
         // Noninteractive labels must not inherit List's minimum row height.
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                brandHeaderRow
                 NativeSearchField(
                     text: $store.searchText,
                     placeholder: L10n.string("feed.search.placeholder", locale: locale),
@@ -122,17 +125,6 @@ struct BriefFeedView: View {
         .accessibilityValue(
             Text(dimensions > 0 ? "\(dimensions)" : L10n.string("common.off", locale: locale))
         )
-    }
-
-    /// 首页品牌：图形 + 字标，占原来大标题的位置（左侧、大字号、随内容滚动）。
-    private var brandHeaderRow: some View {
-        MainPageHeading(title: "Reach News", showsBrand: true)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        .accessibilityIdentifier("feed-brand")
-        .padding(.horizontal, Space.xl)
-        .padding(.top, Space.s)
-        .padding(.bottom, Space.xs)
     }
 
     private func activeFilterSummary(_ store: BriefFeedStore) -> some View {

@@ -17,6 +17,10 @@ struct MeView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: L10n.string("tab.me", locale: locale))
+                        .accessibilityIdentifier("main-heading-me")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showsPlanUnavailable = true
@@ -49,12 +53,6 @@ struct MeView: View {
 
     private func content(_ env: AppEnvironment) -> some View {
         List {
-            MainPageHeading(title: L10n.string("tab.me", locale: locale))
-                .accessibilityIdentifier("main-heading-me")
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 0, trailing: Space.xl))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
             Section {
                 Button { path.append(MeDestination.account) } label: {
                     AccountHeaderView(profile: env.profile)
@@ -204,7 +202,12 @@ struct SavedBriefsView: View {
                 NavigationLink(value: brief) {
                     row(for: brief)
                 }
-                .listRowBackground(Theme.surface(for: env.appearance.style))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 .swipeActions {
                     Button(role: .destructive) {
                         saved.toggle(brief.id)

@@ -71,6 +71,7 @@ struct SettingsListStyle: ViewModifier {
         content
             .listStyle(.grouped)
             .contentMargins(.horizontal, 20, for: .scrollContent)
+            .contentMargins(.top, 8, for: .scrollContent)
             .environment(\.defaultMinListRowHeight, 52)
             .listSectionSpacing(12)
             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))

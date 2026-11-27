@@ -97,8 +97,8 @@ enum Theme {
     /// 让「扁平但有层次」的方向成立；编辑风保持暖白纸面，靠描边立住卡片。
     static func surface(for style: ReaderStyle, mode: AppearanceMode = .light) -> Color {
         switch style {
-        case .editorial: return Color(light: 0xFFFCF4, dark: 0x262219)
-        case .plain: return Color(light: 0xF3F4F6, dark: 0x1E1E1E)
+        case .editorial: return Color(light: 0xFFFCF4, dark: 0x201E19)
+        case .plain: return Color(light: 0xF7F7F8, dark: 0x191919)
         }
     }
 

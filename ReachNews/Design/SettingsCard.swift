@@ -6,6 +6,7 @@ struct SettingsCard<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         VStack(spacing: 0) { content }
+            .buttonStyle(.pressable)
             .padding(.horizontal, 16)
             .background(Theme.surface(for: env.appearance.style),
                         in: RoundedRectangle(cornerRadius: Radius.medium))
@@ -13,6 +14,13 @@ struct SettingsCard<Content: View>: View {
 }
 
 extension View {
+    /// A whole explicit card occupies one native List row, without a second square surface.
+    func settingsCardContainer() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
     func settingsCardRow() -> some View {
         padding(.vertical, 10)
     }

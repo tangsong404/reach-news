@@ -11,35 +11,50 @@ struct UpdateCheckView: View {
     var body: some View {
         List {
             Section {
-                SettingsRow(
-                    title: L10n.string("updates.currentVersion", locale: locale),
-                    systemImage: "app.badge",
-                    value: version
-                )
-                SettingsRow(
-                    title: L10n.string("updates.build", locale: locale),
-                    systemImage: "number",
-                    value: build
-                )
+                SettingsCard {
+                    SettingsRow(
+                        title: L10n.string("updates.currentVersion", locale: locale),
+                        systemImage: "app.badge",
+                        value: version
+                    )
+                    .settingsCardRow()
+                    Divider().padding(.leading, 42)
+                    SettingsRow(
+                        title: L10n.string("updates.build", locale: locale),
+                        systemImage: "number",
+                        value: build
+                    )
+                    .settingsCardRow()
+
+                }
+                .settingsCardContainer()
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
+            .listRowBackground(Color.clear)
 
             Section {
-                Button {
-                    showsUnavailable = true
-                } label: {
-                    SettingsRow(title: L10n.string("updates.check", locale: locale), systemImage: "arrow.triangle.2.circlepath")
+                SettingsCard {
+                    Button {
+                        showsUnavailable = true
+                    } label: {
+                        SettingsRow(title: L10n.string("updates.check", locale: locale), systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .accessibilityIdentifier("update-check-button")
+                    .buttonStyle(.pressable)
+                    .settingsCardRow()
+                    if showsUnavailable {
+                        Divider()
+                        Text(L10n.string("updates.unavailable", locale: locale))
+                            .font(typography.body(15))
+                            .foregroundStyle(Palette.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("update-check-unavailable")
+                            .settingsCardRow()
+                    }
+
                 }
-                .accessibilityIdentifier("update-check-button")
-                if showsUnavailable {
-                    Text(L10n.string("updates.unavailable", locale: locale))
-                        .font(typography.body(15))
-                        .foregroundStyle(Palette.inkSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("update-check-unavailable")
-                }
+                .settingsCardContainer()
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
+            .listRowBackground(Color.clear)
         }
         .settingsListStyle()
         .navigationTitle(L10n.string("updates.title", locale: locale))

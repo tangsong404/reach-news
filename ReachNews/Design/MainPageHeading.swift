@@ -6,13 +6,11 @@ struct MainPageHeading: View {
     var showsBrand = false
     var body: some View {
         HStack(spacing: 8) {
-            if showsBrand { BrandMark(size: 30) }
-            Text(title).font(.system(.largeTitle, design: .default).weight(.bold))
+            if showsBrand { BrandMark(size: 24) }
+            Text(title).font(.system(.title, design: .default).weight(.bold))
                 .foregroundStyle(Palette.ink)
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 8)
-        .frame(minHeight: 52)
+        .fixedSize(horizontal: false, vertical: true)
         .accessibilityAddTraits(.isHeader)
     }
 }

@@ -143,6 +143,24 @@ final class ReachNewsUITests: XCTestCase {
         screenshot("updates-unavailable")
     }
 
+    func testRootTitlesUseLeadingNavigationSpace() throws {
+        let app = launch()
+        let feed = element("feed-brand", in: app)
+        let feedFrame = feed.frame
+        XCTAssertLessThan(feedFrame.minY, 120, "Root title should use top toolbar, not a low content row")
+        app.tabBars.buttons["频道"].tap()
+        let channels = element("main-heading-channels", in: app)
+        XCTAssertTrue(channels.waitForExistence(timeout: 5))
+        XCTAssertLessThan(channels.frame.minY, 120)
+        screenshot("root-channels-top")
+        app.tabBars.buttons["我的"].tap()
+        let me = element("main-heading-me", in: app)
+        XCTAssertTrue(me.waitForExistence(timeout: 5))
+        XCTAssertLessThan(me.frame.minY, 120)
+        XCTAssertEqual(me.frame.height, channels.frame.height, accuracy: 4)
+        screenshot("root-me-top")
+    }
+
     func testQuestionUsesKeyboardSendOnly() throws {
         let app = launch()
         element("feed-row-ui-fixture-brief", in: app).tap()

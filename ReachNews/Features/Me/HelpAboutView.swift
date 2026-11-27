@@ -8,12 +8,18 @@ struct HelpAboutView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink(value: HelpDestination.updates) {
-                    SettingsRow(title: L10n.string("updates.title", locale: locale), systemImage: "arrow.triangle.2.circlepath")
+                SettingsCard {
+                    NavigationLink(value: HelpDestination.updates) {
+                        SettingsRow(title: L10n.string("updates.title", locale: locale), systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .accessibilityIdentifier("help-check-updates")
+                    .buttonStyle(.pressable)
+                    .settingsCardRow()
+
                 }
-                .accessibilityIdentifier("help-check-updates")
+                .settingsCardContainer()
             }
-            .listRowBackground(Theme.surface(for: env.appearance.style))
+            .listRowBackground(Color.clear)
         }
         .settingsListStyle()
         .scrollContentBackground(.hidden)

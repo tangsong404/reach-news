@@ -29,6 +29,10 @@ struct ChannelListView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: L10n.string("tab.channels", locale: locale))
+                        .accessibilityIdentifier("main-heading-channels")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if env.session.capabilities.channelLimit == nil ||
                         env.channels.myChannels.count < (env.session.capabilities.channelLimit ?? 0) {
@@ -136,11 +140,6 @@ struct ChannelListView: View {
     /// 分组标题也用普通行而不是 Section 头，避免吸顶挡住内容。
     private func list(_ store: ChannelStore) -> some View {
         List {
-            MainPageHeading(title: L10n.string("tab.channels", locale: locale))
-                .accessibilityIdentifier("main-heading-channels")
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: 0, trailing: Space.xl))
             if !store.myChannels.isEmpty {
                 sectionHeaderRow("channel.section.mine")
                 ForEach(store.myChannels) { channel in

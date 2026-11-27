@@ -93,44 +93,52 @@ struct AccountDetailView: View {
 
     private var avatarSection: some View {
         Section {
-            PhotosPicker(selection: $photoItem, matching: .images) {
-                HStack(spacing: 14) {
-                    Image(systemName: "person.crop.circle")
-                        .font(typography.body(17))
-                        .foregroundStyle(Palette.inkSecondary)
-                        .frame(width: 28)
-                    Text(L10n.string("account.avatar.change", locale: locale))
-                        .font(typography.body(17))
-                        .foregroundStyle(Palette.ink)
-                    Spacer(minLength: 8)
-                    if isUploadingAvatar { ProgressView() }
-                    AvatarView(url: profile.avatarURL, size: 56)
+            SettingsCard {
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "person.crop.circle")
+                            .font(typography.body(17))
+                            .foregroundStyle(Palette.inkSecondary)
+                            .frame(width: 28)
+                        Text(L10n.string("account.avatar.change", locale: locale))
+                            .font(typography.body(17))
+                            .foregroundStyle(Palette.ink)
+                        Spacer(minLength: 8)
+                        if isUploadingAvatar { ProgressView() }
+                        AvatarView(url: profile.avatarURL, size: 56)
+                    }
+                    .frame(minHeight: 64)
+                    .contentShape(Rectangle())
                 }
-                .frame(minHeight: 64)
-                .contentShape(Rectangle())
-            }
-            .disabled(isUploadingAvatar)
-            .accessibilityIdentifier("account-avatar-change")
+                .disabled(isUploadingAvatar)
+                .accessibilityIdentifier("account-avatar-change")
+                .settingsCardRow()
 
-            if profile.avatarURL != nil {
-                Button(role: .destructive) {
-                    Task { await removeAvatar() }
-                } label: {
-                    Label(L10n.string("account.avatar.remove", locale: locale), systemImage: "trash")
-                        .font(typography.body(17))
-                        .frame(minHeight: 44)
+                if profile.avatarURL != nil {
+                    Divider().padding(.leading, 42)
+                    Button(role: .destructive) {
+                        Task { await removeAvatar() }
+                    } label: {
+                        Label(L10n.string("account.avatar.remove", locale: locale), systemImage: "trash")
+                            .font(typography.body(17))
+                            .frame(minHeight: 44)
+                    }
+                    .accessibilityIdentifier("account-avatar-remove")
+                    .buttonStyle(.pressable)
+                    .settingsCardRow()
                 }
-                .accessibilityIdentifier("account-avatar-remove")
+                if let avatarError {
+                    Text(avatarError)
+                        .font(typography.body(13))
+                        .foregroundStyle(Palette.failedForeground)
+                }
+
             }
-            if let avatarError {
-                Text(avatarError)
-                    .font(typography.body(13))
-                    .foregroundStyle(Palette.failedForeground)
-            }
+            .settingsCardContainer()
         } header: {
             SettingsSectionHeader(title: L10n.string("account.avatar.change", locale: locale))
         }
-        .listRowBackground(Theme.surface(for: env.appearance.style))
+        .listRowBackground(Color.clear)
         .onChange(of: photoItem) { _, newValue in
             guard let newValue else { return }
             Task { await uploadAvatar(newValue) }
@@ -166,52 +174,70 @@ struct AccountDetailView: View {
 
     private var profileSection: some View {
         Section {
-            Button { showsNicknameSheet = true } label: {
-                actionableRow(
-                    titleKey: "account.nickname.label", systemImage: "person",
-                    value: profile.userName, identifier: "account-edit-nickname"
+            SettingsCard {
+                Button { showsNicknameSheet = true } label: {
+                    actionableRow(
+                        titleKey: "account.nickname.label", systemImage: "person",
+                        value: profile.userName, identifier: "account-edit-nickname"
+                    )
+                }
+                .buttonStyle(.pressable)
+                .settingsCardRow()
+                Divider().padding(.leading, 42)
+
+                SettingsRow(
+                    title: L10n.string("account.email.label", locale: locale),
+                    systemImage: "envelope",
+                    value: profile.email ?? L10n.string("me.account.email.empty", locale: locale)
                 )
+                .accessibilityIdentifier("account-email-readonly")
+                .settingsCardRow()
+
+
             }
-            .buttonStyle(.pressable)
-
-            SettingsRow(
-                title: L10n.string("account.email.label", locale: locale),
-                systemImage: "envelope",
-                value: profile.email ?? L10n.string("me.account.email.empty", locale: locale)
-            )
-            .accessibilityIdentifier("account-email-readonly")
-
+            .settingsCardContainer()
         } header: {
             SettingsSectionHeader(title: L10n.string("account.profile.heading", locale: locale))
         }
-        .listRowBackground(Theme.surface(for: env.appearance.style))
+        .listRowBackground(Color.clear)
     }
 
     private var securitySection: some View {
         Section {
-            Button { showsPasswordSheet = true } label: {
-                actionableRow(
-                    titleKey: "account.password.label", systemImage: "lock",
-                    value: nil, identifier: "account-edit-password"
-                )
+            SettingsCard {
+                Button { showsPasswordSheet = true } label: {
+                    actionableRow(
+                        titleKey: "account.password.label", systemImage: "lock",
+                        value: nil, identifier: "account-edit-password"
+                    )
+                }
+                .buttonStyle(.pressable)
+                .settingsCardRow()
+
             }
-            .buttonStyle(.pressable)
+            .settingsCardContainer()
         } header: {
             SettingsSectionHeader(title: L10n.string("account.security.heading", locale: locale))
         }
-        .listRowBackground(Theme.surface(for: env.appearance.style))
+        .listRowBackground(Color.clear)
     }
 
     private var signOutSection: some View {
         Section {
-            Button(role: .destructive) { showsSignOutConfirmation = true } label: {
-                Label(L10n.string("connection.signOut", locale: locale), systemImage: "rectangle.portrait.and.arrow.right")
-                    .font(typography.body(17))
-                    .frame(minHeight: 28)
+            SettingsCard {
+                Button(role: .destructive) { showsSignOutConfirmation = true } label: {
+                    Label(L10n.string("connection.signOut", locale: locale), systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(typography.body(17))
+                        .frame(minHeight: 28)
+                }
+                .accessibilityIdentifier("account-signout")
+                .buttonStyle(.pressable)
+                .settingsCardRow()
+
             }
-            .accessibilityIdentifier("account-signout")
+            .settingsCardContainer()
         }
-        .listRowBackground(Theme.surface(for: env.appearance.style))
+        .listRowBackground(Color.clear)
     }
 
     private func actionableRow(titleKey: String, systemImage: String, value: String?, identifier: String) -> some View {
@@ -326,22 +352,32 @@ struct NicknameSheet: View {
             List {
                 if let error {
                     Section {
-                        InlineNotice(text: message(for: error), kind: .error)
-                            .accessibilityIdentifier("nickname-error")
+                        SettingsCard {
+                            InlineNotice(text: message(for: error), kind: .error)
+                                .accessibilityIdentifier("nickname-error")
+                                .settingsCardRow()
+
+                        }
+                        .settingsCardContainer()
                     }
-                    .listRowBackground(Theme.surface(for: env.appearance.style))
+                    .listRowBackground(Color.clear)
                 }
                 Section {
-                    TextField(L10n.string("account.nickname.label", locale: locale), text: $value)
-                        .font(typography.body(17))
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .frame(minHeight: 44)
-                        .accessibilityIdentifier("nickname-input")
+                    SettingsCard {
+                        TextField(L10n.string("account.nickname.label", locale: locale), text: $value)
+                            .font(typography.body(17))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("nickname-input")
+                            .settingsCardRow()
+
+                    }
+                    .settingsCardContainer()
                 } header: {
                     SettingsSectionHeader(title: L10n.string("account.nickname.label", locale: locale))
                 }
-                .listRowBackground(Theme.surface(for: env.appearance.style))
+                .listRowBackground(Color.clear)
             }
             .settingsListStyle()
             .scrollDismissesKeyboard(.interactively)
@@ -438,53 +474,75 @@ struct PasswordChangeSheet: View {
             List {
                 if let error {
                     Section {
-                        InlineNotice(text: message(for: error), kind: .error)
-                            .accessibilityIdentifier("password-error")
+                        SettingsCard {
+                            InlineNotice(text: message(for: error), kind: .error)
+                                .accessibilityIdentifier("password-error")
+                                .settingsCardRow()
+
+                        }
+                        .settingsCardContainer()
                     }
-                    .listRowBackground(Theme.surface(for: env.appearance.style))
+                    .listRowBackground(Color.clear)
                 }
 
                 Section {
-                    secureField(labelKey: "account.password.current", text: $current, identifier: "password-current")
-                    secureField(labelKey: "account.password.new", text: $next, identifier: "password-new")
-                    secureField(labelKey: "account.password.confirm", text: $confirm, identifier: "password-confirm")
+                    SettingsCard {
+                        secureField(labelKey: "account.password.current", text: $current, identifier: "password-current")
+                            .settingsCardRow()
+                        Divider()
+                        secureField(labelKey: "account.password.new", text: $next, identifier: "password-new")
+                            .settingsCardRow()
+                        Divider()
+                        secureField(labelKey: "account.password.confirm", text: $confirm, identifier: "password-confirm")
+                            .settingsCardRow()
+
+                    }
+                    .settingsCardContainer()
                 } header: {
                     SettingsSectionHeader(title: L10n.string("account.security.heading", locale: locale))
                 }
-                .listRowBackground(Theme.surface(for: env.appearance.style))
+                .listRowBackground(Color.clear)
 
                 Section {
-                    TextField(L10n.string("account.password.emailCode", locale: locale), text: $emailCode)
-                        .font(typography.body(17))
-                        .keyboardType(.numberPad)
-                        .textContentType(.oneTimeCode)
-                        .frame(minHeight: 44)
-                        .accessibilityIdentifier("password-email-code")
-                    Button {
-                        Task { await sendCode() }
-                    } label: {
-                        HStack {
-                            Text(resendCountdown > 0
-                                 ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
-                                 : L10n.string("register.emailCode.send", locale: locale))
-                                .font(typography.body(17))
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 8)
-                            if isSendingCode { ProgressView() }
+                    SettingsCard {
+                        TextField(L10n.string("account.password.emailCode", locale: locale), text: $emailCode)
+                            .font(typography.body(17))
+                            .keyboardType(.numberPad)
+                            .textContentType(.oneTimeCode)
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("password-email-code")
+                            .settingsCardRow()
+                        Divider()
+                        Button {
+                            Task { await sendCode() }
+                        } label: {
+                            HStack {
+                                Text(resendCountdown > 0
+                                     ? L10n.format("register.emailCode.resendIn", locale: locale, resendCountdown)
+                                     : L10n.string("register.emailCode.send", locale: locale))
+                                    .font(typography.body(17))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 8)
+                                if isSendingCode { ProgressView() }
+                            }
+                            .frame(minHeight: 44)
                         }
-                        .frame(minHeight: 44)
+                        .disabled(!canSendCode)
+                        .accessibilityIdentifier("password-email-code-send")
+                        .buttonStyle(.pressable)
+                        .settingsCardRow()
+                        if codeSent {
+                            Text(L10n.string("register.emailCode.sent", locale: locale))
+                                .font(typography.body(13))
+                                .foregroundStyle(Palette.runningForeground)
+                        }
+
                     }
-                    .disabled(!canSendCode)
-                    .accessibilityIdentifier("password-email-code-send")
-                    if codeSent {
-                        Text(L10n.string("register.emailCode.sent", locale: locale))
-                            .font(typography.body(13))
-                            .foregroundStyle(Palette.runningForeground)
-                    }
+                    .settingsCardContainer()
                 } header: {
                     SettingsSectionHeader(title: L10n.string("account.password.emailCode", locale: locale))
                 }
-                .listRowBackground(Theme.surface(for: env.appearance.style))
+                .listRowBackground(Color.clear)
             }
             .settingsListStyle()
             .scrollDismissesKeyboard(.interactively)
