@@ -1,5 +1,7 @@
 import SwiftUI
 import Foundation
+import CoreText
+import UIKit
 
 // MARK: - 正文 Markdown 渲染（原生实现）
 //
@@ -17,13 +19,24 @@ import Foundation
 // 渲染范围严格限定 body：title / summary / sections 一律纯文本，不走这里。
 
 struct MarkdownBodyView: View {
+    @AppTypography private var typography
     let markdown: String
     var onOpenURL: (URL) -> Void
+    /// 点小标题右侧「跟踪」按钮时的回调，参数是该标题的文字。
+    var onTrackHeading: ((String) -> Void)?
+    /// 当前观感风格：决定标题字形（衬线 / 无衬线）与字重。
+    var style: ReaderStyle = .editorial
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            ForEach(Array(MarkdownBlockBuilder.parse(markdown).enumerated()), id: \.offset) { _, block in
-                block
+            let blocks = MarkdownBlockBuilder.parse(
+                markdown,
+                onTrackHeading: onTrackHeading,
+                style: style,
+                typography: typography
+            )
+            ForEach(blocks) { block in
+                block.view
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -51,10 +64,37 @@ enum MarkdownBlockBuilder {
     struct Block {
         let kind: Kind
         let text: AttributedString
+
+        /// 纯文本形态，供小标题点击时把标题文字交给业务层。
+        var plainText: String {
+            String(text.characters).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
     }
 
-    static func parse(_ markdown: String) -> [AnyView] {
-        split(attributed(from: markdown)).map(view(for:))
+    /// 切块 + 映射成视图后的结果。
+    /// 视图负责长相，`kind` 与 `plainText` 留给调用方判断交互，
+    /// 这样渲染层不需要知道「点了标题要做什么」。
+    struct LaidOutBlock: Identifiable {
+        let id: Int
+        let kind: Kind
+        let plainText: String
+        let view: AnyView
+    }
+
+    static func parse(
+        _ markdown: String,
+        onTrackHeading: ((String) -> Void)? = nil,
+        style: ReaderStyle = .editorial,
+        typography: ResolvedTypography = ResolvedTypography()
+    ) -> [LaidOutBlock] {
+        split(attributed(from: markdown)).enumerated().map { index, block in
+            LaidOutBlock(
+                id: index,
+                kind: block.kind,
+                plainText: block.plainText,
+                view: view(for: block, onTrackHeading: onTrackHeading, style: style, typography: typography)
+            )
+        }
     }
 
     /// Foundation 的 CommonMark 解析。失败时退回纯文本，保证正文不丢。
@@ -69,6 +109,20 @@ enum MarkdownBlockBuilder {
         return AttributedString(markdown)
     }
 
+    /// 给链接 run 加下划线。
+    ///
+    /// 用户明确不要颜色区分：链接文字保持正文色，改用下划线 + 外链图标标识。
+    /// 下划线写进 run 本身，与 view 级样式无关；图标由视图层的 `linkText` 追加。
+    static func underliningLinks(_ attributed: AttributedString) -> AttributedString {
+        var result = attributed
+        for run in attributed.runs where run.link != nil {
+            result[run.range].underlineStyle = .single
+            // 链接文字必须保持正文色：不跟随 tint，也不使用系统蓝色。
+            result[run.range].foregroundColor = Palette.ink
+        }
+        return result
+    }
+
     /// 按块级 intent 切分：intent 变一次就换块。
     static func split(_ attributed: AttributedString) -> [Block] {
         var blocks: [Block] = []
@@ -81,7 +135,7 @@ enum MarkdownBlockBuilder {
                 current = AttributedString()
                 return
             }
-            blocks.append(Block(kind: currentKind, text: current))
+            blocks.append(Block(kind: currentKind, text: underliningLinks(current)))
             current = AttributedString()
         }
 
@@ -154,19 +208,82 @@ enum MarkdownBlockBuilder {
 
     // MARK: 视图映射
 
-    private static func view(for block: Block) -> AnyView {
+    /// 块内文字，并在**每条链接之后**各插一个外链图标。
+    ///
+    /// 不用 `AttributedString(Image:)`：该初始化器要求 Image 满足 Sequence，
+    /// 在目标 SDK 上不可用。改为把块按「链接结束位置」切开，用 `Text + Image`
+    /// 逐段拼接——SwiftUI 的 Text 支持与 Image 相加，且能保留各段的行内样式。
+    static func linkText(_ block: Block) -> Text {
+        let links = block.text.runs.filter { $0.link != nil }
+        // 没有链接就不必拆分。
+        guard !links.isEmpty else { return Text(block.text) }
+
+        var pieces: [Text] = []
+        var cursor = block.text.startIndex
+        for run in links {
+            // 链接之前的普通文字（含本条链接本身）。
+            if cursor < run.range.lowerBound {
+                pieces.append(Text(AttributedString(block.text[cursor..<run.range.lowerBound])))
+            }
+            pieces.append(Text(AttributedString(block.text[run.range])))
+            // 图标紧跟这条链接，且不参与跳转；略微上移，避免落在下划线高度。
+            pieces.append(Text(" "))
+            pieces.append(
+                Text(Image(systemName: "arrow.up.forward.app"))
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Palette.inkTertiary)
+                    .baselineOffset(3)
+            )
+            cursor = run.range.upperBound
+        }
+        if cursor < block.text.endIndex {
+            pieces.append(Text(AttributedString(block.text[cursor...])))
+        }
+        return pieces.reduce(Text("")) { $0 + $1 }
+    }
+
+    private static func headingWithFollow(
+        _ block: Block,
+        size: CGFloat,
+        onTrackHeading: ((String) -> Void)?,
+        style: ReaderStyle,
+        typography: ResolvedTypography
+    ) -> some View {
+        // 铃铛必须紧贴最后一个字：文字与铃铛放进同一段 TextKit 文本里，
+        // 位置天然正确，点击由内联附件的命中测试处理。
+        Group {
+            if let onTrackHeading {
+                InlineFollowHeading(
+                    text: block.plainText,
+                    fontSize: size,
+                    style: style,
+                    followLabel: L10n.string("brief.heading.follow", locale: .current),
+                    onFollow: { onTrackHeading(block.plainText) },
+                    typography: typography
+                )
+            } else {
+                Text(block.text)
+                    .font(typography.headingFont(size: size, style: style))
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, Space.xs)
+    }
+
+    private static func view(
+        for block: Block,
+        onTrackHeading: ((String) -> Void)?,
+        style: ReaderStyle,
+        typography: ResolvedTypography
+    ) -> AnyView {
         switch block.kind {
         case .heading(let level):
             let sizes: [CGFloat] = [22, 19, 17, 16, 16, 16]
             let size = sizes[min(max(level, 1), 6) - 1]
             return AnyView(
-                Text(block.text)
-                    .font(TypeFace.heading(size))
-                    .foregroundStyle(Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, Space.xs)
-                    .accessibilityAddTraits(.isHeader)
+                headingWithFollow(block, size: size, onTrackHeading: onTrackHeading, style: style, typography: typography)
             )
 
         case .listItem(let ordered, let ordinal):
@@ -174,11 +291,11 @@ enum MarkdownBlockBuilder {
             return AnyView(
                 HStack(alignment: .firstTextBaseline, spacing: Space.s) {
                     Text(marker)
-                        .font(ordered ? TypeFace.condensed(14, weight: .semibold) : TypeFace.body(16))
+                        .font(ordered ? typography.condensed(14, weight: .semibold) : typography.body(16))
                         .foregroundStyle(Palette.inkTertiary)
                         .frame(minWidth: 18, alignment: .trailing)
-                    Text(block.text)
-                        .font(TypeFace.body(16))
+                    linkText(block)
+                        .font(typography.body(16))
                         .lineSpacing(7)
                         .foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
@@ -191,7 +308,8 @@ enum MarkdownBlockBuilder {
                 ScrollView(.horizontal, showsIndicators: false) {
                     // 代码块不加行内样式，等宽并保留换行与缩进；不做语法高亮。
                     Text(String(block.text.characters))
-                        .font(.system(size: 13.5, design: .monospaced))
+                        // 代码块也要跟随 Dynamic Type，否则调大字后正文变了它不变。
+                        .font(.system(size: typography.scaledSize(13.5), design: .monospaced))
                         .foregroundStyle(Palette.ink)
                         .textSelection(.enabled)
                         .padding(Space.m)
@@ -209,8 +327,8 @@ enum MarkdownBlockBuilder {
                     Rectangle()
                         .fill(Palette.lineStrong)
                         .frame(width: 3)
-                    Text(block.text)
-                        .font(TypeFace.body(15))
+                    linkText(block)
+                        .font(typography.body(15))
                         .lineSpacing(6)
                         .foregroundStyle(Palette.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -228,8 +346,8 @@ enum MarkdownBlockBuilder {
 
         case .paragraph:
             return AnyView(
-                Text(block.text)
-                    .font(TypeFace.body(16))
+                linkText(block)
+                    .font(typography.body(16))
                     .lineSpacing(7)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)

@@ -26,7 +26,14 @@ struct RootTabView: View {
                 }
             }
         }
-        .tint(Palette.ink)
+        // 强调色由外观偏好决定（偏好页可切换），不再是固定墨黑。
+        .tint(env.appearance.accent)
+        // 风格切换后底色随之变化。
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        // Theme B keeps one system font family; hierarchy varies only by size/weight.
+        .fontDesign(.default)
+        .readingTypography(textScale: env.appearance.textScale)
+        .preferredColorScheme(env.appearance.resolvedColorScheme)
         .task {
             // 启动时若已有会话，静默验证一次，不弹登录页。
             await env.session.validateStoredSession()
@@ -44,7 +51,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.briefs", locale: locale))
                     } icon: {
-                        Image(systemName: "list.bullet.rectangle")
+                        Image(systemName: "list.bullet.rectangle.fill")
                     }
                 }
                 .tag(Tab.briefs)
@@ -54,7 +61,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.channels", locale: locale))
                     } icon: {
-                        Image(systemName: "slider.horizontal.below.rectangle")
+                        Image(systemName: "rectangle.stack.fill")
                     }
                 }
                 .tag(Tab.channels)
@@ -64,7 +71,7 @@ struct RootTabView: View {
                     Label {
                         Text(L10n.string("tab.me", locale: locale))
                     } icon: {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: "person.crop.circle.fill")
                     }
                 }
                 .tag(Tab.me)

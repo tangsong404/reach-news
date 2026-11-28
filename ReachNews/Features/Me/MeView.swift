@@ -7,25 +7,47 @@ import SwiftUI
 struct MeView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
+    @State private var showsPlanUnavailable = false
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             content(env)
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("tab.me", locale: locale))
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: L10n.string("tab.me", locale: locale))
+                        .accessibilityIdentifier("main-heading-me")
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsPlanUnavailable = true
+                    } label: {
+                        Image(systemName: "creditcard")
+                    }
+                    .accessibilityLabel(Text(L10n.string("me.plan.title", locale: locale)))
+                    .accessibilityIdentifier("me-plan")
+                }
+            }
+            .alert(L10n.string("me.plan.title", locale: locale), isPresented: $showsPlanUnavailable) {
+                Button(L10n.string("common.done", locale: locale), role: .cancel) {}
+            } message: {
+                Text(L10n.string("me.plan.unavailable", locale: locale))
             }
             .navigationDestination(for: MeDestination.self) { destination in
                 switch destination {
                 case .saved:
-                    SavedBriefsView(store: env.feed, saved: env.saved)
+                    SavedBriefsView(saved: env.saved)
                 case .preferences:
-                    PreferencesView(session: env.session, preferences: env.preferences)
-                case .connection:
-                    ConnectionInfoView(session: env.session)
+                    AppearanceReadingView(preferences: env.preferences)
+                case .account:
+                    AccountDetailView(session: env.session)
+                case .help:
+                    HelpAboutView()
                 }
             }
         }
@@ -34,254 +56,240 @@ struct MeView: View {
     private func content(_ env: AppEnvironment) -> some View {
         List {
             Section {
-                NavigationLink(value: MeDestination.saved) {
-                    Label {
-                        Text(L10n.string("me.saved", locale: locale))
-                    } icon: {
-                        Image(systemName: "bookmark")
-                    }
-                    .badge(env.saved.savedIDs.count)
+                Button { path.append(MeDestination.account) } label: {
+                    AccountHeaderView(profile: env.profile)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
                 }
-                .accessibilityIdentifier("me-saved")
-
-                NavigationLink(value: MeDestination.preferences) {
-                    Label {
-                        Text(L10n.string("me.preferences", locale: locale))
-                    } icon: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
+                .accessibilityIdentifier("me-account-card")
+                .buttonStyle(.pressable)
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.medium)
+                        .strokeBorder(Palette.lineStrong, lineWidth: 1)
                 }
-                .accessibilityIdentifier("me-preferences")
-
-                NavigationLink(value: MeDestination.connection) {
-                    Label {
-                        Text(L10n.string("me.connection", locale: locale))
-                    } icon: {
-                        Image(systemName: "link")
-                    }
-                }
-                .accessibilityIdentifier("me-connection")
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            } header: {
+                SettingsSectionHeader(title: L10n.string("me.account.heading", locale: locale))
             }
-            .listRowBackground(Palette.surface)
+
+            Section {
+                VStack(spacing: 0) {
+                    Button { path.append(MeDestination.saved) } label: {
+                        SettingsRow(
+                            title: L10n.string("me.saved", locale: locale),
+                            systemImage: "bookmark",
+                            value: env.saved.savedIDs.isEmpty ? nil : String(env.saved.savedIDs.count)
+                        )
+                    }
+                    .accessibilityIdentifier("me-saved")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    Divider().padding(.leading, 58)
+
+                    Button { path.append(MeDestination.preferences) } label: {
+                        SettingsRow(title: L10n.string("me.preferences", locale: locale), systemImage: "textformat.size")
+                    }
+                    .accessibilityIdentifier("me-preferences")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    Divider().padding(.leading, 58)
+
+                    Button { path.append(MeDestination.help) } label: {
+                        SettingsRow(title: L10n.string("me.help", locale: locale), systemImage: "questionmark.circle")
+                    }
+                    .accessibilityIdentifier("me-help")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.pressable)
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.medium)
+                        .strokeBorder(Palette.line, lineWidth: 1)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            } header: {
+                SettingsSectionHeader(title: L10n.string("me.settings.heading", locale: locale))
+            }
+
         }
+        .settingsListStyle()
         .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .accessibilityIdentifier("me-list")
     }
+
 }
 
 enum MeDestination: Hashable {
     case saved
     case preferences
-    case connection
+    case help
+    /// 账号卡片点进去的个人页：资料、头像、密码与退出登录都在这里。
+    case account
 }
 
 // MARK: - 收藏列表
+//
+// 数据来自 `SavedFeedStore`：按 ID 逐条拉取，不依赖首页已加载内容。
+// 因此无论列表翻到哪一页、或重进 App，收藏都不会消失。
 
 struct SavedBriefsView: View {
-    let store: BriefFeedStore
     let saved: SavedStore
+    @AppTypography private var typography
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
 
-    private var savedBriefs: [Brief] {
-        store.briefs
-            .filter { saved.savedIDs.contains($0.id) }
-            .sorted { $0.createdAt > $1.createdAt }
-    }
+    /// 逐条拉取失败的提示文案（按 id）。
+    private var savedIDs: Set<String> { saved.savedIDs }
+
+    private var briefs: [Brief] { env.savedFeed.briefs(for: savedIDs) }
+
+    /// 还有内容没取回来（首屏加载中）。
+    private var isLoadingAny: Bool { !env.savedFeed.loadingIDs.isEmpty }
 
     var body: some View {
         Group {
-            if savedBriefs.isEmpty {
+            if savedIDs.isEmpty {
+                emptyState
+            } else if briefs.isEmpty && isLoadingAny {
+                LoadingLine(text: L10n.string("common.loading", locale: locale))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if briefs.isEmpty {
+                // 有收藏但一条都没取回来：给出可重试的失败态，而不是谎报为空。
                 MessageStateView(
-                    title: L10n.string("me.saved.empty.title", locale: locale),
-                    message: L10n.string("me.saved.empty.message", locale: locale),
-                    kind: .empty
+                    title: L10n.string("me.saved.loadFailed.title", locale: locale),
+                    message: L10n.string("me.saved.loadFailed.message", locale: locale),
+                    kind: .empty,
+                    actionTitle: L10n.string("common.retry", locale: locale),
+                    action: { Task { await env.savedFeed.refresh(ids: savedIDs) } }
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(savedBriefs) { brief in
-                        NavigationLink(value: brief) {
-                            VStack(alignment: .leading, spacing: Space.xs) {
-                                Text(brief.title)
-                                    .font(TypeFace.heading(14.5))
-                                    .foregroundStyle(Palette.ink)
-                                    .lineLimit(2)
-                                HStack(spacing: 7) {
-                                    ChannelDot(channelID: brief.channelID, colorIndex: env.channelColors.colorIndex(for: brief.channelID))
-                                    Text(store.displayName(for: brief))
-                                        .font(TypeFace.label(11))
-                                        .foregroundStyle(Palette.inkSecondary)
-                                    DotSeparator()
-                                    MetaLine(text: DisplayTime.monthDayTime(brief.createdAt, locale: locale))
-                                }
-                            }
-                            .padding(.vertical, Space.xxs)
-                        }
-                        .swipeActions {
-                            Button(role: .destructive) {
-                                saved.toggle(brief.id)
-                            } label: {
-                                Label(L10n.string("me.saved.remove", locale: locale), systemImage: "bookmark.slash")
-                            }
-                        }
-                    }
-                }
-                .scrollContentBackground(.hidden)
-                .background(Palette.canvas)
+                list
             }
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .navigationTitle(L10n.string("me.saved", locale: locale))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("me.saved", locale: locale))
-            }
-        }
         .navigationDestination(for: Brief.self) { brief in
             BriefDetailView(brief: brief, store: env.makeDetailStore(brief: brief))
         }
+        .task {
+            await env.savedFeed.load(ids: savedIDs)
+        }
         .accessibilityIdentifier("saved-list")
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
     }
-}
 
-// MARK: - 偏好
+    private var emptyState: some View {
+        MessageStateView(
+            title: L10n.string("me.saved.empty.title", locale: locale),
+            message: L10n.string("me.saved.empty.message", locale: locale),
+            kind: .empty
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
-struct PreferencesView: View {
-    let session: SessionStore
-    let preferences: PreferencesStoring
-    @Environment(\.appLocale) private var locale
-    @State private var baseURLString: String = ""
-
-    var body: some View {
+    private var list: some View {
         List {
-            Section {
-                Picker(selection: Binding(
-                    get: { LanguagePreference(rawValue: preferences.languagePreference) ?? .system },
-                    set: { preferences.languagePreference = $0.rawValue }
-                )) {
-                    ForEach(LanguagePreference.allCases) { option in
-                        Text(L10n.string(option.labelKey, locale: locale))
-                            .tag(option)
-                    }
-                } label: {
-                    Text(L10n.string("preferences.language", locale: locale))
+            ForEach(briefs) { brief in
+                NavigationLink(value: brief) {
+                    row(for: brief)
                 }
-                .accessibilityIdentifier("preferences-language")
-            } header: {
-                Text(L10n.string("preferences.language.heading", locale: locale))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Theme.surface(for: env.appearance.style), in: RoundedRectangle(cornerRadius: Radius.medium))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                .swipeActions {
+                    Button(role: .destructive) {
+                        saved.toggle(brief.id)
+                        // 立即从收藏页移除，不等下次刷新。
+                        env.savedFeed.forget(id: brief.id)
+                    } label: {
+                        Label(L10n.string("me.saved.remove", locale: locale), systemImage: "bookmark.slash")
+                    }
+                }
             }
-            .listRowBackground(Palette.surface)
 
-            Section {
-                TextField(L10n.string("connection.baseURL.placeholder", locale: locale), text: $baseURLString)
-                    .font(TypeFace.body(13))
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .accessibilityIdentifier("preferences-baseurl")
+            // 仍在取回或取回失败的条目单独列出来，避免用户以为收藏丢了。
+            ForEach(pendingIDs, id: \.self) { id in
+                pendingRow(for: id)
+            }
+        }
+        .settingsListStyle()
+        .scrollContentBackground(.hidden)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+        .refreshable {
+            await env.savedFeed.refresh(ids: savedIDs)
+        }
+    }
 
+    /// 还没成功取回的收藏 id（保持稳定顺序，避免刷新时跳动）。
+    private var pendingIDs: [String] {
+        savedIDs
+            .filter { env.savedFeed.briefsByID[$0] == nil }
+            .sorted()
+    }
+
+    private func pendingRow(for id: String) -> some View {
+        HStack(spacing: Space.s) {
+            if env.savedFeed.didFail(id) {
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.failedForeground)
+                Text(L10n.string("me.saved.rowFailed", locale: locale))
+                    .font(typography.body(15))
+                    .foregroundStyle(Palette.inkTertiary)
+                Spacer(minLength: 0)
                 Button {
-                    saveBaseURL()
+                    Task { await env.savedFeed.retry(id: id) }
                 } label: {
-                    Text(L10n.string("preferences.baseURL.save", locale: locale))
-                        .font(TypeFace.heading(13.5))
-                        .foregroundStyle(hasValidChange ? Palette.ink : Palette.inkTertiary)
+                    Text(L10n.string("common.retry", locale: locale))
+                        .font(typography.label(12))
                 }
-                .disabled(!hasValidChange)
-                .accessibilityIdentifier("preferences-baseurl-save")
-            } header: {
-                Text(L10n.string("preferences.baseURL.heading", locale: locale))
+                .buttonStyle(.pressable)
+            } else {
+                ProgressView().controlSize(.small)
+                Text(L10n.string("common.loading", locale: locale))
+                    .font(typography.body(15))
+                    .foregroundStyle(Palette.inkTertiary)
+                Spacer(minLength: 0)
             }
-            .listRowBackground(Palette.surface)
-        }
-        .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("me.preferences", locale: locale))
-            }
-        }
-        .onAppear {
-            baseURLString = preferences.baseURLString
         }
     }
 
-    private var hasValidChange: Bool {
-        guard let url = BaseURLDefaults.parse(baseURLString) else { return false }
-        return url.absoluteString != preferences.baseURLString
-    }
-
-    private func saveBaseURL() {
-        guard let url = BaseURLDefaults.parse(baseURLString) else { return }
-        preferences.baseURLString = url.absoluteString
-        baseURLString = url.absoluteString
-    }
-}
-
-// MARK: - 连接信息
-
-struct ConnectionInfoView: View {
-    let session: SessionStore
-    @Environment(\.appLocale) private var locale
-
-    var body: some View {
-        List {
-            Section {
-                HStack {
-                    Text(L10n.string("connection.currentAddress", locale: locale))
-                        .font(TypeFace.body(13))
-                        .foregroundStyle(Palette.inkSecondary)
-                    Spacer(minLength: Space.s)
-                    Text(session.baseURLString)
-                        .font(TypeFace.condensed(12.5, weight: .medium))
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
-                }
-                HStack {
-                    Text(L10n.string("connection.credential", locale: locale))
-                        .font(TypeFace.body(13))
-                        .foregroundStyle(Palette.inkSecondary)
-                    Spacer(minLength: Space.s)
-                    Text(L10n.string(session.credentialSummaryKey, locale: locale))
-                        .font(TypeFace.label(12.5))
-                        .foregroundStyle(session.isSignedIn ? Palette.runningForeground : Palette.inkTertiary)
-                }
+    private func row(for brief: Brief) -> some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text(brief.title)
+                .font(typography.heading(17))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+            if let summary = brief.displaySummary {
+                Text(summary)
+                    .font(typography.body(15))
+                    .foregroundStyle(Palette.inkSecondary)
+                    .lineLimit(2)
             }
-            .listRowBackground(Palette.surface)
-
-            Section {
-                if let expires = session.expiresAt {
-                    HStack {
-                        Text(L10n.string("connection.expires", locale: locale))
-                            .font(TypeFace.body(13))
-                            .foregroundStyle(Palette.inkSecondary)
-                        Spacer(minLength: Space.s)
-                        Text(DisplayTime.monthDayTime(expires, locale: locale))
-                            .font(TypeFace.condensed(12.5, weight: .medium))
-                            .foregroundStyle(Palette.ink)
-                    }
-                }
-
-                Button(role: .destructive) {
-                    Task { await session.signOut() }
-                } label: {
-                    Text(L10n.string("connection.signOut", locale: locale))
-                        .font(TypeFace.body(13.5))
-                }
-                .accessibilityIdentifier("connection-signout")
-            }
-            .listRowBackground(Palette.surface)
-        }
-        .scrollContentBackground(.hidden)
-        .background(Palette.canvas)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                NavTitle(text: L10n.string("me.connection", locale: locale))
+            HStack(spacing: 7) {
+                ChannelDot(channelID: brief.channelID, colorIndex: env.channelColors.colorIndex(for: brief.channelID))
+                Text(brief.channelName ?? "")
+                    .font(typography.label(13))
+                    .foregroundStyle(Palette.inkSecondary)
+                DotSeparator()
+                MetaLine(text: DisplayTime.monthDayTime(brief.createdAt, locale: locale))
             }
         }
-        .accessibilityIdentifier("connection-info")
+        .padding(.vertical, Space.xxs)
     }
 }

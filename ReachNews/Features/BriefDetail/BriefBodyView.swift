@@ -7,9 +7,15 @@ import SwiftUI
 // body 缺失或全为空白段落时，显示一句说明，不回退到分组列表。
 
 struct BriefBodyView: View {
+    @AppTypography private var typography
+
     /// 输入正文。命名避开 `body`，否则会与 `View.body` 冲突。
     let content: BriefBody?
     var onOpenURL: (URL) -> Void
+    /// 点小标题右侧「跟踪」按钮时的回调；为 nil 时不显示该按钮。
+    var onTrackHeading: ((String) -> Void)?
+    /// 当前观感风格：正文小标题的字形与字重跟着它走。
+    var style: ReaderStyle = .editorial
 
     @Environment(\.appLocale) private var locale
 
@@ -23,11 +29,16 @@ struct BriefBodyView: View {
         if isReadable, let content {
             // 正文是 Markdown：交给原生 CommonMark 解析器渲染，
             // 覆盖标题、列表、粗体、行内代码、引用块、代码块与链接。
-            MarkdownBodyView(markdown: content.markdown, onOpenURL: onOpenURL)
-                .accessibilityIdentifier("brief-body")
+            MarkdownBodyView(
+                markdown: content.markdown,
+                onOpenURL: onOpenURL,
+                onTrackHeading: onTrackHeading,
+                style: style
+            )
+            .accessibilityIdentifier("brief-body")
         } else {
             Text(L10n.string("brief.body.empty", locale: locale))
-                .font(TypeFace.body(14))
+                .font(typography.body(14))
                 .foregroundStyle(Palette.inkTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, Space.m)

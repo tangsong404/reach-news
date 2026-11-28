@@ -1,0 +1,114 @@
+schema: comet.capability-association.v1
+status: suggested
+workflow: native
+capability: ios-client
+current_spec: docs/comet/specs/ios-client/spec.md
+current_hash: 2c124c1270c28696ca1ea770f85ee30391e44bc00b2f07252118cf4f3af0d0ba
+confidence: high
+query: 详情页两件事： 1) 正文链接当前几乎看不见：全局 tint 是近黑色，与正文同色。需要让链接可辨（下划线/强调色），点击仍用系统浏览器打开。
+  2) 正文小标题显示下划线且可点击；点击弹出两个选项：「查看原文」与「跟踪事件」。 -
+  查看原文：按小标题文字在已加载的素材里匹配标题包含关系，命中则打开该素材原文；未命中不显示该选项。 -
+  跟踪事件：进入频道创建页，复用现有创建页并增加事件模式：标题取小标题文字，提示词预填跟踪该事件的模板，用户仍可修改。
+reason: 当前总 Spec 已命中，并找到 3 个历史来源；已核对当前能力文件，匹配 7 个查询词（high）
+historical_sources:
+  - docs/comet/archive/2026-11-21-redesign-ios-client/specs/ios-client/spec.md
+  - docs/comet/archive/2026-11-22-client-preset-subscriptions/specs/ios-client/spec.md
+  - docs/comet/archive/2026-11-24-client-readable-brief/specs/ios-client/spec.md
+evidence:
+  - source: docs/comet/specs/ios-client/spec.md
+    kind: native-spec
+    title: iOS 客户端完整规格
+    snippet: >-
+      # iOS 客户端完整规格
+
+
+      本 capability 描述重构后 iOS 客户端在归档时应具备的完整行为。数据来自 `reachapi.niuma.art` 的
+      `/api/v1`，界面依据 `design/mockups/v2.html`，行为约束来自
+      `docs/client-contract.md`、`docs/adr/` 与 `GLOSSARY.md`。
+
+
+      ## 领域模型
+
+
+      客户端在与服务端边界处一次性完成归一化，内部只使用本节的类型与命名。术语严格遵循 `GLOSSARY.md`：`items` 在日报 payload
+      里是**条目**（`Entry`），`itemId` 指向的是**素材**（`Material`），两者不可混称。
+
+
+      - `Channel`：`id`、`name`、`prompt`、`tone`、`schedule: Schedule`、`enabled:
+      Bool`、`connectorIDs: [String]`、`lastBriefAt: Date?`、`kind:
+      ChannelKind`、`published: Bool`、`owner: ChannelOwner`、`subscribed:
+      Bool`、`subscriptionColor: String?`、`subscriptionID:
+      String?`、`createdAt`、`up
+  - source: docs/comet/archive/2026-11-21-redesign-ios-client/specs/ios-client/spec.md
+    kind: native-archive
+    title: iOS 客户端完整规格
+    snippet: >
+      # iOS 客户端完整规格
+
+
+      本 capability 描述重构后 iOS 客户端在归档时应具备的完整行为。数据来自 `reachapi.niuma.art` 的
+      `/api/v1`，界面依据 `design/mockups/v2.html`，行为约束来自
+      `docs/client-contract.md`、`docs/adr/` 与 `GLOSSARY.md`。
+
+
+      ## 领域模型
+
+
+      客户端在与服务端边界处一次性完成归一化，内部只使用本节的类型与命名。术语严格遵循 `GLOSSARY.md`：`items` 在日报 payload
+      里是**条目**（`Entry`），`itemId` 指向的是**素材**（`Material`），两者不可混称。
+
+
+      - `Channel`：`id`、`name`、`prompt`、`tone`、`schedule: Schedule`、`enabled:
+      Bool`、`connectorIDs: [String]`、`lastBriefAt: Date?`、`kind:
+      ChannelKind`、`createdAt`、`updatedAt`。
+
+      - `ChannelKind`：`.channel` / `.follow` / `.preset`。`follow`
+      显示「跟踪」徽标；`preset` 是管理员模板频道且会参与调度，普通用户列表不展示。
+  - source: docs/comet/archive/2026-11-22-client-preset-subscriptions/specs/ios-client/spec.md
+    kind: native-archive
+    title: iOS 客户端完整规格
+    snippet: >-
+      # iOS 客户端完整规格
+
+
+      本 capability 描述重构后 iOS 客户端在归档时应具备的完整行为。数据来自 `reachapi.niuma.art` 的
+      `/api/v1`，界面依据 `design/mockups/v2.html`，行为约束来自
+      `docs/client-contract.md`、`docs/adr/` 与 `GLOSSARY.md`。
+
+
+      ## 领域模型
+
+
+      客户端在与服务端边界处一次性完成归一化，内部只使用本节的类型与命名。术语严格遵循 `GLOSSARY.md`：`items` 在日报 payload
+      里是**条目**（`Entry`），`itemId` 指向的是**素材**（`Material`），两者不可混称。
+
+
+      - `Channel`：`id`、`name`、`prompt`、`tone`、`schedule: Schedule`、`enabled:
+      Bool`、`connectorIDs: [String]`、`lastBriefAt: Date?`、`kind:
+      ChannelKind`、`published: Bool`、`owner: ChannelOwner`、`subscribed:
+      Bool`、`subscriptionColor: String?`、`subscriptionID:
+      String?`、`createdAt`、`up
+  - source: docs/comet/archive/2026-11-24-client-readable-brief/specs/ios-client/spec.md
+    kind: native-archive
+    title: iOS 客户端完整规格
+    snippet: >-
+      # iOS 客户端完整规格
+
+
+      本 capability 描述重构后 iOS 客户端在归档时应具备的完整行为。数据来自 `reachapi.niuma.art` 的
+      `/api/v1`，界面依据 `design/mockups/v2.html`，行为约束来自
+      `docs/client-contract.md`、`docs/adr/` 与 `GLOSSARY.md`。
+
+
+      ## 领域模型
+
+
+      客户端在与服务端边界处一次性完成归一化，内部只使用本节的类型与命名。术语严格遵循 `GLOSSARY.md`：`items` 在日报 payload
+      里是**条目**（`Entry`），`itemId` 指向的是**素材**（`Material`），两者不可混称。
+
+
+      - `Channel`：`id`、`name`、`prompt`、`tone`、`schedule: Schedule`、`enabled:
+      Bool`、`connectorIDs: [String]`、`lastBriefAt: Date?`、`kind:
+      ChannelKind`、`published: Bool`、`owner: ChannelOwner`、`subscribed:
+      Bool`、`subscriptionColor: String?`、`subscriptionID:
+      String?`、`createdAt`、`up

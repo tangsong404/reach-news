@@ -6,15 +6,19 @@ import SwiftUI
 // 旧的长期 Bearer Token 已全部失效，因此这里不再有 Token 输入。
 
 struct ConnectionView: View {
+    @AppTypography private var typography
+
     @Bindable var session: SessionStore
     var isReplacingCredential: Bool = false
 
     @Environment(\.appLocale) private var locale
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppEnvironment.self) private var env
     @FocusState private var focusedField: Field?
+    /// 是否正在看注册页；用导航推入，返回即回到登录。
+    @State private var showsRegister = false
 
     private enum Field {
-        case baseURL
         case username
         case password
     }
@@ -44,20 +48,6 @@ struct ConnectionView: View {
                         kind: .warning
                     )
                     .accessibilityIdentifier("connection-throttled")
-                }
-
-                field(labelKey: "connection.baseURL.heading") {
-                    TextField(
-                        L10n.string("connection.baseURL.placeholder", locale: locale),
-                        text: $session.baseURLString
-                    )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .focused($focusedField, equals: .baseURL)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .username }
-                    .accessibilityIdentifier("connection-baseurl")
                 }
 
                 field(labelKey: "login.username.heading") {
@@ -96,12 +86,28 @@ struct ConnectionView: View {
                 .disabled(!session.canSubmit)
                 .opacity(session.canSubmit ? 1 : 0.5)
                 .accessibilityIdentifier("connection-submit")
+
+                // 注册入口：只在首次登录时出现，更换凭证时不需要再注册。
+                if !isReplacingCredential {
+                    Button {
+                        showsRegister = true
+                    } label: {
+                        Text(L10n.string("login.goRegister", locale: locale))
+                            .font(typography.body(13))
+                            .foregroundStyle(Palette.inkSecondary)
+                            .underline()
+                    }
+                    .buttonStyle(.pressable)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("login-go-register")
+                }
             }
             .padding(.horizontal, Space.xl)
-            .padding(.top, Space.xxl)
-            .padding(.bottom, 44)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity, minHeight: 520, alignment: .center)
+            .padding(.vertical, Space.xl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isReplacingCredential {
@@ -110,11 +116,15 @@ struct ConnectionView: View {
                         dismiss()
                     } label: {
                         Text(L10n.string("common.cancel", locale: locale))
-                            .font(TypeFace.body(14))
+                            .font(typography.body(14))
                             .foregroundStyle(Palette.inkSecondary)
                     }
                 }
             }
+        }
+        .navigationDestination(isPresented: $showsRegister) {
+            // 注册页复用同一个 session：注册成功即建立会话，根视图会自动切到主界面。
+            RegisterView(session: session)
         }
         .accessibilityIdentifier("connection-view")
         .task {
@@ -138,14 +148,14 @@ struct ConnectionView: View {
     private func field<Content: View>(labelKey: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()
-                .font(TypeFace.body(14))
+                .font(typography.body(14))
                 .padding(.horizontal, 13)
                 .padding(.vertical, 11)
-                .background(Palette.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(Theme.surface(for: env.appearance.style, mode: env.appearance.mode), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(Palette.line, lineWidth: 1)
@@ -153,21 +163,15 @@ struct ConnectionView: View {
         }
     }
 
+    /// 品牌区：图形 + 字标。
+    /// 只保留品牌本身，不再有 "Connect to Reach News" 这类解释性副标题。
     private var header: some View {
-        VStack(alignment: .leading, spacing: Space.m) {
-            HStack(spacing: Space.s) {
-                BrandMark(assetName: "LogoMarkInk", size: 30)
-                Text("Reach News")
-                    .font(TypeFace.heading(19))
-                    .foregroundStyle(Palette.ink)
-            }
-            Text(L10n.string("connection.title", locale: locale))
-                .font(TypeFace.display(28))
+        HStack(spacing: Space.s) {
+            BrandMark(size: 30)
+            Text("Reach News")
+                .font(typography.heading(19))
                 .foregroundStyle(Palette.ink)
-            Text(L10n.string("connection.subtitle", locale: locale))
-                .font(TypeFace.body(13.5))
-                .foregroundStyle(Palette.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityIdentifier("connection-brand")
     }
 }

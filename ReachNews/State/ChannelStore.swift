@@ -34,7 +34,9 @@ final class ChannelStore {
     private(set) var visibleChannelIDs: Set<String> = []
 
     /// 新建频道用的连接器（仅创建流程需要）。
-    private(set) var connectors: [Connector] = []
+    private(set) var collectorSkills: [CollectorSkill] = []
+    /// Historical compatibility only; production selection uses collectorSkills.
+    var connectors: [Connector] { [] }
     private(set) var isCreating = false
     private(set) var createError: APIError?
 
@@ -185,7 +187,7 @@ final class ChannelStore {
     func loadCreationOptions() async {
         createError = nil
         do {
-            connectors = try await client.connectors()
+            collectorSkills = try await client.collectorSkills()
         } catch {
             createError = Self.normalized(error)
         }
@@ -197,7 +199,8 @@ final class ChannelStore {
         prompt: String,
         tone: String,
         schedule: Schedule,
-        connectorIDs: [String]
+        collectorSkillIDs: [String],
+        enabled: Bool = true
     ) async -> Channel? {
         guard !isCreating else { return nil }
         isCreating = true
@@ -209,7 +212,8 @@ final class ChannelStore {
                 prompt: prompt,
                 tone: tone,
                 schedule: schedule,
-                connectorIDs: connectorIDs
+                collectorSkillIDs: collectorSkillIDs,
+                enabled: enabled
             )
             replace(created)
             return created
@@ -217,6 +221,12 @@ final class ChannelStore {
             createError = Self.normalized(error)
             return nil
         }
+    }
+
+    func create(name: String, prompt: String, tone: String, schedule: Schedule,
+                connectorIDs: [String]) async -> Channel? {
+        createError = .collectorMigrationRequired
+        return nil
     }
 
     // MARK: 订阅

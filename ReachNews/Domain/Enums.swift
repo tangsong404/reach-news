@@ -108,6 +108,11 @@ enum APIErrorCode: Equatable {
     case notPublished
     case ownChannel
     case subscriberReadOnly
+    /// 自建频道数超出档位上限（403）。
+    case channelQuotaExceeded
+    case collectorMigrationRequired
+    case collectorSkillRequired
+    case invalidCollectorSkill
     case unknown(String)
 
     static func parse(_ raw: String) -> APIErrorCode {
@@ -124,6 +129,10 @@ enum APIErrorCode: Equatable {
         case "not_published": return .notPublished
         case "own_channel": return .ownChannel
         case "subscriber_read_only": return .subscriberReadOnly
+        case "channel_quota_exceeded": return .channelQuotaExceeded
+        case "collector_migration_required": return .collectorMigrationRequired
+        case "collector_skill_required": return .collectorSkillRequired
+        case "invalid_collector_skill": return .invalidCollectorSkill
         default: return .unknown(raw)
         }
     }
@@ -142,6 +151,10 @@ enum APIErrorCode: Equatable {
         case .notPublished: return "not_published"
         case .ownChannel: return "own_channel"
         case .subscriberReadOnly: return "subscriber_read_only"
+        case .channelQuotaExceeded: return "channel_quota_exceeded"
+        case .collectorMigrationRequired: return "collector_migration_required"
+        case .collectorSkillRequired: return "collector_skill_required"
+        case .invalidCollectorSkill: return "invalid_collector_skill"
         case .unknown(let value): return value
         }
     }
@@ -197,6 +210,11 @@ enum APIError: Error, Equatable {
     case ownChannel(String)
     /// 订阅频道只读：修改频道或触发运行被拒。
     case subscriberReadOnly(String)
+    /// 自建频道数已达档位上限；不是网络错误，界面应引导删除或升级。
+    case channelQuotaExceeded(String)
+    case collectorConfiguration(APIErrorCode, String)
+
+    static var collectorMigrationRequired: APIError { .collectorConfiguration(.collectorMigrationRequired, "") }
 
     var errorCode: APIErrorCode? {
         switch self {
@@ -212,6 +230,8 @@ enum APIError: Error, Equatable {
         case .notPublished: return .notPublished
         case .ownChannel: return .ownChannel
         case .subscriberReadOnly: return .subscriberReadOnly
+        case .channelQuotaExceeded: return .channelQuotaExceeded
+        case .collectorConfiguration(let code, _): return code
         case .offline, .transport, .decodingFailed, .invalidConfiguration: return nil
         }
     }

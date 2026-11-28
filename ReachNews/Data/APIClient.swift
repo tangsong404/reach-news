@@ -86,9 +86,17 @@ enum Endpoint {
     case cursor(since: Date?)
     case allBriefs(cursor: String?, limit: Int)
     case connectors
+    case collectorSkills(cursor: String?, limit: Int)
     case subscribe(channelID: String)
     case fork(channelID: String)
     case settings
+    case register
+    case me
+    case mePassword
+    case avatar
+    case captchaConfig
+    case emailCode
+    case resetPassword
 
     var path: String {
         switch self {
@@ -122,12 +130,28 @@ enum Endpoint {
             return "/api/v1/briefs"
         case .connectors:
             return "/api/v1/connectors"
+        case .collectorSkills:
+            return "/api/v1/collector-skills"
         case .subscribe(let channelID):
             return "/api/v1/channels/\(channelID)/subscribe"
         case .fork(let channelID):
             return "/api/v1/channels/\(channelID)/fork"
         case .settings:
             return "/api/v1/settings"
+        case .register:
+            return "/api/v1/register"
+        case .me:
+            return "/api/v1/me"
+        case .mePassword:
+            return "/api/v1/me/password"
+        case .avatar:
+            return "/api/v1/me/avatar"
+        case .captchaConfig:
+            return "/api/v1/auth/captcha"
+        case .emailCode:
+            return "/api/v1/auth/email-code"
+        case .resetPassword:
+            return "/api/v1/auth/reset-password"
         }
     }
 
@@ -138,6 +162,8 @@ enum Endpoint {
             // discover 只接受 1 或 true；其他值等同于普通列表，因此只在这里显式加。
             if discover { items.append(URLQueryItem(name: "discover", value: "1")) }
             return items
+        case .collectorSkills(let cursor, let limit):
+            return Pagination.queryItems(cursor: cursor, limit: limit)
         case .askHistory(_, let cursor, let limit):
             return Pagination.queryItems(cursor: cursor, limit: limit)
         case .briefs(_, let cursor, let limit),
@@ -147,14 +173,15 @@ enum Endpoint {
         case .cursor(let since):
             return [URLQueryItem(name: "since", value: PollingBaseline.sinceString(since))]
         case .health, .login, .logout, .createChannel, .channel, .brief, .material, .run, .ask,
-             .connectors, .subscribe, .fork, .settings:
+             .connectors, .subscribe, .fork, .settings, .register, .me, .mePassword, .avatar,
+             .captchaConfig, .emailCode, .resetPassword:
             return []
         }
     }
 
     var requiresAuthorization: Bool {
         switch self {
-        case .health, .login: return false
+        case .health, .login, .register, .captchaConfig, .emailCode, .resetPassword: return false
         default: return true
         }
     }
@@ -202,6 +229,171 @@ final class APIClient {
         } catch let error as APIError {
             throw error
         }
+    }
+
+    /// 注册结果：成功直接带会话与资料，失败带服务端 code 与 message。
+    enum RegisterOutcome {
+        case success(AuthSession, UserProfile, UserCapabilities)
+        case rejected(RegistrationError)
+    }
+
+    /// 邀请码注册（公开端点）。
+    ///
+    /// 单独实现而不复用 `send`：注册的 14 种错误码需要原样保留给界面做逐项提示，
+    /// 折叠成通用 `APIError` 会丢掉「邀请码已被使用」这类可操作信息。
+    func register(
+        nickname: String,
+        email: String,
+        password: String,
+        passwordConfirm: String,
+        inviteCode: String?,
+        captchaToken: String? = nil,
+        emailCode: String? = nil
+    ) async throws -> RegisterOutcome {
+        let payload = RegisterRequest(
+            nickname: nickname,
+            email: email,
+            password: password,
+            passwordConfirm: passwordConfirm,
+            inviteCode: inviteCode,
+            captchaToken: captchaToken,
+            emailCode: emailCode
+        )
+        let body = try JSONEncoder().encode(payload)
+        let request = try makeRequest(Endpoint.register, method: "POST", body: body)
+
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.send(request)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.normalize(transportError: error)
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            // 服务端已给出中文 message；没有 message 时保留空串，由界面用本地兜底文案。
+            if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+                let code = envelope.error.code
+                if !code.isEmpty {
+                    return .rejected(RegistrationError(code: code, message: envelope.error.message))
+                }
+            }
+            if response.statusCode == 401 { throw APIError.unauthorized }
+            throw APIError.server("HTTP \(response.statusCode)")
+        }
+
+        guard let dto = try? JSONDecoder().decode(LoginResponseDTO.self, from: data) else {
+            throw APIError.decodingFailed
+        }
+        let session = try dto.session()
+        guard let profile = dto.profile() else { throw APIError.decodingFailed }
+        return .success(session, profile, dto.capabilitySet())
+    }
+
+    /// 当前用户资料。用于冷启动恢复会话后补齐头部所需字段。
+    func me() async throws -> (UserProfile, UserCapabilities) {
+        let dto: MeResponseDTO = try await get(Endpoint.me)
+        return (dto.profile(), dto.capabilities?.toDomain() ?? .unknown)
+    }
+
+    /// 上传头像（multipart，字段名 avatar）。成功后返回可直接使用的头像地址。
+    func uploadAvatar(imageData: Data, filename: String = "avatar.png", mimeType: String = "image/png") async throws -> String? {
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        func append(_ text: String) { body.append(Data(text.utf8)) }
+        append("--\(boundary)\r\n")
+        append("Content-Disposition: form-data; name=\"avatar\"; filename=\"\(filename)\"\r\n")
+        append("Content-Type: \(mimeType)\r\n\r\n")
+        body.append(imageData)
+        append("\r\n--\(boundary)--\r\n")
+
+        var request = try makeRequest(Endpoint.avatar, method: "POST", body: body)
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.send(request)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.normalize(transportError: error)
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+                throw envelope.normalized
+            }
+            if response.statusCode == 401 { throw APIError.unauthorized }
+            throw APIError.server("HTTP \(response.statusCode)")
+        }
+        return (try? JSONDecoder().decode(AvatarUploadResponseDTO.self, from: data))?.avatarUrl
+    }
+
+    /// 改昵称。成功后返回最新资料，调用方直接用它刷新头部，不必再打 GET。
+    func updateNickname(_ name: String) async throws -> (UserProfile, UserCapabilities) {
+        let body = try JSONEncoder().encode(["name": name])
+        let dto: MeResponseDTO = try await send(Endpoint.me, method: "PATCH", body: body)
+        return (dto.profile(), dto.capabilities?.toDomain() ?? .unknown)
+    }
+
+    /// 改密码。成功后当前 token 仍有效（服务端只清其他设备会话），调用方不踢用户。
+    ///
+    /// 失败时区分「当前密码错」与其他错误：401 统一按旧密码错误处理。
+    func changePassword(current: String, new: String, confirm: String, emailCode: String) async throws {
+        let payload = ChangePasswordRequest(
+            currentPassword: current,
+            newPassword: new,
+            newPasswordConfirm: confirm,
+            emailCode: emailCode
+        )
+        let body = try JSONEncoder().encode(payload)
+        let _: OKResponseDTO = try await send(Endpoint.mePassword, method: "POST", body: body)
+    }
+
+    /// 删除头像；幂等，本来没有头像也返回成功。
+    func deleteAvatar() async throws -> String? {
+        let request = try makeRequest(Endpoint.avatar, method: "DELETE", body: nil)
+        let (data, response) = try await transport.send(request)
+        guard (200..<300).contains(response.statusCode) else {
+            if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+                throw envelope.normalized
+            }
+            throw APIError.server("HTTP \(response.statusCode)")
+        }
+        return (try? JSONDecoder().decode(AvatarUploadResponseDTO.self, from: data))?.avatarUrl
+    }
+
+    /// 人机验证配置：客户端必须先取它才知道要用哪个 site key。
+    func captchaConfig() async throws -> CaptchaConfigDTO {
+        try await get(Endpoint.captchaConfig)
+    }
+
+    /// 请求邮箱验证码。
+    ///
+    /// 不使用通用 `send`：429 需要保留 `retryAfterSeconds` 做倒计时，
+    /// 503 `mail_not_configured` 也要原样告知用户（不是用户操作错误）。
+    func requestEmailCode(email: String, purpose: String, captchaToken: String?) async throws -> EmailCodeOutcome {
+        let payload = EmailCodeRequest(email: email, purpose: purpose, captchaToken: captchaToken)
+        let body = try JSONEncoder().encode(payload)
+        let request = try makeRequest(Endpoint.emailCode, method: "POST", body: body)
+
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.send(request)
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.normalize(transportError: error)
+        }
+
+        guard (200..<300).contains(response.statusCode) else {
+            return .rejected(EmailCodeFailure(from: data, statusCode: response.statusCode))
+        }
+        return .sent
     }
 
     /// 注销当前会话凭证；失败不阻碍本地清理。
@@ -274,7 +466,8 @@ final class APIClient {
         prompt: String,
         tone: String,
         schedule: Schedule,
-        connectorIDs: [String]
+        collectorSkillIDs: [String],
+        enabled: Bool = true
     ) async throws -> Channel {
         let body = try JSONEncoder().encode(
             CreateChannelBody(
@@ -282,11 +475,37 @@ final class APIClient {
                 prompt: prompt,
                 tone: tone,
                 schedule: schedulePayload(schedule),
-                connectorIds: connectorIDs
+                collectorSkillIds: Array(Set(collectorSkillIDs)).sorted(),
+                enabled: enabled
             )
         )
         let dto: ChannelDTO = try await send(Endpoint.createChannel, method: "POST", body: body)
         return dto.toDomain()
+    }
+
+    /// Legacy source labels are rejected; callers must explicitly migrate stable Skill IDs.
+    func createChannel(name: String, prompt: String, tone: String, schedule: Schedule,
+                       connectorIDs: [String]) async throws -> Channel {
+        throw APIError.collectorMigrationRequired
+    }
+
+    func collectorSkills(cursor: String?, limit: Int = Pagination.maxLimit) async throws -> Page<CollectorSkill> {
+        let envelope: PageEnvelope<CollectorSkillDTO> = try await get(.collectorSkills(cursor: cursor, limit: limit))
+        return Page(items: envelope.items.map { $0.toDomain() },
+                    nextCursor: Pagination.sanitizedCursor(envelope.nextCursor))
+    }
+
+    func collectorSkills() async throws -> [CollectorSkill] {
+        var cursor: String?
+        var seen = Set<String>()
+        var items: [CollectorSkill] = []
+        repeat {
+            let page = try await collectorSkills(cursor: cursor)
+            items.append(contentsOf: page.items)
+            cursor = page.nextCursor
+            if let cursor, !seen.insert(cursor).inserted { break }
+        } while cursor != nil
+        return items
     }
 
     /// 服务端设置：目前只需要时区。
@@ -455,6 +674,8 @@ final class APIClient {
 // MARK: - 基础地址
 
 enum BaseURLDefaults {
+    /// 服务地址固定：客户端不再提供修改入口，用户无需也不能改。
+    /// 保留 `host` 常量而不是散落字面量，方便将来换环境时只改一处。
     static let host = "https://reachapi.niuma.art"
 
     static var url: URL {

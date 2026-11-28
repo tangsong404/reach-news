@@ -5,6 +5,8 @@ import SwiftUI
 // 整页一次保存：只提交被改动的字段。运行中 409 busy 时顶部提示且保留全部输入。
 
 struct ChannelEditView: View {
+    @AppTypography private var typography
+
     let channel: Channel
     @Bindable var editor: ChannelEditor
     var onSaved: (Channel) -> Void
@@ -15,16 +17,17 @@ struct ChannelEditView: View {
     @State private var showsDeleteConfirm = false
     @State private var isDeleting = false
     @State private var deleteError: APIError?
-    @State private var showsConnectorPicker = false
+    @State private var showsCollectorPicker = false
 
     var body: some View {
         content
             .navigationBarTitleDisplayMode(.inline)
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
             .toolbar { toolbarContent }
-            .confirmationDialog(
+            .alert(
                 L10n.string("channelEdit.delete.confirm.title", locale: locale),
-                isPresented: $showsDeleteConfirm,
-                titleVisibility: .visible
+                isPresented: $showsDeleteConfirm
             ) {
                 Button(L10n.string("channelEdit.delete.confirm.action", locale: locale), role: .destructive) {
                     Task { await performDelete() }
@@ -33,26 +36,26 @@ struct ChannelEditView: View {
             } message: {
                 Text(L10n.string("channelEdit.delete.confirm.message", locale: locale))
             }
-            .sheet(isPresented: $showsConnectorPicker) {
-                ConnectorPicker(
-                    connectors: env.channels.connectors,
-                    selection: $editor.draft.connectorIDs,
-                    isPresented: $showsConnectorPicker
+            .sheet(isPresented: $showsCollectorPicker) {
+                CollectorSkillPicker(
+                    skills: env.channels.collectorSkills,
+                    retainedSkills: channel.collectorSkills,
+                    selection: $editor.draft.collectorSkillIDs,
+                    isPresented: $showsCollectorPicker
                 )
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             }
             .task {
                 // 记录进入时的颜色，用于判断「只改颜色」也算有改动。
                 let stored = env.channelColors.effectiveIndex(for: channel.id)
                 editor.initialColorIndex = stored
                 editor.currentColorIndex = stored
-                if env.channels.connectors.isEmpty {
+                if env.channels.collectorSkills.isEmpty {
                     await env.channels.loadCreationOptions()
                 }
             }
-            .toolbar(.hidden, for: .tabBar)
             .accessibilityIdentifier("channel-edit-view")
     }
 
@@ -96,6 +99,8 @@ struct ChannelEditView: View {
                     FieldBox(minHeight: 132) {
                         TextEditor(text: $editor.draft.prompt)
                             .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
                             .frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
                             .accessibilityIdentifier("channel-edit-prompt")
                     }
@@ -111,7 +116,11 @@ struct ChannelEditView: View {
                     }
                 }
 
-                field(titleKey: "channelEdit.connectors") {
+                Toggle(L10n.string("collector.enable", locale: locale), isOn: $editor.draft.enabled)
+                    .font(typography.body(15))
+                    .accessibilityIdentifier("channel-edit-enabled")
+
+                field(titleKey: "collector.sources") {
                     connectorSummary
                 }
 
@@ -127,7 +136,7 @@ struct ChannelEditView: View {
             .padding(.top, Space.l)
             .padding(.bottom, Space.xxl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
     }
 
     @ToolbarContentBuilder
@@ -162,11 +171,11 @@ struct ChannelEditView: View {
                     ProgressView().controlSize(.small)
                 } else {
                     Text(L10n.string("channelEdit.save", locale: locale))
-                        .font(TypeFace.heading(15))
+                        .font(typography.heading(15))
                         .foregroundStyle(editor.hasChanges ? Palette.ink : Palette.inkTertiary)
                 }
             }
-            .disabled(!editor.hasChanges || editor.isSaving)
+            .disabled(!editor.hasChanges || editor.isSaving || (editor.draft.enabled && !hasAvailableSelection))
             .accessibilityIdentifier("channel-edit-save")
         }
     }
@@ -186,7 +195,7 @@ struct ChannelEditView: View {
     }
 
     private var fieldBackground: Color {
-        Palette.surface
+        Theme.surface(for: env.appearance.style, mode: env.appearance.mode)
     }
 
     /// 频道标识色：只在本地保存，不改服务端。
@@ -210,23 +219,31 @@ struct ChannelEditView: View {
                 text: connectorSummaryText,
                 isPlaceholder: selectedConnectorNames.isEmpty
             ) {
-                showsConnectorPicker = true
+                showsCollectorPicker = true
             }
             .accessibilityIdentifier("channel-edit-connectors")
 
             // 仅当原本有连接器、被用户清空时提示；新频道本来就空，不该一进来就报错。
-            if editor.draft.connectorIDs.isEmpty && !channel.connectorIDs.isEmpty {
-                Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
-                    .font(TypeFace.footnote)
+            if editor.draft.enabled && !hasAvailableSelection {
+                Text(L10n.string("collector.required", locale: locale))
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
         }
     }
 
     private var selectedConnectorNames: [String] {
-        env.channels.connectors
-            .filter { editor.draft.connectorIDs.contains($0.id) }
-            .map(\.name)
+        editor.draft.collectorSkillIDs.map { id in
+            env.channels.collectorSkills.first { $0.id == id }?.name
+                ?? channel.collectorSkills.first { $0.id == id }?.name
+                ?? id
+        }
+    }
+
+    private var hasAvailableSelection: Bool {
+        !editor.draft.collectorSkillIDs.isEmpty && editor.draft.collectorSkillIDs.allSatisfy { id in
+            env.channels.collectorSkills.contains { $0.id == id && $0.available }
+        }
     }
 
     private var connectorSummaryText: String {
@@ -243,7 +260,7 @@ struct ChannelEditView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()
@@ -254,8 +271,11 @@ struct ChannelEditView: View {
 // MARK: - 采集时间表编辑
 
 struct ScheduleEditor: View {
+    @AppTypography private var typography
+
     @Binding var schedule: Schedule
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     @State private var showsTimePicker = false
     @State private var draftTime = "08:00"
@@ -303,20 +323,20 @@ struct ScheduleEditor: View {
                             toggle(weekday)
                         } label: {
                             Text(L10n.string(weekday.shortKey, locale: locale))
-                                .font(TypeFace.label(13))
+                                .font(typography.label(13))
                                 .foregroundStyle(isOn ? Palette.canvas : Palette.inkSecondary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, Space.s)
                                 .background(
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
-                                        .fill(isOn ? Palette.ink : Palette.surface)
+                                        .fill(isOn ? env.appearance.accent : Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: Radius.small, style: .continuous)
                                         .strokeBorder(Palette.line, lineWidth: isOn ? 0 : 1)
                                 }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .accessibilityIdentifier("schedule-weekday-\(weekday.key)")
                     }
                 }
@@ -326,7 +346,7 @@ struct ScheduleEditor: View {
             }
             .padding(.top, Space.l)
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -336,7 +356,7 @@ struct ScheduleEditor: View {
                     Button(L10n.string("common.done", locale: locale)) {
                         showsTimePicker = false
                     }
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                     .accessibilityIdentifier("schedule-picker-done")
                 }
             }

@@ -5,6 +5,8 @@ import SwiftUI
 // 日报页即全部历史：日期分组倒序、搜索常驻、筛选收在面板里。
 
 struct BriefFeedView: View {
+    @AppTypography private var typography
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
     @State private var store: BriefFeedStore?
@@ -20,12 +22,20 @@ struct BriefFeedView: View {
                     LoadingLine(text: L10n.string("common.loading", locale: locale))
                 }
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+            // 一级页面用大标题（HIG：大标题帮助定位，滚动时自动收成标准标题）。
+            // 品牌占据原来大标题「日报」的位置：左侧、大字号、随内容滚动。
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    brandHeader
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: "Reach News", showsBrand: true)
+                        .accessibilityIdentifier("feed-brand")
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .topBarTrailing) {
+                    filterToolbarButton(store)
                 }
             }
             .navigationDestination(for: Brief.self) { brief in
@@ -40,58 +50,56 @@ struct BriefFeedView: View {
         }
     }
 
-    private var brandHeader: some View {
-        HStack(spacing: Space.s) {
-            BrandMark(assetName: "LogoMarkInk", size: 24)
-            Text("Reach News")
-                .font(TypeFace.heading(15))
-                .foregroundStyle(Palette.ink)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
     @ViewBuilder
     private func content(_ store: BriefFeedStore) -> some View {
         @Bindable var store = store
 
-        VStack(spacing: 0) {
-            metaLines(store)
-            searchRow(store)
-
-            if store.filter.isActive {
-                activeFilterSummary(store)
-            }
-
-            if store.isLoadingFirstPage {
-                Spacer()
-                LoadingLine(text: L10n.string("feed.loading", locale: locale))
-                Spacer()
-            } else if let error = store.error, store.briefs.isEmpty {
-                Spacer()
-                errorState(error, store: store)
-                Spacer()
-            } else if store.isEmpty {
-                Spacer()
-                emptyState()
-                Spacer()
-            } else if store.hasNoResults {
-                Spacer()
-                MessageStateView(
-                    title: L10n.string("feed.noResults.title", locale: locale),
-                    message: L10n.string("feed.noResults.message", locale: locale),
-                    kind: .empty,
-                    actionTitle: L10n.string("common.clearFilters", locale: locale),
-                    action: {
-                        store.searchText = ""
-                        store.filter = FeedFilter()
-                    }
+        // One scroll owner: brand, native search, metadata and articles share a flow.
+        // Noninteractive labels must not inherit List's minimum row height.
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                NativeSearchField(
+                    text: $store.searchText,
+                    placeholder: L10n.string("feed.search.placeholder", locale: locale),
+                    identifier: "feed-search-field"
                 )
-                Spacer()
-            } else {
-                feedList(store)
+                .padding(.horizontal, Space.l - 8)
+                .padding(.bottom, 8)
+
+                if store.filter.isActive {
+                    activeFilterSummary(store)
+                }
+
+                if store.isLoadingFirstPage {
+                    LoadingLine(text: L10n.string("feed.loading", locale: locale))
+                        .padding(.vertical, Space.xxl)
+                } else if let error = store.error, store.briefs.isEmpty {
+                    errorState(error, store: store).padding(.vertical, Space.xxl)
+                } else if store.isEmpty {
+                    emptyState().padding(.vertical, Space.xxl)
+                } else if store.hasNoResults {
+                    MessageStateView(
+                        title: L10n.string("feed.noResults.title", locale: locale),
+                        message: L10n.string("feed.noResults.message", locale: locale),
+                        kind: .empty,
+                        actionTitle: L10n.string("common.clearFilters", locale: locale),
+                        action: {
+                            store.searchText = ""
+                            store.filter = FeedFilter()
+                        }
+                    )
+                    .padding(.vertical, Space.xxl)
+                } else {
+                    feedRows(store)
+                }
             }
+            .padding(.bottom, Space.xxl)
         }
+        .scrollDismissesKeyboard(.immediately)
+        .refreshable {
+            await store.refresh()
+        }
+        .accessibilityIdentifier("feed-list")
         .sheet(isPresented: $showFilter) {
             FeedFilterSheet(store: store, isPresented: $showFilter)
                 .presentationDetents(SheetMetrics.detents)
@@ -99,94 +107,27 @@ struct BriefFeedView: View {
         }
     }
 
-    /// 只保留频道数与期数；不显示当日日期，也不显示排序说明。
-    private func metaLines(_ store: BriefFeedStore) -> some View {
-        HStack(spacing: 7) {
-            MetaLine(text: L10n.format("feed.channelCount", locale: locale, store.totalChannelCount))
-            DotSeparator()
-            MetaLine(text: L10n.format("feed.briefCount", locale: locale, store.briefs.count))
-            Spacer(minLength: 0)
+    /// 筛选入口放工具栏：HIG 工具栏承载作用于内容的命令，搜索框则由系统 searchable 承担。
+    @ViewBuilder
+    private func filterToolbarButton(_ store: BriefFeedStore?) -> some View {
+        let isActive = store?.filter.isActive ?? false
+        let dimensions = store?.filter.activeDimensionCount ?? 0
+        Button {
+            showFilter = true
+        } label: {
+            // 三道递减的横线是系统里表示「筛选/排序」的图形；
+            // 带圈的版本容易被读成列表，所以用不带圈的。
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(isActive ? env.appearance.accent : Palette.ink)
         }
-        .padding(.horizontal, Space.xl)
-        .padding(.top, Space.m)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("feed-meta")
-    }
-
-    private func searchRow(_ store: BriefFeedStore) -> some View {
-        @Bindable var store = store
-        return HStack(spacing: Space.s) {
-            HStack(spacing: Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.inkTertiary)
-                TextField(
-                    String(localized: "feed.search.placeholder"),
-                    text: $store.searchText
-                )
-                .font(TypeFace.body(13.5))
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .accessibilityIdentifier("feed-search-field")
-                if !store.searchText.isEmpty {
-                    Button {
-                        store.searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.inkTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(String(localized: "feed.search.clear")))
-                }
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 9)
-            .background(Palette.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 0.5)
-            }
-
-            Button {
-                showFilter = true
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(L10n.string("feed.filter.button", locale: locale))
-                        .font(TypeFace.heading(12.5))
-                    if store.filter.activeDimensionCount > 0 {
-                        Text("\(store.filter.activeDimensionCount)")
-                            .font(TypeFace.condensed(9.5, weight: .bold))
-                            .foregroundStyle(store.filter.isActive ? Palette.canvas : Palette.inkSecondary)
-                            .padding(.horizontal, 3)
-                            .frame(minWidth: 15, minHeight: 15)
-                            .background(
-                                store.filter.isActive ? Palette.canvas.opacity(0.22) : Palette.chip,
-                                in: Capsule()
-                            )
-                    }
-                }
-                .foregroundStyle(store.filter.isActive ? Palette.canvas : Palette.ink)
-                .padding(.horizontal, Space.m)
-                .padding(.vertical, 9)
-                .background(
-                    store.filter.isActive ? Palette.ink : Palette.surface.opacity(0.72),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(Palette.line, lineWidth: store.filter.isActive ? 0 : 0.5)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("feed-filter-button")
-            .accessibilityLabel(Text(L10n.string("feed.filter.button", locale: locale)))
-        }
-        .padding(.horizontal, Space.l)
-        .padding(.top, Space.m)
-        .padding(.bottom, Space.m)
+        .buttonStyle(.pressable)
+        .disabled(store == nil)
+        .accessibilityIdentifier("feed-filter-button")
+        .accessibilityLabel(Text(L10n.string("feed.filter.button", locale: locale)))
+        .accessibilityValue(
+            Text(dimensions > 0 ? "\(dimensions)" : L10n.string("common.off", locale: locale))
+        )
     }
 
     private func activeFilterSummary(_ store: BriefFeedStore) -> some View {
@@ -226,14 +167,14 @@ struct BriefFeedView: View {
                 )
             }
             Text(title)
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .foregroundStyle(Palette.inkSecondary)
             Button(action: onRemove) {
                 Image(systemName: "xmark")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(Palette.inkTertiary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityLabel(Text(String(localized: "filter.remove")))
         }
         .padding(.horizontal, 9)
@@ -241,49 +182,36 @@ struct BriefFeedView: View {
         .background(Palette.chip, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 
-    private func feedList(_ store: BriefFeedStore) -> some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: []) {
-                ForEach(store.groupedBriefs, id: \.day) { group in
-                    DayRule(title: DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
-                        .padding(.horizontal, Space.xl)
-                        .padding(.top, Space.l)
-                        .padding(.bottom, Space.xs)
-
-                    ForEach(group.briefs) { brief in
-                        NavigationLink(value: brief) {
-                            BriefRow(
-                                brief: brief,
-                                channelName: store.displayName(for: brief),
-                                channelID: brief.channelID,
-                                isNew: store.isNew(brief),
-                                colorIndex: env.channelColors.colorIndex(for: brief.channelID)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, Space.xl)
-                        .task {
-                            await store.loadMoreIfNeeded(appearing: brief)
-                        }
-                    }
+    /// 日期和文章共用同一个滚动容器，不使用吸顶 header 或 List 最小行高。
+    @ViewBuilder
+    private func feedRows(_ store: BriefFeedStore) -> some View {
+            ForEach(store.visibleBriefs) { brief in
+                Button {
+                    path.append(brief)
+                } label: {
+                    BriefRow(
+                        brief: brief,
+                        channelName: store.displayName(for: brief),
+                        channelID: brief.channelID,
+                        isNew: store.isNew(brief),
+                        colorIndex: env.channelColors.colorIndex(for: brief.channelID)
+                    )
                 }
-
-                if store.isLoadingMore {
-                    LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
-                } else if !store.hasMore && !store.briefs.isEmpty {
-                    Text(L10n.string("feed.endOfFeed", locale: locale))
-                        .font(TypeFace.body(11.5))
-                        .foregroundStyle(Palette.inkTertiary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Space.l)
+                .buttonStyle(.pressable)
+                .padding(.horizontal, Space.xl)
+                .task {
+                    await store.loadMoreIfNeeded(appearing: brief)
                 }
             }
-            .padding(.bottom, 96)
+        if store.isLoadingMore {
+            LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
+        } else if !store.hasMore && !store.briefs.isEmpty {
+            Text(L10n.string("feed.endOfFeed", locale: locale))
+                .font(typography.body(11.5))
+                .foregroundStyle(Palette.inkTertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Space.l)
         }
-        .refreshable {
-            await store.refresh()
-        }
-        .accessibilityIdentifier("feed-list")
     }
 
     private func emptyState() -> some View {
@@ -310,6 +238,8 @@ struct BriefFeedView: View {
 // MARK: - 日报行
 
 struct BriefRow: View {
+    @AppTypography private var typography
+
     let brief: Brief
     let channelName: String
     let channelID: String
@@ -319,20 +249,20 @@ struct BriefRow: View {
     @Environment(\.appLocale) private var locale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(brief.title)
-                    .font(TypeFace.heading(14.5))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if isNew {
                     Text(L10n.string("feed.new", locale: locale))
-                        .font(TypeFace.condensed(9, weight: .bold))
-                        .foregroundStyle(Palette.canvas)
+                        .font(typography.condensed(9, weight: .bold))
+                        .foregroundStyle(Palette.onInverse)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1.5)
-                        .background(Palette.ink, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .background(Palette.inverseSurface, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
                 }
                 Spacer(minLength: 0)
             }
@@ -340,7 +270,7 @@ struct BriefRow: View {
             // 描述非空时展示在标题下，一到两行截断；为空时不留空洞。
             if let summary = brief.displaySummary {
                 Text(summary)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkTertiary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -351,10 +281,16 @@ struct BriefRow: View {
             HStack(spacing: 7) {
                 ChannelDot(channelID: channelID, colorIndex: colorIndex)
                 Text(channelName)
-                    .font(TypeFace.label(11))
+                    .font(typography.label(12))
                     .foregroundStyle(Palette.inkSecondary)
-                DotSeparator()
-                MetaLine(text: DisplayTime.clock(brief.createdAt, locale: locale))
+                Spacer(minLength: 12)
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    Text(BriefRelativeTime.string(for: brief.createdAt, now: context.date, locale: locale))
+                        .font(typography.label(12))
+                        .foregroundStyle(Palette.inkSecondary)
+                        .multilineTextAlignment(.trailing)
+                        .accessibilityIdentifier("feed-row-time-\(brief.id)")
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -371,6 +307,8 @@ struct BriefRow: View {
 // MARK: - 筛选面板
 
 struct FeedFilterSheet: View {
+    @AppTypography private var typography
+
     @Bindable var store: BriefFeedStore
     @Binding var isPresented: Bool
     @Environment(\.appLocale) private var locale
@@ -386,11 +324,6 @@ struct FeedFilterSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // 结果数量替代原来的按钮文案，让用户知道当前会筛出多少。
-                    Text(L10n.format("filter.resultCount", locale: locale, previewCount))
-                        .font(TypeFace.footnote)
-                        .foregroundStyle(Palette.inkTertiary)
-                        .padding(.bottom, Space.s)
-
                     sheetHeading("filter.time.heading")
                     ForEach(FeedTimeFilter.allCases) { option in
                         optionRow(
@@ -424,7 +357,7 @@ struct FeedFilterSheet: View {
 
                     if store.allChannels.isEmpty {
                         Text(L10n.string("filter.channel.none", locale: locale))
-                            .font(TypeFace.body(12.5))
+                            .font(typography.body(12.5))
                             .foregroundStyle(Palette.inkTertiary)
                             .padding(.vertical, Space.s)
                     }
@@ -433,7 +366,7 @@ struct FeedFilterSheet: View {
                 .padding(.top, Space.s)
                 .padding(.bottom, Space.xl)
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -445,7 +378,7 @@ struct FeedFilterSheet: View {
                         customStart = Date()
                         customEnd = Date()
                     }
-                    .font(TypeFace.body(15))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.inkSecondary)
                     .accessibilityIdentifier("filter-reset")
                 }
@@ -457,7 +390,7 @@ struct FeedFilterSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("filter.apply.short", locale: locale))
-                                .font(TypeFace.heading(15))
+                                .font(typography.heading(15))
                         }
                     }
                     .disabled(isApplying)
@@ -465,7 +398,7 @@ struct FeedFilterSheet: View {
                 }
             }
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .onAppear {
             draft = store.filter
             customStart = store.filter.startDate ?? Date()
@@ -502,7 +435,7 @@ struct FeedFilterSheet: View {
 
     private func sheetHeading(_ key: String) -> some View {
         Text(L10n.string(key, locale: locale))
-            .font(TypeFace.label(11))
+            .font(typography.label(11))
             .tracking(1)
             .foregroundStyle(Palette.inkTertiary)
             .padding(.bottom, Space.s)
@@ -518,16 +451,16 @@ struct FeedFilterSheet: View {
                     )
                 }
                 Text(title)
-                    .font(TypeFace.body(14))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
                 ZStack {
                     Circle()
-                        .strokeBorder(isOn ? Palette.ink : Palette.lineStrong, lineWidth: 1.4)
+                        .strokeBorder(isOn ? env.appearance.accent : Palette.lineStrong, lineWidth: 1.4)
                         .frame(width: 17, height: 17)
                     if isOn {
                         Circle()
-                            .fill(Palette.ink)
+                            .fill(env.appearance.accent)
                             .frame(width: 17, height: 17)
                         Image(systemName: "checkmark")
                             .font(.system(size: 8, weight: .bold))
@@ -541,7 +474,7 @@ struct FeedFilterSheet: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .accessibilityIdentifier("filter-option-\(title)")
     }
 
@@ -549,7 +482,7 @@ struct FeedFilterSheet: View {
         HStack(spacing: Space.m) {
             dateField(labelKey: "filter.custom.start", date: $customStart)
             Text("–")
-                .font(TypeFace.body(12))
+                .font(typography.body(12))
                 .foregroundStyle(Palette.inkTertiary)
             dateField(labelKey: "filter.custom.end", date: $customEnd)
         }
@@ -562,7 +495,7 @@ struct FeedFilterSheet: View {
     private func dateField(labelKey: String, date: Binding<Date>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(L10n.string(labelKey, locale: locale))
-                .font(TypeFace.label(9.5))
+                .font(typography.label(9.5))
                 .tracking(0.8)
                 .foregroundStyle(Palette.inkTertiary)
             DatePicker(

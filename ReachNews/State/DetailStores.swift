@@ -10,13 +10,6 @@ import Observation
 @Observable
 final class BriefDetailStore {
     private(set) var brief: Brief
-    private(set) var materialsByID: [String: Material] = [:]
-    private(set) var loadingMaterialIDs: Set<String> = []
-    private(set) var failedMaterialIDs: Set<String> = []
-    private(set) var error: APIError?
-
-    /// 已展开的条目（按 Entry.id）。
-    var expandedEntryIDs: Set<String> = []
 
     @ObservationIgnored private let client: APIClient
 
@@ -27,54 +20,6 @@ final class BriefDetailStore {
 
     var channelID: String { brief.channelID }
 
-    func isExpanded(_ entry: Entry) -> Bool {
-        expandedEntryIDs.contains(entry.id)
-    }
-
-    func toggleExpanded(_ entry: Entry) {
-        if expandedEntryIDs.contains(entry.id) {
-            expandedEntryIDs.remove(entry.id)
-        } else {
-            expandedEntryIDs.insert(entry.id)
-            Task { await self.loadMaterials(for: entry) }
-        }
-    }
-
-    func material(id: String) -> Material? {
-        materialsByID[id]
-    }
-
-    func isLoading(materialID: String) -> Bool {
-        loadingMaterialIDs.contains(materialID)
-    }
-
-    func didFail(materialID: String) -> Bool {
-        failedMaterialIDs.contains(materialID)
-    }
-
-    /// 展开条目时按需取回该条目的素材。
-    func loadMaterials(for entry: Entry) async {
-        let missing = entry.materialIDs.filter { materialsByID[$0] == nil && !loadingMaterialIDs.contains($0) }
-        guard !missing.isEmpty else { return }
-
-        for materialID in missing {
-            loadingMaterialIDs.insert(materialID)
-            defer { loadingMaterialIDs.remove(materialID) }
-            do {
-                let material = try await client.material(briefID: brief.id, materialID: materialID)
-                materialsByID[materialID] = material
-                failedMaterialIDs.remove(materialID)
-            } catch let apiError as APIError {
-                failedMaterialIDs.insert(materialID)
-                if apiError == .unauthorized {
-                    error = apiError
-                    return
-                }
-            } catch {
-                failedMaterialIDs.insert(materialID)
-            }
-        }
-    }
 }
 
 // MARK: - 追问

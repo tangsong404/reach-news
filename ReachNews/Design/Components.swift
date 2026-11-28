@@ -30,11 +30,13 @@ struct DotSeparator: View {
 // MARK: - 元信息行
 
 struct MetaLine: View {
+    @AppTypography private var typography
+
     let text: String
 
     var body: some View {
         Text(text)
-            .font(TypeFace.condensed(11.5, weight: .medium))
+            .font(typography.condensed(11.5, weight: .medium))
             .foregroundStyle(Palette.inkTertiary)
     }
 }
@@ -42,12 +44,14 @@ struct MetaLine: View {
 // MARK: - 日期分组标题
 
 struct DayRule: View {
+    @AppTypography private var typography
+
     let title: String
 
     var body: some View {
         HStack(spacing: Space.s) {
             Text(title)
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1.1)
                 .foregroundStyle(Palette.inkTertiary)
             Rectangle()
@@ -62,6 +66,8 @@ struct DayRule: View {
 // MARK: - 状态 chip
 
 struct StatusChip: View {
+    @AppTypography private var typography
+
     enum Style {
         case running
         case missed
@@ -92,7 +98,7 @@ struct StatusChip: View {
 
     var body: some View {
         Text(text)
-            .font(TypeFace.label(10))
+            .font(typography.label(10))
             .foregroundStyle(style.foreground)
             .padding(.horizontal, Space.xs)
             .padding(.vertical, 2.5)
@@ -103,6 +109,8 @@ struct StatusChip: View {
 // MARK: - 分组吸顶标题
 
 struct SectionStickyHeader: View {
+    @AppTypography private var typography
+
     let title: String
     let count: Int
     let locale: Locale
@@ -110,10 +118,10 @@ struct SectionStickyHeader: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.s) {
             Text(title)
-                .font(TypeFace.heading(12.5))
+                .font(typography.heading(12.5))
                 .foregroundStyle(Palette.ink)
             Text(L10n.format("briefDetail.entryCount", locale: locale, count))
-                .font(TypeFace.condensed(10.5, weight: .medium))
+                .font(typography.condensed(10.5, weight: .medium))
                 .foregroundStyle(Palette.inkTertiary)
             Spacer(minLength: 0)
         }
@@ -128,48 +136,40 @@ struct SectionStickyHeader: View {
     }
 }
 
-// MARK: - 圆形导航按钮
-
-struct NavCircleButton: View {
-    let systemImage: String
-    let label: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Palette.inkSecondary)
-                .frame(width: 34, height: 34)
-                .background(.regularMaterial, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
-    }
-}
-
 // MARK: - 主按钮
 
 struct PrimaryButton: View {
+    @AppTypography private var typography
+
     let title: String
     var action: () -> Void
+
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(TypeFace.heading(14))
+                .font(typography.heading(14))
                 .foregroundStyle(Palette.canvas)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Palette.ink))
+                // 主操作跟随主题色，而不是固定墨黑。
+                .background(
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(env.appearance.accent)
+                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
 // MARK: - 空态 / 错误态
 
 struct MessageStateView: View {
+    @AppTypography private var typography
+
+    @Environment(AppEnvironment.self) private var env
+
     enum Kind {
         case empty
         case error(APIError)
@@ -188,23 +188,23 @@ struct MessageStateView: View {
                 .font(.system(size: 26, weight: .light))
                 .foregroundStyle(iconColor)
             Text(title)
-                .font(TypeFace.heading(15))
+                .font(typography.heading(15))
                 .foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
             if let message {
                 Text(message)
-                    .font(TypeFace.body(13))
+                    .font(typography.body(13))
                     .foregroundStyle(Palette.inkTertiary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
-                    .font(TypeFace.heading(13.5))
+                    .font(typography.heading(13.5))
                     .foregroundStyle(Palette.canvas)
                     .padding(.horizontal, Space.l)
                     .padding(.vertical, Space.s)
-                    .background(Capsule().fill(Palette.ink))
+                    .background(Capsule().fill(env.appearance.accent))
                     .padding(.top, Space.xxs)
             }
         }
@@ -232,6 +232,8 @@ struct MessageStateView: View {
 // MARK: - 加载指示
 
 struct LoadingLine: View {
+    @AppTypography private var typography
+
     var text: String
 
     var body: some View {
@@ -239,7 +241,7 @@ struct LoadingLine: View {
             ProgressView()
                 .controlSize(.small)
             Text(text)
-                .font(TypeFace.body(11.5))
+                .font(typography.body(11.5))
                 .foregroundStyle(Palette.inkTertiary)
         }
         .frame(maxWidth: .infinity)
@@ -250,6 +252,8 @@ struct LoadingLine: View {
 // MARK: - 错误提示条
 
 struct InlineNotice: View {
+    @AppTypography private var typography
+
     enum Kind {
         case warning
         case error
@@ -267,12 +271,12 @@ struct InlineNotice: View {
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
                 Text(text)
-                    .font(TypeFace.body(12))
+                    .font(typography.body(12))
                     .foregroundStyle(foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 if let detail {
                     Text(detail)
-                        .font(TypeFace.body(11))
+                        .font(typography.body(11))
                         .foregroundStyle(foreground.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -303,12 +307,16 @@ struct InlineNotice: View {
 // 与新建页、编辑页共用，避免各页各写一套圆角和内边距。
 
 struct FieldBox<Content: View>: View {
+    @AppTypography private var typography
+
     var minHeight: CGFloat = 0
     @ViewBuilder var content: Content
 
+    @Environment(AppEnvironment.self) private var env
+
     var body: some View {
         content
-            .font(TypeFace.body(15))
+            .font(typography.body(15))
             // 让输入控件铺满整行，而不是按内容宽度缩在一角。
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
@@ -316,11 +324,11 @@ struct FieldBox<Content: View>: View {
             .frame(minHeight: minHeight > 0 ? minHeight : nil, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .fill(Palette.surface)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
     }
 }
@@ -331,15 +339,19 @@ struct FieldBox<Content: View>: View {
 // 新建与编辑页的连接器、时间表都用这一个，避免两页样式漂移。
 
 struct SelectorRow: View {
+    @AppTypography private var typography
+
     let text: String
     var isPlaceholder: Bool = false
     var action: () -> Void
+
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: Space.s) {
                 Text(text)
-                    .font(TypeFace.body(15))
+                    .font(typography.body(15))
                     .foregroundStyle(isPlaceholder ? Palette.inkTertiary : Palette.ink)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -350,14 +362,15 @@ struct SelectorRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -367,9 +380,12 @@ struct SelectorRow: View {
 
 /// 颜色选择：表单里只显示当前色 + 名称，点开弹层再挑。
 struct ChannelColorRow: View {
+    @AppTypography private var typography
+
     @Binding var selection: Int
     @State private var showsPicker = false
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         // 色点与文字同行排布，不再用 overlay 叠在文字上。
@@ -381,7 +397,7 @@ struct ChannelColorRow: View {
                     .fill(ChannelTint.color(at: selection))
                     .frame(width: 16, height: 16)
                 Text(ChannelColorName.name(for: selection, locale: locale))
-                    .font(TypeFace.body(15))
+                    .font(typography.body(15))
                     .foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
@@ -391,29 +407,33 @@ struct ChannelColorRow: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .accessibilityIdentifier("channel-color-row")
         .sheet(isPresented: $showsPicker) {
             ColorPickerSheet(selection: $selection, isPresented: $showsPicker)
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
     }
 }
 
 /// 色板弹层：网格排布，选中项带圈。
 struct ColorPickerSheet: View {
+    @AppTypography private var typography
+
     @Binding var selection: Int
     @Binding var isPresented: Bool
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 4)
 
@@ -431,15 +451,15 @@ struct ColorPickerSheet: View {
                                     .frame(width: 44, height: 44)
                                     .overlay {
                                         Circle()
-                                            .strokeBorder(Palette.ink, lineWidth: selection == index ? 2 : 0)
+                                            .strokeBorder(env.appearance.accent, lineWidth: selection == index ? 2 : 0)
                                             .padding(-4)
                                     }
                                 Text(ChannelColorName.name(for: index, locale: locale))
-                                    .font(TypeFace.footnote)
+                                    .font(typography.footnote)
                                     .foregroundStyle(Palette.inkTertiary)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .accessibilityIdentifier("channel-color-\(index)")
                     }
                 }
@@ -447,7 +467,7 @@ struct ColorPickerSheet: View {
                 .padding(.top, Space.l)
             }
             .sheetContentInset()
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -457,7 +477,7 @@ struct ColorPickerSheet: View {
                     Button(L10n.string("common.done", locale: locale)) {
                         isPresented = false
                     }
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                 }
             }
         }
@@ -482,6 +502,8 @@ enum ChannelColorName {
 // 所有页面的顶部标题与首页品牌标题保持同一字体样式。
 
 struct NavTitle: View {
+    @AppTypography private var typography
+
     let text: String
     var showsDot = false
 
@@ -489,11 +511,11 @@ struct NavTitle: View {
         HStack(spacing: Space.s) {
             if showsDot {
                 Text("·")
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(15))
                     .foregroundStyle(Palette.inkTertiary)
             }
             Text(text)
-                .font(TypeFace.heading(15))
+                .font(typography.heading(15))
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
         }
@@ -504,11 +526,20 @@ struct NavTitle: View {
 // MARK: - 品牌标识
 
 struct BrandMark: View {
-    let assetName: String
+    /// 指定资源时优先用它；不指定时按当前外观取亮/暗两版。
+    var assetName: String? = nil
     var size: CGFloat = 26
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var resolvedAssetName: String {
+        if let assetName { return assetName }
+        // 深底上用浅色版标识，否则一片黑看不见。
+        return colorScheme == .dark ? "LogoMarkPaper" : "LogoMarkInk"
+    }
+
     var body: some View {
-        Image(assetName)
+        Image(resolvedAssetName)
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
@@ -525,25 +556,55 @@ struct ChannelToggle: View {
     let isPending: Bool
     let action: (Bool) -> Void
 
+    @Environment(AppEnvironment.self) private var env
+
     var body: some View {
+        // HIG：不在列表行里就不要用开关样式，改用「toggle 形态的按钮」——
+        // 图标本身表达状态（勾选/空心），不只靠颜色；可点范围 44pt。
         Button {
             action(!isOn)
         } label: {
-            Capsule()
-                .fill(isOn ? Palette.ink : Palette.lineStrong)
-                .frame(width: 38, height: 22)
-                .overlay {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 17, height: 17)
-                        .padding(2.5)
-                        .frame(maxWidth: .infinity, alignment: isOn ? .trailing : .leading)
-                }
-                .opacity(isPending ? 0.5 : 1)
+            Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(isOn ? env.appearance.accent : Palette.inkTertiary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(isPending)
+        .opacity(isPending ? 0.5 : 1)
         .accessibilityLabel(Text(String(localized: "channel.toggle.accessibility")))
         .accessibilityValue(Text(isOn ? String(localized: "common.on") : String(localized: "common.off")))
+        .accessibilityAddTraits(isOn ? [.isSelected] : [])
+    }
+}
+
+// MARK: - 按压态
+//
+// HIG：自定义按钮必须给按压态，否则按下去毫无反馈、像坏掉了。
+// List 行有系统高亮，这里的样式主要给 ScrollView 里的自绘按钮与行用。
+
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.55 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == PressableButtonStyle {
+    /// `.buttonStyle(.pressable)`
+    static var pressable: PressableButtonStyle { PressableButtonStyle() }
+}
+
+// MARK: - 收起键盘
+
+extension View {
+    /// 点空白处收起键盘。
+    ///
+    /// 通过不取消原触摸的观察器处理；不在整棵 SwiftUI 视图上附加 TapGesture，
+    /// 避免干扰文章导航、按钮与文本输入。
+    func dismissKeyboardOnBackgroundTap() -> some View {
+        background(KeyboardDismissObserver())
     }
 }

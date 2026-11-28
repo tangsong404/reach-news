@@ -2,14 +2,31 @@ import SwiftUI
 
 // MARK: - 新建频道
 //
-// 后端已提供 POST /api/v1/channels，连接器可用 GET /api/v1/connectors 枚举。
-// 连接器必选：空连接器的频道启用后每次运行都会 missed。
+// New channels bind approved collector Skill IDs, never historical connector IDs.
+// A disabled draft may be saved with no source; enabling is always an explicit user choice.
 // 预设模板已整体下线（订阅是关系，不是类型），新建只有「空白新建」一条路径。
 
 struct ChannelCreateSheet: View {
+    @AppTypography private var typography
+
     @Bindable var store: ChannelStore
     @Binding var isPresented: Bool
     var onCreated: (Channel) -> Void
+    /// 从日报正文的「跟踪事件」进入时的标题；为 nil 时是普通新建。
+    /// 事件不是新的后端实体：只是把名称与提示词预填好，仍按普通频道提交。
+    var eventHeading: String?
+
+    init(
+        store: ChannelStore,
+        isPresented: Binding<Bool>,
+        onCreated: @escaping (Channel) -> Void,
+        eventHeading: String? = nil
+    ) {
+        self.store = store
+        self._isPresented = isPresented
+        self.onCreated = onCreated
+        self.eventHeading = eventHeading
+    }
 
     @Environment(\.appLocale) private var locale
     @Environment(AppEnvironment.self) private var env
@@ -19,10 +36,11 @@ struct ChannelCreateSheet: View {
     @State private var prompt = ""
     @State private var tone = ""
     @State private var schedule = Schedule()
-    @State private var selectedConnectorIDs: Set<String> = []
-    @State private var showsConnectorPicker = false
+    @State private var selectedCollectorSkillIDs: Set<String> = []
+    @State private var showsCollectorPicker = false
     @State private var selectedColorIndex: Int = 0
-    @State private var showConnectorValidation = false
+    @State private var showCollectorValidation = false
+    @State private var enabled = false
 
     /// 只校验必填文本；连接器缺失在提交时提示，不提前禁用按钮。
     private var canSubmit: Bool {
@@ -53,6 +71,8 @@ struct ChannelCreateSheet: View {
                         FieldBox(minHeight: 132) {
                             TextEditor(text: $prompt)
                                 .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
                                 .frame(maxWidth: .infinity, minHeight: 106, alignment: .topLeading)
                                 .accessibilityIdentifier("channel-create-prompt")
                         }
@@ -67,7 +87,11 @@ struct ChannelCreateSheet: View {
                         }
                     }
 
-                    field(titleKey: "channelEdit.connectors") {
+                    Toggle(L10n.string("collector.enable", locale: locale), isOn: $enabled)
+                        .font(typography.body(15))
+                        .accessibilityIdentifier("channel-create-enabled")
+
+                    field(titleKey: "collector.sources") {
                         connectorSummary
                     }
 
@@ -84,7 +108,7 @@ struct ChannelCreateSheet: View {
                 .padding(.top, Space.l)
                 .padding(.bottom, Space.xxl)
             }
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -98,7 +122,7 @@ struct ChannelCreateSheet: View {
                             ProgressView().controlSize(.small)
                         } else {
                             Text(L10n.string("channel.create.submit", locale: locale))
-                                .font(TypeFace.heading(14))
+                                .font(typography.heading(14))
                                 .foregroundStyle(canSubmit ? Palette.ink : Palette.inkTertiary)
                         }
                     }
@@ -106,26 +130,34 @@ struct ChannelCreateSheet: View {
                     .accessibilityIdentifier("channel-create-submit")
                 }
             }
-        .sheet(isPresented: $showsConnectorPicker) {
-            ConnectorPicker(
-                connectors: store.connectors,
+        .sheet(isPresented: $showsCollectorPicker) {
+            CollectorSkillPicker(
+                skills: store.collectorSkills,
                 selection: Binding(
-                    get: { Array(selectedConnectorIDs) },
-                    set: { selectedConnectorIDs = Set($0) }
+                    get: { Array(selectedCollectorSkillIDs) },
+                    set: { selectedCollectorSkillIDs = Set($0) }
                 ),
-                isPresented: $showsConnectorPicker
+                isPresented: $showsCollectorPicker
             )
             .presentationDetents(SheetMetrics.detents)
             .presentationDragIndicator(.visible)
-            .presentationBackground(Palette.canvas)
+            .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
         .task {
             await store.loadCreationOptions()
             // 默认挑一个当前用得最少的颜色。
             selectedColorIndex = env.channelColors.suggestedIndex()
+            applyEventDraftIfNeeded()
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("channel-create-sheet")
+    }
+
+    /// 事件模式：只在小标题进来时预填一次名称与提示词，之后完全交给用户修改。
+    /// 普通新建时 eventHeading 为 nil，什么都不做。
+    private func applyEventDraftIfNeeded() {
+        guard let eventHeading, name.isEmpty, prompt.isEmpty else { return }
+        name = TrackedEventDraft.name(heading: eventHeading)
+        prompt = TrackedEventDraft.prompt(heading: eventHeading, locale: locale)
     }
 
     private func submit() async {
@@ -133,8 +165,8 @@ struct ChannelCreateSheet: View {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
               !prompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         // 连接器为空时提示，而不是从一进页面就报错。
-        guard !selectedConnectorIDs.isEmpty else {
-            showConnectorValidation = true
+        guard !enabled || hasAvailableSelection else {
+            showCollectorValidation = true
             return
         }
         if let created = await store.create(
@@ -142,7 +174,8 @@ struct ChannelCreateSheet: View {
             prompt: prompt.trimmingCharacters(in: .whitespaces),
             tone: tone,
             schedule: schedule,
-            connectorIDs: Array(selectedConnectorIDs)
+            collectorSkillIDs: Array(selectedCollectorSkillIDs),
+            enabled: enabled
         ) {
             env.channelColors.setColorIndex(selectedColorIndex, for: created.id)
             onCreated(created)
@@ -161,24 +194,30 @@ struct ChannelCreateSheet: View {
         VStack(alignment: .leading, spacing: Space.xs) {
             SelectorRow(
                 text: summaryText,
-                isPlaceholder: selectedConnectorIDs.isEmpty
+                isPlaceholder: selectedCollectorSkillIDs.isEmpty
             ) {
-                showsConnectorPicker = true
+                showsCollectorPicker = true
             }
             .accessibilityIdentifier("channel-create-connectors")
 
             // 用户还没提交时不报错；只有点了创建仍为空才提示。
-            if showConnectorValidation && selectedConnectorIDs.isEmpty {
-                Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
-                    .font(TypeFace.footnote)
+            if showCollectorValidation && enabled && !hasAvailableSelection {
+                Text(L10n.string("collector.required", locale: locale))
+                    .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
         }
     }
 
+    private var hasAvailableSelection: Bool {
+        !selectedCollectorSkillIDs.isEmpty && selectedCollectorSkillIDs.allSatisfy { id in
+            store.collectorSkills.contains { $0.id == id && $0.available }
+        }
+    }
+
     private var summaryText: String {
-        let names = store.connectors
-            .filter { selectedConnectorIDs.contains($0.id) }
+        let names = store.collectorSkills
+            .filter { selectedCollectorSkillIDs.contains($0.id) }
             .map(\.name)
         if names.isEmpty { return L10n.string("channelEdit.connectors.none", locale: locale) }
         if names.count <= 2 { return names.joined(separator: "、") }
@@ -191,7 +230,7 @@ struct ChannelCreateSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()

@@ -6,6 +6,8 @@ import SwiftUI
 // 频道本身对订阅者只读，因此这里不出现保存、删除、立即运行入口。
 
 struct SubscribedChannelDetail: View {
+    @AppTypography private var typography
+
     let channel: Channel
     var onUpdated: (Channel) -> Void
     var onForked: (Channel) -> Void
@@ -61,10 +63,11 @@ struct SubscribedChannelDetail: View {
                     .accessibilityIdentifier("subscribed-detail-schedule")
                 }
 
-                field(titleKey: "channelEdit.connectors") {
-                    readonlyBox(
-                        text: connectorSummary,
-                        isPlaceholder: displayed.connectors.isEmpty
+                field(titleKey: "collector.sources") {
+                    CollectorSourcesView(
+                        skills: displayed.collectorSkills,
+                        selectedIDs: displayed.collectorSkillIDs,
+                        collectionStatus: displayed.collectionStatus
                     )
                     .accessibilityIdentifier("subscribed-detail-connectors")
                 }
@@ -79,7 +82,7 @@ struct SubscribedChannelDetail: View {
                                 .fill(ChannelTint.color(at: colorSelection))
                                 .frame(width: 16, height: 16)
                             Text(ChannelColorName.name(for: colorSelection, locale: locale))
-                                .font(TypeFace.body(15))
+                                .font(typography.body(15))
                                 .foregroundStyle(Palette.ink)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
@@ -90,14 +93,14 @@ struct SubscribedChannelDetail: View {
                         .padding(.vertical, 13)
                         .background(
                             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                                .fill(Palette.surface)
+                                .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
                         )
                         .overlay {
                             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
                                 .strokeBorder(Palette.line, lineWidth: 1)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .disabled(isWorking)
                     .accessibilityIdentifier("subscribed-detail-color-field")
                 }
@@ -106,7 +109,7 @@ struct SubscribedChannelDetail: View {
             .padding(.top, Space.l)
             .padding(.bottom, Space.xxl)
         }
-        .background(Palette.canvas)
+        .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -141,17 +144,16 @@ struct SubscribedChannelDetail: View {
             ColorPickerSheet(selection: $colorSelection, isPresented: $showsColorPicker)
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
-                .presentationBackground(Palette.canvas)
+                .presentationBackground(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
         }
         .onChange(of: showsColorPicker) { _, isPresented in
             // 关闭选色层时才提交，避免每一格点击都发一次请求。
             guard !isPresented else { return }
             Task { await applyColor() }
         }
-        .confirmationDialog(
+        .alert(
             L10n.string("subscribed.unsubscribe.confirm.title", locale: locale),
-            isPresented: $showsUnsubscribeConfirm,
-            titleVisibility: .visible
+            isPresented: $showsUnsubscribeConfirm
         ) {
             Button(L10n.string("subscribed.unsubscribe", locale: locale), role: .destructive) {
                 Task { await unsubscribe() }
@@ -160,10 +162,9 @@ struct SubscribedChannelDetail: View {
         } message: {
             Text(L10n.string("subscribed.unsubscribe.confirm.message", locale: locale))
         }
-        .confirmationDialog(
+        .alert(
             L10n.string("subscribed.fork.confirm.title", locale: locale),
-            isPresented: $showsForkConfirm,
-            titleVisibility: .visible
+            isPresented: $showsForkConfirm
         ) {
             Button(L10n.string("subscribed.fork", locale: locale)) {
                 Task { await fork() }
@@ -172,8 +173,9 @@ struct SubscribedChannelDetail: View {
         } message: {
             Text(L10n.string("subscribed.fork.confirm.message", locale: locale))
         }
-        .toolbar(.hidden, for: .tabBar)
         .accessibilityIdentifier("subscribed-channel-detail")
+        // 只有三个一级页面保留标签栏，推入的页面全部隐藏（用户确认）。
+        .toolbar(.hidden, for: .tabBar)
     }
 
     // MARK: 头部
@@ -187,10 +189,10 @@ struct SubscribedChannelDetail: View {
                     colorIndex: env.channelColors.displayIndex(for: displayed)
                 )
                 Text(displayed.name)
-                    .font(TypeFace.heading(19))
+                    .font(typography.heading(19))
                     .foregroundStyle(Palette.ink)
                 Text(L10n.string("channel.kind.subscribed", locale: locale))
-                    .font(TypeFace.condensed(9.5, weight: .semibold))
+                    .font(typography.condensed(9.5, weight: .semibold))
                     .foregroundStyle(Palette.inkTertiary)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1.5)
@@ -259,25 +261,20 @@ struct SubscribedChannelDetail: View {
 
     // MARK: 只读容器
 
-    private var connectorSummary: String {
-        let names = displayed.connectors.map(\.displayName)
-        if names.isEmpty { return L10n.string("channelEdit.connectors.none", locale: locale) }
-        return names.joined(separator: "、")
-    }
-
     private func readonlyBox(text: String, isPlaceholder: Bool = false) -> some View {
         Text(text)
-            .font(TypeFace.body(14))
+            .font(typography.body(14))
             .foregroundStyle(isPlaceholder ? Palette.inkTertiary : Palette.inkSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+                RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
+                    .fill(Theme.surface(for: env.appearance.style, mode: env.appearance.mode))
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                    .strokeBorder(Palette.line, lineWidth: 1)
+                    .strokeBorder(Theme.cardStroke(for: env.appearance.style), lineWidth: 1)
             }
     }
 
@@ -287,7 +284,7 @@ struct SubscribedChannelDetail: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: Space.s) {
             Text(L10n.string(titleKey, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             content()

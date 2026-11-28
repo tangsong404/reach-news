@@ -73,6 +73,9 @@ struct ErrorEnvelope: Decodable {
         case .notPublished: return .notPublished(error.message)
         case .ownChannel: return .ownChannel(error.message)
         case .subscriberReadOnly: return .subscriberReadOnly(error.message)
+        case .channelQuotaExceeded: return .channelQuotaExceeded(error.message)
+        case .collectorMigrationRequired, .collectorSkillRequired, .invalidCollectorSkill:
+            return .collectorConfiguration(APIErrorCode.parse(error.code), error.message)
         case .unknown: return .server(error.message)
         }
     }
@@ -98,6 +101,30 @@ struct ChannelConnectorDTO: Decodable {
     }
 }
 
+struct CollectorSkillDTO: Decodable {
+    let id: String
+    let name: String?
+    let description: String?
+    let version: String?
+    let available: FlexibleBool?
+    let reason: String?
+    let message: String?
+    let iconUrl: String?
+    func toDomain() -> CollectorSkill {
+        CollectorSkill(id: id, name: name ?? id, description: description ?? "",
+                       version: version ?? "", available: available?.value ?? false,
+                       reason: reason, message: message, iconURLPath: iconUrl)
+    }
+}
+
+struct CollectionStatusDTO: Decodable {
+    let available: FlexibleBool?
+    let pausedReason: String?
+    func toDomain() -> CollectionStatus {
+        CollectionStatus(available: available?.value ?? false, pausedReason: pausedReason)
+    }
+}
+
 struct ChannelDTO: Decodable {
     let id: String
     let name: String
@@ -107,6 +134,9 @@ struct ChannelDTO: Decodable {
     let enabled: FlexibleBool?
     let connectorIds: [String]?
     let connectors: [ChannelConnectorDTO]?
+    let collectorSkillIds: [String]?
+    let collectorSkills: [CollectorSkillDTO]?
+    let collectionStatus: CollectionStatusDTO?
     let lastBriefAt: String?
     let kind: String?
     /// 订阅模型新增：只增不减，字段形状向后兼容。
@@ -137,7 +167,10 @@ struct ChannelDTO: Decodable {
             subscriptionColor: subscriptionColor,
             subscriptionID: subscriptionId,
             createdAt: JSONDate.parse(createdAt) ?? .distantPast,
-            updatedAt: JSONDate.parse(updatedAt) ?? .distantPast
+            updatedAt: JSONDate.parse(updatedAt) ?? .distantPast,
+            collectorSkillIDs: collectorSkillIds ?? [],
+            collectorSkills: (collectorSkills ?? []).map { $0.toDomain() },
+            collectionStatus: collectionStatus?.toDomain()
         )
     }
 }
@@ -454,12 +487,48 @@ struct LoginRequest: Encodable {
 struct LoginUserDTO: Decodable {
     let id: String
     let name: String
+    /// 未填写时为 nil；不要在这里塞空串，界面需要区分「没有邮箱」与「空字符串」。
+    let email: String?
+    /// 服务端原样返回的档位，例如 free / ultra / admin。
+    let tier: String?
+    /// 形如 `/api/v1/users/xxx/avatar`；nil 表示没有头像。
+    let avatarUrl: String?
+
+    func toDomain() -> UserProfile {
+        UserProfile(
+            id: id,
+            name: name,
+            email: email,
+            tier: tier ?? "",
+            avatarURLPath: avatarUrl,
+            channelCount: nil
+        )
+    }
 }
 
+struct CapabilitiesDTO: Decodable {
+    let tier: String?
+    let ask: Bool?
+    let briefImages: Bool?
+    /// nil 表示不限。
+    let channelLimit: Int?
+
+    func toDomain() -> UserCapabilities {
+        UserCapabilities(
+            tier: tier ?? "",
+            ask: ask ?? true,
+            briefImages: briefImages ?? false,
+            channelLimit: channelLimit
+        )
+    }
+}
+
+/// 登录与注册共用同一响应形状：注册成功后不需要再调一次登录。
 struct LoginResponseDTO: Decodable {
     let token: String
     let expiresAt: String?
     let user: LoginUserDTO?
+    let capabilities: CapabilitiesDTO?
 
     func session() throws -> AuthSession {
         guard let expires = JSONDate.parse(expiresAt) else {
@@ -467,6 +536,151 @@ struct LoginResponseDTO: Decodable {
         }
         return AuthSession(token: token, expiresAt: expires, userName: user?.name ?? "")
     }
+
+    func profile() -> UserProfile? { user?.toDomain() }
+
+    func capabilitySet() -> UserCapabilities { capabilities?.toDomain() ?? .unknown }
+}
+
+// MARK: - 注册
+
+struct RegisterRequest: Encodable {
+    let nickname: String
+    let email: String
+    let password: String
+    let passwordConfirm: String
+    /// 开放注册模式下可以不填；由服务端配置决定是否必填。
+    let inviteCode: String?
+    /// hCaptcha 已配置时必填。
+    let captchaToken: String?
+    /// SMTP 已配置时必填。
+    let emailCode: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case nickname, email, password, passwordConfirm, inviteCode, captchaToken, emailCode
+    }
+
+    /// 可选扩展字段为 nil 时**不编码**，而不是编码成 null：
+    /// 服务端用「字段是否存在」区分开放注册与带验证的请求。
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nickname, forKey: .nickname)
+        try container.encode(email, forKey: .email)
+        try container.encode(password, forKey: .password)
+        try container.encode(passwordConfirm, forKey: .passwordConfirm)
+        try container.encodeIfPresent(inviteCode, forKey: .inviteCode)
+        try container.encodeIfPresent(captchaToken, forKey: .captchaToken)
+        try container.encodeIfPresent(emailCode, forKey: .emailCode)
+    }
+}
+
+// MARK: - 当前用户
+
+struct MeResponseDTO: Decodable {
+    let id: String
+    let name: String
+    let email: String?
+    let tier: String?
+    let avatarUrl: String?
+    let createdAt: String?
+    let channelCount: Int?
+    let capabilities: CapabilitiesDTO?
+
+    func profile() -> UserProfile {
+        UserProfile(
+            id: id,
+            name: name,
+            email: email,
+            tier: tier ?? "",
+            avatarURLPath: avatarUrl,
+            channelCount: channelCount
+        )
+    }
+}
+
+// MARK: - 改密码
+
+struct ChangePasswordRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
+    let newPasswordConfirm: String
+    /// 必填（2026-11-26 起）：先调 /auth/email-code（purpose=change-password）。
+    /// 只有当前密码不够——否则任何拿到已登录设备的人都能把机主锁在外面。
+    let emailCode: String
+}
+
+struct OKResponseDTO: Decodable {
+    let ok: Bool?
+}
+
+// MARK: - 人机验证配置
+
+struct CaptchaConfigDTO: Decodable {
+    /// 服务端是否已启用（site key 与 secret 都配好才算）。
+    let enabled: Bool?
+    /// enabled 为 false 时为 nil。
+    let siteKey: String?
+}
+
+// MARK: - 邮箱验证码
+
+struct EmailCodeRequest: Encodable {
+    let email: String
+    /// `register` 或 `reset-password`
+    let purpose: String
+    /// hCaptcha 已配置时必填。
+    let captchaToken: String?
+}
+
+/// 请求验证码的失败：保留 code / message / retryAfterSeconds。
+struct EmailCodeFailure: Equatable {
+    let code: String
+    let message: String
+    /// 429 时的冷却秒数，用于界面倒计时。
+    let retryAfterSeconds: Int?
+    let statusCode: Int
+
+    init(code: String, message: String, retryAfterSeconds: Int?, statusCode: Int) {
+        self.code = code
+        self.message = message
+        self.retryAfterSeconds = retryAfterSeconds
+        self.statusCode = statusCode
+    }
+
+    init(from data: Data, statusCode: Int) {
+        self.statusCode = statusCode
+        let decoded = try? JSONDecoder().decode(EmailCodeFailureEnvelope.self, from: data)
+        self.code = decoded?.error.code ?? "unknown"
+        self.message = decoded?.error.message ?? ""
+        self.retryAfterSeconds = decoded?.retryAfterSeconds
+    }
+
+    /// 本地前置校验失败（邮箱为空）时使用，避免走一次必然失败的请求。
+    static let emptyEmail = EmailCodeFailure(code: "email_required", message: "", retryAfterSeconds: nil, statusCode: 0)
+
+    /// 服务端未配置邮件服务：不是用户操作错误，应提示联系管理员。
+    var isMailNotConfigured: Bool { code == "mail_not_configured" }
+    var isCaptchaRequired: Bool { code == "captcha_required" || code == "captcha_failed" }
+}
+
+struct EmailCodeFailureEnvelope: Decodable {
+    struct Payload: Decodable {
+        let code: String
+        let message: String
+    }
+    let error: Payload
+    let retryAfterSeconds: Int?
+}
+
+enum EmailCodeOutcome {
+    case sent
+    case rejected(EmailCodeFailure)
+}
+
+// MARK: - 头像上传
+
+struct AvatarUploadResponseDTO: Decodable {
+    let avatarUrl: String?
 }
 
 struct LogoutResponseDTO: Decodable {
@@ -503,7 +717,8 @@ struct CreateChannelBody: Encodable {
     let prompt: String
     let tone: String
     let schedule: [String: [String]]
-    let connectorIds: [String]
+    let collectorSkillIds: [String]
+    let enabled: Bool
 }
 
 struct ChannelPatchBody: Encodable {
@@ -512,14 +727,14 @@ struct ChannelPatchBody: Encodable {
     let tone: String?
     let schedule: [String: [String]]?
     let enabled: Bool?
-    let connectorIds: [String]?
+    let collectorSkillIds: [String]?
 
     init(changes: ChannelChanges) {
         name = changes.name
         prompt = changes.prompt
         tone = changes.tone
         enabled = changes.enabled
-        connectorIds = changes.connectorIDs
+        collectorSkillIds = changes.collectorSkillIDs
         if let schedule = changes.schedule {
             self.schedule = Dictionary(
                 uniqueKeysWithValues: Schedule.weekdays.compactMap { weekday in
@@ -538,7 +753,7 @@ struct ChannelPatchBody: Encodable {
         case tone
         case schedule
         case enabled
-        case connectorIds
+        case collectorSkillIds
     }
 
     func encode(to encoder: Encoder) throws {
@@ -548,7 +763,7 @@ struct ChannelPatchBody: Encodable {
         try container.encodeIfPresent(tone, forKey: .tone)
         try container.encodeIfPresent(schedule, forKey: .schedule)
         try container.encodeIfPresent(enabled, forKey: .enabled)
-        try container.encodeIfPresent(connectorIds, forKey: .connectorIds)
+        try container.encodeIfPresent(collectorSkillIds, forKey: .collectorSkillIds)
     }
 }
 

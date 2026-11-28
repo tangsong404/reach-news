@@ -5,11 +5,14 @@ import SwiftUI
 // 不在表单里平铺一长串开关，改为独立的多选列表。
 
 struct ConnectorPicker: View {
+    @AppTypography private var typography
+
     let connectors: [Connector]
     @Binding var selection: [String]
     @Binding var isPresented: Bool
 
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         NavigationStack {
@@ -20,7 +23,7 @@ struct ConnectorPicker: View {
                     } label: {
                         HStack {
                             Text(connector.name)
-                                .font(TypeFace.body(15))
+                                .font(typography.body(15))
                                 .foregroundStyle(Palette.ink)
                             Spacer(minLength: 0)
                             if selection.contains(connector.id) {
@@ -31,11 +34,13 @@ struct ConnectorPicker: View {
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressable)
                     .accessibilityIdentifier("connector-picker-\(connector.id)")
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
             .sheetContentInset()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -46,7 +51,7 @@ struct ConnectorPicker: View {
                     Button(L10n.string("common.done", locale: locale)) {
                         isPresented = false
                     }
-                    .font(TypeFace.heading(14))
+                    .font(typography.heading(14))
                     .accessibilityIdentifier("connector-picker-done")
                 }
             }

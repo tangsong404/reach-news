@@ -122,6 +122,29 @@ protocol PreferencesStoring: AnyObject {
     var baseURLString: String { get set }
     var languagePreference: String { get set }
     var lastSeenAt: Date? { get set }
+    /// 上次登录的展示名。冷启动从 Keychain 恢复会话时 `AuthSession.userName` 为空，
+    /// 「我的」页头部靠它显示用户名；它不是凭证，改它不影响鉴权。
+    var lastUserName: String { get set }
+    /// 界面风格（`ReaderStyle.rawValue`）。
+    var readerStyle: String { get set }
+    /// 主题色（`ThemeTint.rawValue`）。
+    var themeTint: String { get set }
+    var appearanceMode: String { get set }
+    var readingTextSize: String { get set }
+    /// nil means no continuous choice has been stored; migrate legacy discrete size.
+    var readingTextScale: Double? { get set }
+}
+
+extension PreferencesStoring {
+    var readingTextScale: Double? {
+        get { nil }
+        set {}
+    }
+    /// Older test/preview stores remain compatible; durable stores override this property.
+    var readingTextSize: String {
+        get { ReadingTextSize.standard.rawValue }
+        set {}
+    }
 }
 
 final class UserDefaultsPreferences: PreferencesStoring {
@@ -130,6 +153,12 @@ final class UserDefaultsPreferences: PreferencesStoring {
         static let language = "preferences.language"
         // 轮询基线单独命名、单独存储，与任何内容缓存无关。
         static let lastSeenAt = "polling.baseline.lastSeenAt"
+        static let lastUserName = "preferences.lastUserName"
+        static let readerStyle = "preferences.readerStyle"
+        static let themeTint = "preferences.themeTint"
+        static let appearanceMode = "preferences.appearanceMode"
+        static let readingTextSize = "preferences.readingTextSize"
+        static let readingTextScale = "preferences.readingTextScale"
     }
 
     private let defaults: UserDefaults
@@ -138,9 +167,11 @@ final class UserDefaultsPreferences: PreferencesStoring {
         self.defaults = defaults
     }
 
+    /// 服务地址固定，不再从偏好读取用户输入。
+    /// 仍然可写：写入被忽略，避免调用方拿到旧值造成不一致。
     var baseURLString: String {
-        get { defaults.string(forKey: Keys.baseURL) ?? BaseURLDefaults.host }
-        set { defaults.set(newValue, forKey: Keys.baseURL) }
+        get { BaseURLDefaults.host }
+        set { defaults.removeObject(forKey: Keys.baseURL) }
     }
 
     var languagePreference: String {
@@ -160,6 +191,39 @@ final class UserDefaultsPreferences: PreferencesStoring {
                 defaults.removeObject(forKey: Keys.lastSeenAt)
             }
         }
+    }
+
+    var lastUserName: String {
+        get { defaults.string(forKey: Keys.lastUserName) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.lastUserName) }
+    }
+
+    var readerStyle: String {
+        get { defaults.string(forKey: Keys.readerStyle) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.readerStyle) }
+    }
+
+    var themeTint: String {
+        get { defaults.string(forKey: Keys.themeTint) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.themeTint) }
+    }
+
+    var appearanceMode: String {
+        get { defaults.string(forKey: Keys.appearanceMode) ?? "" }
+        set { defaults.set(newValue, forKey: Keys.appearanceMode) }
+    }
+
+    var readingTextScale: Double? {
+        get { (defaults.object(forKey: Keys.readingTextScale) as? NSNumber)?.doubleValue }
+        set {
+            if let newValue { defaults.set(newValue, forKey: Keys.readingTextScale) }
+            else { defaults.removeObject(forKey: Keys.readingTextScale) }
+        }
+    }
+
+    var readingTextSize: String {
+        get { defaults.string(forKey: Keys.readingTextSize) ?? ReadingTextSize.standard.rawValue }
+        set { defaults.set(newValue, forKey: Keys.readingTextSize) }
     }
 }
 

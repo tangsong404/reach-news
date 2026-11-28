@@ -7,8 +7,12 @@ import SwiftUI
 // enabled 行上直接切换、失败回滚；运行状态只轮询可见行。
 
 struct ChannelListView: View {
+    @AppTypography private var typography
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.appLocale) private var locale
+    /// 减弱动态效果时展开/收起不做动画。
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var path = NavigationPath()
     @State private var showsCreateSheet = false
 
@@ -21,22 +25,29 @@ struct ChannelListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content(env.channels)
-            .background(Palette.canvas)
+            .background(Theme.canvas(for: env.appearance.style, mode: env.appearance.mode))
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    NavTitle(text: L10n.string("tab.channels", locale: locale))
+                ToolbarItem(placement: .topBarLeading) {
+                    MainPageHeading(title: L10n.string("tab.channels", locale: locale))
+                        .accessibilityIdentifier("main-heading-channels")
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showsCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundStyle(Palette.ink)
+                    if env.session.capabilities.channelLimit == nil ||
+                        env.channels.myChannels.count < (env.session.capabilities.channelLimit ?? 0) {
+                        Button {
+                            showsCreateSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundStyle(Palette.ink)
+                        }
+                        .accessibilityLabel(Text(L10n.string("channel.create.accessibility", locale: locale)))
+                        .accessibilityIdentifier("channel-create-button")
                     }
-                    .accessibilityLabel(Text(L10n.string("channel.create.accessibility", locale: locale)))
-                    .accessibilityIdentifier("channel-create-button")
                 }
             }
             // 必须挂在 NavigationStack 内部，否则点击无反应。
@@ -94,7 +105,10 @@ struct ChannelListView: View {
     @ViewBuilder
     private func content(_ store: ChannelStore) -> some View {
         VStack(spacing: 0) {
-            masthead(store)
+            if let error = store.error, !store.channels.isEmpty {
+                InlineNotice(text: L10n.string(error.messageKey, locale: locale))
+                    .padding(.horizontal, Space.xl)
+            }
 
             if store.isLoading && store.myChannels.isEmpty && store.subscribedChannels.isEmpty {
                 Spacer()
@@ -124,83 +138,80 @@ struct ChannelListView: View {
         }
     }
 
-    /// 只有元信息一行；大标题已由导航栏承担，不重复。
-    private func masthead(_ store: ChannelStore) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: Space.s) {
-                MetaLine(text: L10n.format("channel.count", locale: locale, store.channels.count))
-                DotSeparator()
-                MetaLine(
-                    text: L10n.format(
-                        "channel.timezoneNote",
-                        locale: locale,
-                        env.settings.displayTimeZone
-                    )
-                )
-            }
-            if let error = store.error, !store.channels.isEmpty {
-                InlineNotice(text: L10n.string(error.messageKey, locale: locale))
-                    .padding(.top, Space.xs)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Space.xl)
-        .padding(.top, Space.m)
-    }
-
+    /// HIG：列表数据用 List 承载（分隔线、行高亮、滑动操作由系统给）。
+    /// 分组标题也用普通行而不是 Section 头，避免吸顶挡住内容。
     private func list(_ store: ChannelStore) -> some View {
-        ScrollView {
-            LazyVStack(spacing: Space.m) {
-                if !store.myChannels.isEmpty {
-                    sectionHeader("channel.section.mine")
-                    ForEach(store.myChannels) { channel in
-                        Button {
-                            path.append(Route.edit(channel))
-                        } label: {
-                            ChannelCard(
-                                channel: channel,
-                                run: store.latestRun(for: channel.id),
-                                isPending: store.pendingChannelIDs.contains(channel.id),
-                                colorIndex: env.channelColors.displayIndex(for: channel),
-                                onToggle: { enabled in
-                                    Task { await store.setEnabled(enabled, for: channel.id) }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .onAppear { track(channel, store: store) }
-                        .onDisappear { untrack(channel, store: store) }
+        List {
+            if !store.myChannels.isEmpty {
+                sectionHeaderRow("channel.section.mine")
+                ForEach(store.myChannels) { channel in
+                    Button {
+                        path.append(Route.edit(channel))
+                    } label: {
+                        ChannelCard(
+                            channel: channel,
+                            run: store.latestRun(for: channel.id),
+                            isPending: store.pendingChannelIDs.contains(channel.id),
+                            colorIndex: env.channelColors.displayIndex(for: channel),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style),
+                            onToggle: { enabled in
+                                Task { await store.setEnabled(enabled, for: channel.id) }
+                            }
+                        )
                     }
+                    .buttonStyle(.pressable)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
+                    .onAppear { track(channel, store: store) }
+                    .onDisappear { untrack(channel, store: store) }
                 }
-
-                if !store.subscribedChannels.isEmpty {
-                    sectionHeader("channel.section.subscribed")
-                    ForEach(store.subscribedChannels) { channel in
-                        Button {
-                            path.append(Route.subscribed(channel))
-                        } label: {
-                            SubscribedChannelCard(
-                                channel: channel,
-                                run: store.latestRun(for: channel.id),
-                                colorIndex: env.channelColors.displayIndex(for: channel)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .onAppear { track(channel, store: store) }
-                        .onDisappear { untrack(channel, store: store) }
-                    }
-                }
-
-                discoverSection(store)
             }
-            .padding(.horizontal, Space.xl)
-            .padding(.top, Space.l)
-            .padding(.bottom, 96)
+
+            if !store.subscribedChannels.isEmpty {
+                sectionHeaderRow("channel.section.subscribed")
+                ForEach(store.subscribedChannels) { channel in
+                    Button {
+                        path.append(Route.subscribed(channel))
+                    } label: {
+                        SubscribedChannelCard(
+                            channel: channel,
+                            run: store.latestRun(for: channel.id),
+                            colorIndex: env.channelColors.displayIndex(for: channel),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style)
+                        )
+                    }
+                    .buttonStyle(.pressable)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: Space.xl, bottom: 6, trailing: Space.xl))
+                    .onAppear { track(channel, store: store) }
+                    .onDisappear { untrack(channel, store: store) }
+                }
+            }
+
+            discoverSection(store)
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                // 左右内边距与卡片一致，否则「发现更多」会顶到屏幕两边。
+                .listRowInsets(EdgeInsets(top: 0, leading: Space.xl, bottom: Space.l, trailing: Space.xl))
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .refreshable {
             await store.load()
         }
         .accessibilityIdentifier("channel-list")
+    }
+
+    /// 分组标题：普通行 + 与卡片一致的左右内边距。
+    private func sectionHeaderRow(_ key: String) -> some View {
+        sectionHeader(key)
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: Space.l, leading: Space.xl, bottom: Space.xs, trailing: Space.xl))
     }
 
     // MARK: 发现更多
@@ -209,8 +220,12 @@ struct ChannelListView: View {
     private func discoverSection(_ store: ChannelStore) -> some View {
         VStack(spacing: Space.m) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                if reduceMotion {
                     store.isDiscoverExpanded.toggle()
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        store.isDiscoverExpanded.toggle()
+                    }
                 }
                 if store.isDiscoverExpanded && store.discoverableChannels.isEmpty {
                     Task { await store.loadDiscoverable() }
@@ -218,12 +233,12 @@ struct ChannelListView: View {
             } label: {
                 HStack(spacing: Space.s) {
                     Text(L10n.string("channel.section.discover", locale: locale))
-                        .font(TypeFace.label(11))
+                        .font(typography.label(11))
                         .tracking(1)
                         .foregroundStyle(Palette.inkTertiary)
                     if !store.discoverableChannels.isEmpty {
                         Text("\(store.discoverableChannels.count)")
-                            .font(TypeFace.condensed(10.5, weight: .semibold))
+                            .font(typography.condensed(10.5, weight: .semibold))
                             .foregroundStyle(Palette.inkTertiary)
                     }
                     Rectangle()
@@ -235,7 +250,7 @@ struct ChannelListView: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityIdentifier("channel-discover-toggle")
 
             // 失败原因不随折叠隐藏：否则用户只看到「发现更多」是空的。
@@ -249,7 +264,7 @@ struct ChannelListView: View {
                     Button(L10n.string("common.retry", locale: locale)) {
                         Task { await store.loadDiscoverable() }
                     }
-                    .font(TypeFace.heading(13))
+                    .font(typography.heading(13))
                     .foregroundStyle(Palette.ink)
                     .accessibilityIdentifier("channel-discover-retry")
                 }
@@ -260,7 +275,7 @@ struct ChannelListView: View {
                     EmptyView()
                 } else if store.discoverableChannels.isEmpty {
                     Text(L10n.string("channel.discover.empty", locale: locale))
-                        .font(TypeFace.footnote)
+                        .font(typography.footnote)
                         .foregroundStyle(Palette.inkTertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
@@ -270,6 +285,8 @@ struct ChannelListView: View {
                             // 预览色按 id 稳定取，避免每次渲染都换一个「建议色」。
                             colorIndex: ChannelTint.fallbackIndex(for: channel.id),
                             isPending: store.pendingChannelIDs.contains(channel.id),
+                            surface: Theme.surface(for: env.appearance.style, mode: env.appearance.mode),
+                            stroke: Theme.cardStroke(for: env.appearance.style),
                             onSubscribe: {
                                 Task {
                                     // 用与预览一致的稳定色，避免「看到的颜色」和「订阅后得到的颜色」不同。
@@ -291,7 +308,7 @@ struct ChannelListView: View {
     private func sectionHeader(_ key: String) -> some View {
         HStack(spacing: Space.s) {
             Text(L10n.string(key, locale: locale))
-                .font(TypeFace.label(11))
+                .font(typography.label(11))
                 .tracking(1)
                 .foregroundStyle(Palette.inkTertiary)
             Rectangle()
@@ -322,10 +339,15 @@ struct ChannelListView: View {
 // MARK: - 我的频道卡
 
 struct ChannelCard: View {
+    @AppTypography private var typography
+
     let channel: Channel
     let run: Run?
     let isPending: Bool
     var colorIndex: Int?
+    /// 卡片底色 / 描边随当前风格走，避免两套风格下卡片都只剩一个白块。
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
     var onToggle: (Bool) -> Void
 
     @Environment(\.appLocale) private var locale
@@ -335,7 +357,7 @@ struct ChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                 if channel.kind.isFollow {
                     ChannelBadge(textKey: "channel.kind.follow")
@@ -346,7 +368,7 @@ struct ChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -359,40 +381,28 @@ struct ChannelCard: View {
                 }
                 if let scheduleText {
                     Text(scheduleText)
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.inkTertiary)
                 }
                 Spacer(minLength: 0)
             }
             .padding(.top, 11)
 
-            // 连接器名称直接来自服务端，不再显示 UUID。
-            if !channel.connectors.isEmpty {
-                HStack(spacing: Space.xs) {
-                    ForEach(channel.connectors) { connector in
-                        Text(connector.displayName)
-                            .font(TypeFace.condensed(10.5, weight: .medium))
-                            .foregroundStyle(connector.isUnavailable ? Palette.failedForeground : Palette.inkTertiary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, Space.xs)
-                .accessibilityIdentifier("channel-connectors-\(channel.id)")
-            }
+            CollectorSourcesView(
+                skills: channel.collectorSkills,
+                selectedIDs: channel.collectorSkillIDs,
+                collectionStatus: channel.collectionStatus
+            )
+            .padding(.top, Space.xs)
+            .accessibilityIdentifier("channel-connectors-\(channel.id)")
 
-            // 频道已启用但没有连接器：运行必然错过（no-material）。
-            if channel.warnsAboutMissingConnectors {
-                InlineNotice(text: L10n.string("channel.noConnectors", locale: locale))
-                    .padding(.top, Space.s)
-            }
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 14)
         .background(cardBackground)
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
@@ -400,7 +410,7 @@ struct ChannelCard: View {
     }
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+        RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
     }
 
     /// 运行状态三分法：进行中绿、错过中性灰、失败警示色。
@@ -422,9 +432,13 @@ struct ChannelCard: View {
 // 不渲染开关、编辑、立即运行、删除：服务端对这些操作返回 403 / 404。
 
 struct SubscribedChannelCard: View {
+    @AppTypography private var typography
+
     let channel: Channel
     let run: Run?
     var colorIndex: Int?
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
 
     @Environment(\.appLocale) private var locale
 
@@ -433,7 +447,7 @@ struct SubscribedChannelCard: View {
             HStack(spacing: Space.s) {
                 ChannelDot(channelID: channel.id, diameter: 8, colorIndex: colorIndex)
                 Text(channel.name)
-                    .font(TypeFace.heading(15))
+                    .font(typography.heading(16))
                     .foregroundStyle(Palette.ink)
                 ChannelBadge(textKey: "channel.kind.subscribed")
                 if channel.kind.isFollow {
@@ -444,7 +458,7 @@ struct SubscribedChannelCard: View {
 
             if !channel.prompt.isEmpty {
                 Text(channel.prompt)
-                    .font(TypeFace.body(12.5))
+                    .font(typography.body(14))
                     .foregroundStyle(Palette.inkSecondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -457,7 +471,7 @@ struct SubscribedChannelCard: View {
                 }
                 if let scheduleText {
                     Text(scheduleText)
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.inkTertiary)
                 }
                 Spacer(minLength: 0)
@@ -466,15 +480,22 @@ struct SubscribedChannelCard: View {
                     .foregroundStyle(Palette.inkTertiary)
             }
             .padding(.top, 11)
+            CollectorSourcesView(
+                skills: channel.collectorSkills,
+                selectedIDs: channel.collectorSkillIDs,
+                collectionStatus: channel.collectionStatus
+            )
+            .padding(.top, Space.xs)
+
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
@@ -489,12 +510,17 @@ struct SubscribedChannelCard: View {
 // MARK: - 可订阅行
 
 struct DiscoverableChannelRow: View {
+    @AppTypography private var typography
+
     let channel: Channel
     var colorIndex: Int?
     let isPending: Bool
+    var surface: Color = Palette.surface
+    var stroke: Color = Palette.line
     var onSubscribe: () -> Void
 
     @Environment(\.appLocale) private var locale
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         HStack(spacing: Space.m) {
@@ -502,12 +528,12 @@ struct DiscoverableChannelRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(channel.name)
-                    .font(TypeFace.body(14.5))
+                    .font(typography.body(14.5))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                 if !channel.prompt.isEmpty {
                     Text(channel.prompt)
-                        .font(TypeFace.footnote)
+                        .font(typography.footnote)
                         .foregroundStyle(Palette.inkTertiary)
                         .lineLimit(1)
                 }
@@ -520,25 +546,25 @@ struct DiscoverableChannelRow: View {
                     ProgressView().controlSize(.small)
                 } else {
                     Text(L10n.string("channel.subscribe.action", locale: locale))
-                        .font(TypeFace.condensed(11, weight: .semibold))
+                        .font(typography.condensed(11, weight: .semibold))
                         .foregroundStyle(Palette.canvas)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(Palette.ink))
+                        .background(Capsule().fill(env.appearance.accent))
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .disabled(isPending)
             .accessibilityIdentifier("channel-subscribe-\(channel.id)")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .background(
-            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(Palette.surface)
+            RoundedRectangle(cornerRadius: Radius.medium, style: .continuous).fill(surface)
         )
         .overlay {
             RoundedRectangle(cornerRadius: Radius.medium, style: .continuous)
-                .strokeBorder(Palette.line, lineWidth: 1)
+                .strokeBorder(stroke, lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("discover-row-\(channel.id)")
@@ -548,12 +574,14 @@ struct DiscoverableChannelRow: View {
 // MARK: - 小徽标
 
 struct ChannelBadge: View {
+    @AppTypography private var typography
+
     let textKey: String
     @Environment(\.appLocale) private var locale
 
     var body: some View {
         Text(L10n.string(textKey, locale: locale))
-            .font(TypeFace.condensed(9.5, weight: .semibold))
+            .font(typography.condensed(9.5, weight: .semibold))
             .foregroundStyle(Palette.inkTertiary)
             .padding(.horizontal, 4)
             .padding(.vertical, 1.5)

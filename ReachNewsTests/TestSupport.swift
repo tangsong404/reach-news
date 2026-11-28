@@ -89,6 +89,12 @@ final class InMemoryPreferences: PreferencesStoring {
     var baseURLString: String = BaseURLDefaults.host
     var languagePreference: String = LanguagePreference.system.rawValue
     var lastSeenAt: Date?
+    var lastUserName: String = ""
+    var readerStyle: String = ""
+    var themeTint: String = ""
+    var appearanceMode: String = ""
+    var readingTextScale: Double?
+    var readingTextSize: String = "standard"
 }
 
 final class InMemoryChannelColors: ChannelColorStoring {

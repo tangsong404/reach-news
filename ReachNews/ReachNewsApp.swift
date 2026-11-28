@@ -2,7 +2,12 @@ import SwiftUI
 
 @main
 struct ReachNewsApp: App {
-    @State private var environment = AppEnvironment.live()
+    @State private var environment: AppEnvironment = {
+        #if DEBUG
+        if UITestLaunchFixture.isEnabled { return UITestLaunchFixture.makeEnvironment() }
+        #endif
+        return AppEnvironment.live()
+    }()
     @AppStorage("preferences.language") private var languagePreference = LanguagePreference.system.rawValue
 
     var body: some Scene {
@@ -11,9 +16,11 @@ struct ReachNewsApp: App {
                 .environment(environment)
                 .environment(\.appEnvironment, environment)
                 .environment(\.appLocale, appLocale)
-                .tint(Palette.ink)
+                .tint(environment.appearance.accent)
+                .fontDesign(.default)
+                .readingTypography(textScale: environment.appearance.textScale)
                 // 稿子只有纸色外观。
-                .preferredColorScheme(.light)
+                .preferredColorScheme(environment.appearance.resolvedColorScheme)
         }
     }
 

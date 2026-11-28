@@ -245,7 +245,8 @@ final class ChannelConnectorTests: XCTestCase {
             lastBriefAt: nil,
             kind: .channel,
             createdAt: Date(timeIntervalSince1970: 0),
-            updatedAt: Date(timeIntervalSince1970: 0)
+            updatedAt: Date(timeIntervalSince1970: 0),
+            collectorSkillIDs: connectorIDs
         )
     }
 
@@ -289,30 +290,30 @@ final class ChannelConnectorTests: XCTestCase {
     func testConnectorChangeIsSubmittedAsWholeReplacement() async throws {
         let channel = makeChannel()
         var draft = ChannelDraft(channel: channel)
-        draft.connectorIDs = ["cnn_github_trending", "cnn_homepage"]
+        draft.collectorSkillIDs = ["cnn_github_trending", "cnn_homepage"]
 
         let changes = draft.changes(against: channel)
 
-        XCTAssertNotNil(changes.connectorIDs)
-        XCTAssertEqual(changes.changedFieldNames, ["connectorIds"])
+        XCTAssertNotNil(changes.collectorSkillIDs)
+        XCTAssertEqual(changes.changedFieldNames, ["collectorSkillIds"])
         let body = ChannelPatchBody(changes: changes)
         let data = try JSONEncoder().encode(body)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(json.keys.sorted(), ["connectorIds"])
+        XCTAssertEqual(json.keys.sorted(), ["collectorSkillIds"])
     }
 
     @MainActor
     func testClearingConnectorsIsAContractualChange() async throws {
         let channel = makeChannel()
         var draft = ChannelDraft(channel: channel)
-        draft.connectorIDs = []
+        draft.collectorSkillIDs = []
 
         let changes = draft.changes(against: channel)
-        XCTAssertEqual(changes.connectorIDs, [])
+        XCTAssertEqual(changes.collectorSkillIDs, [])
 
         let data = try JSONEncoder().encode(ChannelPatchBody(changes: changes))
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        XCTAssertEqual(json["connectorIds"] as? [String], [])
+        XCTAssertEqual(json["collectorSkillIds"] as? [String], [])
     }
 
     @MainActor
@@ -320,7 +321,7 @@ final class ChannelConnectorTests: XCTestCase {
         let channel = makeChannel()
         var draft = ChannelDraft(channel: channel)
         // 同样的集合、不同顺序不算改动。
-        draft.connectorIDs = channel.connectorIDs.reversed()
+        draft.collectorSkillIDs = channel.collectorSkillIDs.reversed()
 
         XCTAssertTrue(draft.changes(against: channel).isEmpty)
     }
@@ -342,7 +343,7 @@ final class ChannelConnectorTests: XCTestCase {
             prompt: "p",
             tone: "t",
             schedule: Schedule(timesByWeekday: ["mon": ["08:00"]]),
-            connectorIDs: ["cnn_homepage"]
+            collectorSkillIDs: ["skl_homepage"]
         )
 
         XCTAssertEqual(channel.id, "chn_new")
@@ -351,7 +352,7 @@ final class ChannelConnectorTests: XCTestCase {
         XCTAssertEqual(request.url.path, "/api/v1/channels")
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: try XCTUnwrap(request.body)) as? [String: Any])
         XCTAssertEqual(json["name"] as? String, "新频道")
-        XCTAssertEqual(json["connectorIds"] as? [String], ["cnn_homepage"])
+        XCTAssertEqual(json["collectorSkillIds"] as? [String], ["skl_homepage"])
         let schedule = try XCTUnwrap(json["schedule"] as? [String: [String]])
         XCTAssertEqual(schedule["mon"], ["08:00"])
     }
@@ -359,17 +360,17 @@ final class ChannelConnectorTests: XCTestCase {
     @MainActor
     func testInvalidConnectorErrorIsSurfaced() async {
         let transport = StubTransport(
-            json: #"{"error":{"code":"invalid_connector","message":"Unknown or disabled connector: x"}}"#,
+            json: #"{"error":{"code":"invalid_collector_skill","message":"采集技能不可用"}}"#,
             status: 400
         )
         let store = ChannelStore(client: TestClient.make(transport: transport))
 
         let created = await store.create(
-            name: "n", prompt: "p", tone: "", schedule: Schedule(), connectorIDs: ["x"]
+            name: "n", prompt: "p", tone: "", schedule: Schedule(), collectorSkillIDs: ["x"]
         )
 
         XCTAssertNil(created)
-        XCTAssertEqual(store.createError, .invalidConnector("Unknown or disabled connector: x"))
+        XCTAssertEqual(store.createError, .collectorConfiguration(.invalidCollectorSkill, "采集技能不可用"))
     }
 }
 
