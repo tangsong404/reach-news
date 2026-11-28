@@ -50,6 +50,7 @@ struct CollectorSkillPicker: View {
                     .buttonStyle(.pressable)
                     .disabled(!skill.available && !selection.contains(skill.id))
                     .accessibilityIdentifier("collector-picker-\(skill.id)")
+                    .listRowBackground(Theme.surface(for: env.appearance.style))
                 }
                 ForEach(unknownSelectedIDs, id: \.self) { id in
                     Button { selection.removeAll { $0 == id } } label: {
