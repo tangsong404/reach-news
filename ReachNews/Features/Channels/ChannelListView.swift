@@ -388,26 +388,14 @@ struct ChannelCard: View {
             }
             .padding(.top, 11)
 
-            // 连接器名称直接来自服务端，不再显示 UUID。
-            if !channel.connectors.isEmpty {
-                HStack(spacing: Space.xs) {
-                    ForEach(channel.connectors) { connector in
-                        Text(connector.displayName)
-                            .font(typography.condensed(10.5, weight: .medium))
-                            .foregroundStyle(connector.isUnavailable ? Palette.failedForeground : Palette.inkTertiary)
-                            .lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, Space.xs)
-                .accessibilityIdentifier("channel-connectors-\(channel.id)")
-            }
+            CollectorSourcesView(
+                skills: channel.collectorSkills,
+                selectedIDs: channel.collectorSkillIDs,
+                collectionStatus: channel.collectionStatus
+            )
+            .padding(.top, Space.xs)
+            .accessibilityIdentifier("channel-connectors-\(channel.id)")
 
-            // 频道已启用但没有连接器：运行必然错过（no-material）。
-            if channel.warnsAboutMissingConnectors {
-                InlineNotice(text: L10n.string("channel.noConnectors", locale: locale))
-                    .padding(.top, Space.s)
-            }
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 14)
@@ -492,6 +480,13 @@ struct SubscribedChannelCard: View {
                     .foregroundStyle(Palette.inkTertiary)
             }
             .padding(.top, 11)
+            CollectorSourcesView(
+                skills: channel.collectorSkills,
+                selectedIDs: channel.collectorSkillIDs,
+                collectionStatus: channel.collectionStatus
+            )
+            .padding(.top, Space.xs)
+
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 14)

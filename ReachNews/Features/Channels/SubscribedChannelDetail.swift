@@ -63,10 +63,11 @@ struct SubscribedChannelDetail: View {
                     .accessibilityIdentifier("subscribed-detail-schedule")
                 }
 
-                field(titleKey: "channelEdit.connectors") {
-                    readonlyBox(
-                        text: connectorSummary,
-                        isPlaceholder: displayed.connectors.isEmpty
+                field(titleKey: "collector.sources") {
+                    CollectorSourcesView(
+                        skills: displayed.collectorSkills,
+                        selectedIDs: displayed.collectorSkillIDs,
+                        collectionStatus: displayed.collectionStatus
                     )
                     .accessibilityIdentifier("subscribed-detail-connectors")
                 }
@@ -259,12 +260,6 @@ struct SubscribedChannelDetail: View {
     }
 
     // MARK: 只读容器
-
-    private var connectorSummary: String {
-        let names = displayed.connectors.map(\.displayName)
-        if names.isEmpty { return L10n.string("channelEdit.connectors.none", locale: locale) }
-        return names.joined(separator: "、")
-    }
 
     private func readonlyBox(text: String, isPlaceholder: Bool = false) -> some View {
         Text(text)

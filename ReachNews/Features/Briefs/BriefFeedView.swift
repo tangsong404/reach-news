@@ -185,19 +185,7 @@ struct BriefFeedView: View {
     /// 日期和文章共用同一个滚动容器，不使用吸顶 header 或 List 最小行高。
     @ViewBuilder
     private func feedRows(_ store: BriefFeedStore) -> some View {
-        ForEach(store.groupedBriefs, id: \.day) { group in
-            HStack(spacing: 10) {
-                Text(DisplayTime.dayRuleTitle(group.day, now: Date(), locale: locale))
-                    .font(typography.label(12))
-                    .foregroundStyle(Palette.inkSecondary)
-                Rectangle().fill(Palette.line).frame(height: 1)
-            }
-                .accessibilityElement(children: .combine)
-                .accessibilityIdentifier("feed-date-header")
-                .padding(.horizontal, Space.xl)
-                .padding(.top, Space.s)
-
-            ForEach(group.briefs) { brief in
+            ForEach(store.visibleBriefs) { brief in
                 Button {
                     path.append(brief)
                 } label: {
@@ -215,8 +203,6 @@ struct BriefFeedView: View {
                     await store.loadMoreIfNeeded(appearing: brief)
                 }
             }
-        }
-
         if store.isLoadingMore {
             LoadingLine(text: L10n.string("feed.loadingMore", locale: locale))
         } else if !store.hasMore && !store.briefs.isEmpty {
@@ -297,8 +283,14 @@ struct BriefRow: View {
                 Text(channelName)
                     .font(typography.label(12))
                     .foregroundStyle(Palette.inkSecondary)
-                DotSeparator()
-                MetaLine(text: DisplayTime.clock(brief.createdAt, locale: locale))
+                Spacer(minLength: 12)
+                TimelineView(.periodic(from: .now, by: 30)) { context in
+                    Text(BriefRelativeTime.string(for: brief.createdAt, now: context.date, locale: locale))
+                        .font(typography.label(12))
+                        .foregroundStyle(Palette.inkSecondary)
+                        .multilineTextAlignment(.trailing)
+                        .accessibilityIdentifier("feed-row-time-\(brief.id)")
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

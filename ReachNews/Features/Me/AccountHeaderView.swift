@@ -33,12 +33,11 @@ struct AccountHeaderView: View {
                     .lineLimit(1)
                     .accessibilityIdentifier("account-email")
 
-                // 套餐做成标签，按档位配色；紧跟邮箱之下，不再占一整行文字。
-                TierBadge(tier: profile.planLabel)
-                    .padding(.top, 1)
+
             }
 
             Spacer(minLength: Space.s)
+            TierBadge(tier: profile.planLabel)
         }
         .padding(.vertical, Space.s)
         .accessibilityElement(children: .combine)

@@ -86,6 +86,7 @@ enum Endpoint {
     case cursor(since: Date?)
     case allBriefs(cursor: String?, limit: Int)
     case connectors
+    case collectorSkills(cursor: String?, limit: Int)
     case subscribe(channelID: String)
     case fork(channelID: String)
     case settings
@@ -129,6 +130,8 @@ enum Endpoint {
             return "/api/v1/briefs"
         case .connectors:
             return "/api/v1/connectors"
+        case .collectorSkills:
+            return "/api/v1/collector-skills"
         case .subscribe(let channelID):
             return "/api/v1/channels/\(channelID)/subscribe"
         case .fork(let channelID):
@@ -159,6 +162,8 @@ enum Endpoint {
             // discover 只接受 1 或 true；其他值等同于普通列表，因此只在这里显式加。
             if discover { items.append(URLQueryItem(name: "discover", value: "1")) }
             return items
+        case .collectorSkills(let cursor, let limit):
+            return Pagination.queryItems(cursor: cursor, limit: limit)
         case .askHistory(_, let cursor, let limit):
             return Pagination.queryItems(cursor: cursor, limit: limit)
         case .briefs(_, let cursor, let limit),
@@ -461,7 +466,8 @@ final class APIClient {
         prompt: String,
         tone: String,
         schedule: Schedule,
-        connectorIDs: [String]
+        collectorSkillIDs: [String],
+        enabled: Bool = true
     ) async throws -> Channel {
         let body = try JSONEncoder().encode(
             CreateChannelBody(
@@ -469,11 +475,37 @@ final class APIClient {
                 prompt: prompt,
                 tone: tone,
                 schedule: schedulePayload(schedule),
-                connectorIds: connectorIDs
+                collectorSkillIds: Array(Set(collectorSkillIDs)).sorted(),
+                enabled: enabled
             )
         )
         let dto: ChannelDTO = try await send(Endpoint.createChannel, method: "POST", body: body)
         return dto.toDomain()
+    }
+
+    /// Legacy source labels are rejected; callers must explicitly migrate stable Skill IDs.
+    func createChannel(name: String, prompt: String, tone: String, schedule: Schedule,
+                       connectorIDs: [String]) async throws -> Channel {
+        throw APIError.collectorMigrationRequired
+    }
+
+    func collectorSkills(cursor: String?, limit: Int = Pagination.maxLimit) async throws -> Page<CollectorSkill> {
+        let envelope: PageEnvelope<CollectorSkillDTO> = try await get(.collectorSkills(cursor: cursor, limit: limit))
+        return Page(items: envelope.items.map { $0.toDomain() },
+                    nextCursor: Pagination.sanitizedCursor(envelope.nextCursor))
+    }
+
+    func collectorSkills() async throws -> [CollectorSkill] {
+        var cursor: String?
+        var seen = Set<String>()
+        var items: [CollectorSkill] = []
+        repeat {
+            let page = try await collectorSkills(cursor: cursor)
+            items.append(contentsOf: page.items)
+            cursor = page.nextCursor
+            if let cursor, !seen.insert(cursor).inserted { break }
+        } while cursor != nil
+        return items
     }
 
     /// 服务端设置：目前只需要时区。

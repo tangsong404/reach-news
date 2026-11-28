@@ -2,8 +2,8 @@ import SwiftUI
 
 // MARK: - 新建频道
 //
-// 后端已提供 POST /api/v1/channels，连接器可用 GET /api/v1/connectors 枚举。
-// 连接器必选：空连接器的频道启用后每次运行都会 missed。
+// New channels bind approved collector Skill IDs, never historical connector IDs.
+// A disabled draft may be saved with no source; enabling is always an explicit user choice.
 // 预设模板已整体下线（订阅是关系，不是类型），新建只有「空白新建」一条路径。
 
 struct ChannelCreateSheet: View {
@@ -36,10 +36,11 @@ struct ChannelCreateSheet: View {
     @State private var prompt = ""
     @State private var tone = ""
     @State private var schedule = Schedule()
-    @State private var selectedConnectorIDs: Set<String> = []
-    @State private var showsConnectorPicker = false
+    @State private var selectedCollectorSkillIDs: Set<String> = []
+    @State private var showsCollectorPicker = false
     @State private var selectedColorIndex: Int = 0
-    @State private var showConnectorValidation = false
+    @State private var showCollectorValidation = false
+    @State private var enabled = false
 
     /// 只校验必填文本；连接器缺失在提交时提示，不提前禁用按钮。
     private var canSubmit: Bool {
@@ -86,7 +87,11 @@ struct ChannelCreateSheet: View {
                         }
                     }
 
-                    field(titleKey: "channelEdit.connectors") {
+                    Toggle(L10n.string("collector.enable", locale: locale), isOn: $enabled)
+                        .font(typography.body(15))
+                        .accessibilityIdentifier("channel-create-enabled")
+
+                    field(titleKey: "collector.sources") {
                         connectorSummary
                     }
 
@@ -125,14 +130,14 @@ struct ChannelCreateSheet: View {
                     .accessibilityIdentifier("channel-create-submit")
                 }
             }
-        .sheet(isPresented: $showsConnectorPicker) {
-            ConnectorPicker(
-                connectors: store.connectors,
+        .sheet(isPresented: $showsCollectorPicker) {
+            CollectorSkillPicker(
+                skills: store.collectorSkills,
                 selection: Binding(
-                    get: { Array(selectedConnectorIDs) },
-                    set: { selectedConnectorIDs = Set($0) }
+                    get: { Array(selectedCollectorSkillIDs) },
+                    set: { selectedCollectorSkillIDs = Set($0) }
                 ),
-                isPresented: $showsConnectorPicker
+                isPresented: $showsCollectorPicker
             )
             .presentationDetents(SheetMetrics.detents)
             .presentationDragIndicator(.visible)
@@ -160,8 +165,8 @@ struct ChannelCreateSheet: View {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty,
               !prompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         // 连接器为空时提示，而不是从一进页面就报错。
-        guard !selectedConnectorIDs.isEmpty else {
-            showConnectorValidation = true
+        guard !enabled || hasAvailableSelection else {
+            showCollectorValidation = true
             return
         }
         if let created = await store.create(
@@ -169,7 +174,8 @@ struct ChannelCreateSheet: View {
             prompt: prompt.trimmingCharacters(in: .whitespaces),
             tone: tone,
             schedule: schedule,
-            connectorIDs: Array(selectedConnectorIDs)
+            collectorSkillIDs: Array(selectedCollectorSkillIDs),
+            enabled: enabled
         ) {
             env.channelColors.setColorIndex(selectedColorIndex, for: created.id)
             onCreated(created)
@@ -188,24 +194,30 @@ struct ChannelCreateSheet: View {
         VStack(alignment: .leading, spacing: Space.xs) {
             SelectorRow(
                 text: summaryText,
-                isPlaceholder: selectedConnectorIDs.isEmpty
+                isPlaceholder: selectedCollectorSkillIDs.isEmpty
             ) {
-                showsConnectorPicker = true
+                showsCollectorPicker = true
             }
             .accessibilityIdentifier("channel-create-connectors")
 
             // 用户还没提交时不报错；只有点了创建仍为空才提示。
-            if showConnectorValidation && selectedConnectorIDs.isEmpty {
-                Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
+            if showCollectorValidation && enabled && !hasAvailableSelection {
+                Text(L10n.string("collector.required", locale: locale))
                     .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
         }
     }
 
+    private var hasAvailableSelection: Bool {
+        !selectedCollectorSkillIDs.isEmpty && selectedCollectorSkillIDs.allSatisfy { id in
+            store.collectorSkills.contains { $0.id == id && $0.available }
+        }
+    }
+
     private var summaryText: String {
-        let names = store.connectors
-            .filter { selectedConnectorIDs.contains($0.id) }
+        let names = store.collectorSkills
+            .filter { selectedCollectorSkillIDs.contains($0.id) }
             .map(\.name)
         if names.isEmpty { return L10n.string("channelEdit.connectors.none", locale: locale) }
         if names.count <= 2 { return names.joined(separator: "、") }

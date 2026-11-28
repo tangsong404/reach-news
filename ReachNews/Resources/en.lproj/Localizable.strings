@@ -38,7 +38,7 @@
 "channelEdit.busy.title" = "This channel is running and can't be saved right now.";
 "channelEdit.close" = "Cancel";
 "channelEdit.color" = "Color";
-"channelEdit.connectors" = "Connectors";
+"channelEdit.connectors" = "Collection Sources";
 "channelEdit.connectors.emptyWarning" = "No connectors selected — runs won't produce a brief.";
 "channelEdit.connectors.none" = "Choose connectors";
 "channelEdit.connectors.someSelected" = "%d selected";
@@ -333,3 +333,18 @@
 "updates.build" = "Build";
 "updates.check" = "Check Latest Version";
 "updates.unavailable" = "Update checks are unavailable until the server interface is connected.";
+
+"feed.time.justNow" = "Just now";
+"feed.time.minutesAgo" = "%d min ago";
+"feed.time.hoursAgo" = "%d hr ago";
+
+"collector.sources" = "Collection Sources";
+"collector.empty" = "No available collection sources";
+"collector.unavailable" = "Collection source unavailable";
+"collector.required" = "Choose an available source before enabling";
+"collector.enable" = "Enable Channel";
+"collector.bindingRequired" = "Bind an approved collection Skill";
+
+"error.collectorMigrationRequired" = "Collection settings changed. Select collection sources again.";
+"error.collectorSkillRequired" = "Choose an available collection source before enabling.";
+"error.invalidCollectorSkill" = "A selected collection source is unavailable. Select another source.";

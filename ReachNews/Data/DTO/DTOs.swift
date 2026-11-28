@@ -74,6 +74,8 @@ struct ErrorEnvelope: Decodable {
         case .ownChannel: return .ownChannel(error.message)
         case .subscriberReadOnly: return .subscriberReadOnly(error.message)
         case .channelQuotaExceeded: return .channelQuotaExceeded(error.message)
+        case .collectorMigrationRequired, .collectorSkillRequired, .invalidCollectorSkill:
+            return .collectorConfiguration(APIErrorCode.parse(error.code), error.message)
         case .unknown: return .server(error.message)
         }
     }
@@ -99,6 +101,30 @@ struct ChannelConnectorDTO: Decodable {
     }
 }
 
+struct CollectorSkillDTO: Decodable {
+    let id: String
+    let name: String?
+    let description: String?
+    let version: String?
+    let available: FlexibleBool?
+    let reason: String?
+    let message: String?
+    let iconUrl: String?
+    func toDomain() -> CollectorSkill {
+        CollectorSkill(id: id, name: name ?? id, description: description ?? "",
+                       version: version ?? "", available: available?.value ?? false,
+                       reason: reason, message: message, iconURLPath: iconUrl)
+    }
+}
+
+struct CollectionStatusDTO: Decodable {
+    let available: FlexibleBool?
+    let pausedReason: String?
+    func toDomain() -> CollectionStatus {
+        CollectionStatus(available: available?.value ?? false, pausedReason: pausedReason)
+    }
+}
+
 struct ChannelDTO: Decodable {
     let id: String
     let name: String
@@ -108,6 +134,9 @@ struct ChannelDTO: Decodable {
     let enabled: FlexibleBool?
     let connectorIds: [String]?
     let connectors: [ChannelConnectorDTO]?
+    let collectorSkillIds: [String]?
+    let collectorSkills: [CollectorSkillDTO]?
+    let collectionStatus: CollectionStatusDTO?
     let lastBriefAt: String?
     let kind: String?
     /// 订阅模型新增：只增不减，字段形状向后兼容。
@@ -138,7 +167,10 @@ struct ChannelDTO: Decodable {
             subscriptionColor: subscriptionColor,
             subscriptionID: subscriptionId,
             createdAt: JSONDate.parse(createdAt) ?? .distantPast,
-            updatedAt: JSONDate.parse(updatedAt) ?? .distantPast
+            updatedAt: JSONDate.parse(updatedAt) ?? .distantPast,
+            collectorSkillIDs: collectorSkillIds ?? [],
+            collectorSkills: (collectorSkills ?? []).map { $0.toDomain() },
+            collectionStatus: collectionStatus?.toDomain()
         )
     }
 }
@@ -685,7 +717,8 @@ struct CreateChannelBody: Encodable {
     let prompt: String
     let tone: String
     let schedule: [String: [String]]
-    let connectorIds: [String]
+    let collectorSkillIds: [String]
+    let enabled: Bool
 }
 
 struct ChannelPatchBody: Encodable {
@@ -694,14 +727,14 @@ struct ChannelPatchBody: Encodable {
     let tone: String?
     let schedule: [String: [String]]?
     let enabled: Bool?
-    let connectorIds: [String]?
+    let collectorSkillIds: [String]?
 
     init(changes: ChannelChanges) {
         name = changes.name
         prompt = changes.prompt
         tone = changes.tone
         enabled = changes.enabled
-        connectorIds = changes.connectorIDs
+        collectorSkillIds = changes.collectorSkillIDs
         if let schedule = changes.schedule {
             self.schedule = Dictionary(
                 uniqueKeysWithValues: Schedule.weekdays.compactMap { weekday in
@@ -720,7 +753,7 @@ struct ChannelPatchBody: Encodable {
         case tone
         case schedule
         case enabled
-        case connectorIds
+        case collectorSkillIds
     }
 
     func encode(to encoder: Encoder) throws {
@@ -730,7 +763,7 @@ struct ChannelPatchBody: Encodable {
         try container.encodeIfPresent(tone, forKey: .tone)
         try container.encodeIfPresent(schedule, forKey: .schedule)
         try container.encodeIfPresent(enabled, forKey: .enabled)
-        try container.encodeIfPresent(connectorIds, forKey: .connectorIds)
+        try container.encodeIfPresent(collectorSkillIds, forKey: .collectorSkillIds)
     }
 }
 

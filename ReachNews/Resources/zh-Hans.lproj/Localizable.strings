@@ -38,7 +38,7 @@
 "channelEdit.busy.title" = "频道正在运行，暂时无法保存。";
 "channelEdit.close" = "取消";
 "channelEdit.color" = "标识色";
-"channelEdit.connectors" = "连接器";
+"channelEdit.connectors" = "采集来源";
 "channelEdit.connectors.emptyWarning" = "未选择连接器，启用后运行将不会产出日报。";
 "channelEdit.connectors.none" = "选择连接器";
 "channelEdit.connectors.someSelected" = "已选 %d 个";
@@ -333,3 +333,18 @@
 "updates.build" = "构建号";
 "updates.check" = "检查最新版本";
 "updates.unavailable" = "更新检查暂不可用，等待服务端接口接入。";
+
+"feed.time.justNow" = "刚刚";
+"feed.time.minutesAgo" = "%d分钟前";
+"feed.time.hoursAgo" = "%d小时前";
+
+"collector.sources" = "采集来源";
+"collector.empty" = "暂无可用采集来源";
+"collector.unavailable" = "采集来源不可用";
+"collector.required" = "启用前请选择可用采集来源";
+"collector.enable" = "启用频道";
+"collector.bindingRequired" = "需绑定已批准采集 Skill";
+
+"error.collectorMigrationRequired" = "采集配置已更新，请重新选择采集来源";
+"error.collectorSkillRequired" = "启用前请选择可用采集来源";
+"error.invalidCollectorSkill" = "所选采集来源不可用，请重新选择";

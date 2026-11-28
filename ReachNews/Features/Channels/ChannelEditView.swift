@@ -17,7 +17,7 @@ struct ChannelEditView: View {
     @State private var showsDeleteConfirm = false
     @State private var isDeleting = false
     @State private var deleteError: APIError?
-    @State private var showsConnectorPicker = false
+    @State private var showsCollectorPicker = false
 
     var body: some View {
         content
@@ -36,11 +36,12 @@ struct ChannelEditView: View {
             } message: {
                 Text(L10n.string("channelEdit.delete.confirm.message", locale: locale))
             }
-            .sheet(isPresented: $showsConnectorPicker) {
-                ConnectorPicker(
-                    connectors: env.channels.connectors,
-                    selection: $editor.draft.connectorIDs,
-                    isPresented: $showsConnectorPicker
+            .sheet(isPresented: $showsCollectorPicker) {
+                CollectorSkillPicker(
+                    skills: env.channels.collectorSkills,
+                    retainedSkills: channel.collectorSkills,
+                    selection: $editor.draft.collectorSkillIDs,
+                    isPresented: $showsCollectorPicker
                 )
                 .presentationDetents(SheetMetrics.detents)
                 .presentationDragIndicator(.visible)
@@ -51,7 +52,7 @@ struct ChannelEditView: View {
                 let stored = env.channelColors.effectiveIndex(for: channel.id)
                 editor.initialColorIndex = stored
                 editor.currentColorIndex = stored
-                if env.channels.connectors.isEmpty {
+                if env.channels.collectorSkills.isEmpty {
                     await env.channels.loadCreationOptions()
                 }
             }
@@ -115,7 +116,11 @@ struct ChannelEditView: View {
                     }
                 }
 
-                field(titleKey: "channelEdit.connectors") {
+                Toggle(L10n.string("collector.enable", locale: locale), isOn: $editor.draft.enabled)
+                    .font(typography.body(15))
+                    .accessibilityIdentifier("channel-edit-enabled")
+
+                field(titleKey: "collector.sources") {
                     connectorSummary
                 }
 
@@ -170,7 +175,7 @@ struct ChannelEditView: View {
                         .foregroundStyle(editor.hasChanges ? Palette.ink : Palette.inkTertiary)
                 }
             }
-            .disabled(!editor.hasChanges || editor.isSaving)
+            .disabled(!editor.hasChanges || editor.isSaving || (editor.draft.enabled && !hasAvailableSelection))
             .accessibilityIdentifier("channel-edit-save")
         }
     }
@@ -214,13 +219,13 @@ struct ChannelEditView: View {
                 text: connectorSummaryText,
                 isPlaceholder: selectedConnectorNames.isEmpty
             ) {
-                showsConnectorPicker = true
+                showsCollectorPicker = true
             }
             .accessibilityIdentifier("channel-edit-connectors")
 
             // 仅当原本有连接器、被用户清空时提示；新频道本来就空，不该一进来就报错。
-            if editor.draft.connectorIDs.isEmpty && !channel.connectorIDs.isEmpty {
-                Text(L10n.string("channelEdit.connectors.emptyWarning", locale: locale))
+            if editor.draft.enabled && !hasAvailableSelection {
+                Text(L10n.string("collector.required", locale: locale))
                     .font(typography.footnote)
                     .foregroundStyle(Palette.failedForeground)
             }
@@ -228,9 +233,17 @@ struct ChannelEditView: View {
     }
 
     private var selectedConnectorNames: [String] {
-        env.channels.connectors
-            .filter { editor.draft.connectorIDs.contains($0.id) }
-            .map(\.name)
+        editor.draft.collectorSkillIDs.map { id in
+            env.channels.collectorSkills.first { $0.id == id }?.name
+                ?? channel.collectorSkills.first { $0.id == id }?.name
+                ?? id
+        }
+    }
+
+    private var hasAvailableSelection: Bool {
+        !editor.draft.collectorSkillIDs.isEmpty && editor.draft.collectorSkillIDs.allSatisfy { id in
+            env.channels.collectorSkills.contains { $0.id == id && $0.available }
+        }
     }
 
     private var connectorSummaryText: String {

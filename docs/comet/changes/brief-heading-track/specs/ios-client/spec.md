@@ -478,3 +478,15 @@ DTO 层一次完成，UI 与 Store 只见归一化后的类型：
 - Reach News/Channels/Me使用统一字号字重和左侧对齐基准，首页品牌保留图形。
 - 详情底部Ask不含发送图标，仅输入法发送键提交；空白不发送，右上Ask保留。
 - 验收真实模拟器主页面/设置/检查更新/订阅alert及键盘发送；更新比较待后端契约，不伪称完成。
+
+
+## 最新确认：首页时间与采集Skill迁移
+
+- 首页移除日期分组标题/分割线，每个日报行右下时间：不足60秒刚刚，60秒起不足3600秒N分钟前，3600秒起不足86400秒N小时前，否则日期（跨年带年份）。未来时间夹取刚刚；页面停留定期更新。
+- GET /collector-skills替代/connectors获取分页目录；POST/PATCH频道仅写collectorSkillIds稳定ID，不再写connectorIds/connectors/iconUrl。
+- 解析collectorSkillIds/collectorSkills/collectionStatus，显示失效来源和暂停原因，保留已失效绑定供修改，不影响历史日报阅读。
+- 无可用Skill允许enabled:false草稿；启用至少一个有效来源。更换绑定不自动启用，用户明确选择才提交enabled:true。
+- 处理collector_migration_required/collector_skill_required/invalid_collector_skill/busy错误，展示服务端message。
+- collector iconUrl相对API origin（不是/api/v1重复拼接），SVG静态安全渲染，不发送Bearer；null/404/失败默认图标，按完整URL哈希变更更新。
+- 不改历史日报正文/订阅/账号契约，不造更新接口。依据后端2026-11-28已发布的collector-skills和collector-icons文档。
+- 单测覆盖时间边界/跨年/未来、DTO兼容、写请求无旧字段、草稿与无效来源；真实模拟器检查行右下时间、来源选择与停用状态及文章导航回归。

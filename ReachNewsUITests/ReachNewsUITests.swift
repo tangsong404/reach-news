@@ -144,6 +144,23 @@ final class ReachNewsUITests: XCTestCase {
         screenshot("updates-unavailable")
     }
 
+    func testCollectorSkillSelection() throws {
+        let app = launch()
+        app.tabBars.buttons["频道"].tap()
+        element("channel-create-button", in: app).tap()
+        XCTAssertTrue(element("channel-create-sheet", in: app).waitForExistence(timeout: 10))
+        let sources = element("channel-create-connectors", in: app)
+        if !sources.isHittable { app.swipeUp() }
+        sources.tap()
+        let source = element("collector-picker-ui-fixture-skill", in: app)
+        XCTAssertTrue(source.waitForExistence(timeout: 10))
+        screenshot("collector-sources")
+        source.tap()
+        element("collector-picker-done", in: app).tap()
+        XCTAssertTrue(element("channel-create-enabled", in: app).exists)
+        screenshot("collector-create-binding")
+    }
+
     func testAccountCardHitRegions() throws {
         let app = launch()
         app.tabBars.buttons["我的"].tap()
@@ -221,13 +238,14 @@ final class ReachNewsUITests: XCTestCase {
         let brand = element("feed-brand", in: app)
         let search = app.searchFields["feed-search-field"]
         XCTAssertFalse(element("feed-meta", in: app).exists, "Removed count row must not reappear")
-        let date = element("feed-date-header", in: app)
+        XCTAssertFalse(element("feed-date-header", in: app).exists)
+        let date = element("feed-row-time-ui-fixture-brief", in: app)
         let article = element("feed-row-ui-fixture-brief", in: app)
         for item in [brand, search, date, article] {
             XCTAssertTrue(item.waitForExistence(timeout: 10), file: file, line: line)
         }
         XCTAssertLessThanOrEqual(brand.frame.maxY, search.frame.minY + 2, "Brand must be above search, not below it or centered in the toolbar", file: file, line: line)
-        XCTAssertLessThanOrEqual(date.frame.minY - search.frame.maxY, 28, "Search/date gap must remain compact", file: file, line: line)
-        XCTAssertLessThanOrEqual(article.frame.minY - date.frame.maxY, 24, "Date/article gap must remain compact", file: file, line: line)
+        XCTAssertGreaterThanOrEqual(date.frame.midX, article.frame.midX, "Time must be in the article row trailing half", file: file, line: line)
+        XCTAssertGreaterThan(date.frame.midY, article.frame.midY, "Time must be in the article row lower half", file: file, line: line)
     }
 }

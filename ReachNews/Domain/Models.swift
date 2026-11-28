@@ -154,6 +154,23 @@ struct AuthSession: Equatable {
 // owner 决定可写性：订阅者只读，只有创建者能编辑、触发运行、删除。
 // 订阅是「用户 × 频道」的关系，不产生独立频道条目。
 
+/// Approved collection source. Unavailable bindings remain visible in channel responses.
+struct CollectorSkill: Identifiable, Equatable, Hashable {
+    let id: String
+    var name: String
+    var description: String = ""
+    var version: String = ""
+    var available: Bool = false
+    var reason: String? = nil
+    var message: String? = nil
+    var iconURLPath: String? = nil
+}
+
+struct CollectionStatus: Equatable, Hashable {
+    var available: Bool
+    var pausedReason: String? = nil
+}
+
 struct Channel: Identifiable, Equatable, Hashable {
     let id: String
     var name: String
@@ -174,10 +191,15 @@ struct Channel: Identifiable, Equatable, Hashable {
     var subscriptionID: String? = nil
     var createdAt: Date
     var updatedAt: Date
+    var collectorSkillIDs: [String] = []
+    var collectorSkills: [CollectorSkill] = []
+    var collectionStatus: CollectionStatus? = nil
 
     /// 未配置连接器却处于启用状态 —— 运行必然错过（no-material）。
-    var hasNoConnectors: Bool {
-        connectorIDs.isEmpty
+    var hasNoConnectors: Bool { collectorSkillIDs.isEmpty }
+
+    var hasUsableCollectorSkills: Bool {
+        collectionStatus?.available ?? (!collectorSkillIDs.isEmpty && collectorSkills.allSatisfy(\.available))
     }
 
     /// 需要提示「运行将不会产出日报」的情形。订阅频道不提示：连接器由创建者决定。
@@ -402,7 +424,12 @@ struct ChannelDraft: Equatable {
     var tone: String
     var schedule: Schedule
     var enabled: Bool
-    var connectorIDs: [String]
+    var collectorSkillIDs: [String]
+    /// Compatibility alias; never serialized as connectorIds.
+    var connectorIDs: [String] {
+        get { collectorSkillIDs }
+        set { collectorSkillIDs = newValue }
+    }
 
     init(channel: Channel) {
         name = channel.name
@@ -410,7 +437,7 @@ struct ChannelDraft: Equatable {
         tone = channel.tone
         schedule = channel.schedule
         enabled = channel.enabled
-        connectorIDs = channel.connectorIDs
+        collectorSkillIDs = channel.collectorSkillIDs
     }
 
     func changes(against channel: Channel) -> ChannelChanges {
@@ -421,7 +448,7 @@ struct ChannelDraft: Equatable {
         if schedule != channel.schedule { changes.schedule = schedule }
         if enabled != channel.enabled { changes.enabled = enabled }
         // 连接器整体替换；顺序无关，按集合比较。
-        if Set(connectorIDs) != Set(channel.connectorIDs) { changes.connectorIDs = connectorIDs }
+        if Set(collectorSkillIDs) != Set(channel.collectorSkillIDs) { changes.collectorSkillIDs = collectorSkillIDs }
         return changes
     }
 }
@@ -433,11 +460,23 @@ struct ChannelChanges: Equatable {
     var tone: String?
     var schedule: Schedule?
     var enabled: Bool?
-    var connectorIDs: [String]?
+    var collectorSkillIDs: [String]?
+    var connectorIDs: [String]? {
+        get { collectorSkillIDs }
+        set { collectorSkillIDs = newValue }
+    }
+
+    init(name: String? = nil, prompt: String? = nil, tone: String? = nil,
+         schedule: Schedule? = nil, enabled: Bool? = nil,
+         collectorSkillIDs: [String]? = nil, connectorIDs: [String]? = nil) {
+        self.name = name; self.prompt = prompt; self.tone = tone
+        self.schedule = schedule; self.enabled = enabled
+        self.collectorSkillIDs = collectorSkillIDs ?? connectorIDs
+    }
 
     var isEmpty: Bool {
         name == nil && prompt == nil && tone == nil && schedule == nil
-            && enabled == nil && connectorIDs == nil
+            && enabled == nil && collectorSkillIDs == nil
     }
 
     var changedFieldNames: [String] {
@@ -447,7 +486,7 @@ struct ChannelChanges: Equatable {
         if tone != nil { names.append("tone") }
         if schedule != nil { names.append("schedule") }
         if enabled != nil { names.append("enabled") }
-        if connectorIDs != nil { names.append("connectorIds") }
+        if collectorSkillIDs != nil { names.append("collectorSkillIds") }
         return names
     }
 }

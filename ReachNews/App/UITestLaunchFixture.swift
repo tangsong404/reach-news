@@ -89,6 +89,8 @@ private final class UITestTransport: HTTPTransporting, @unchecked Sendable {
             payload = Self.brief
         case "/api/v1/cursor":
             payload = ["briefs": [], "channels": []]
+        case "/api/v1/collector-skills":
+            payload = ["items": [["id": "ui-fixture-skill", "name": "离线采集方法", "description": "固定来源", "available": true, "version": "test-v1", "iconUrl": NSNull()]], "nextCursor": NSNull()]
         case "/api/v1/connectors", "/api/v1/channels/ui-fixture-channel/runs":
             payload = ["items": [], "nextCursor": NSNull()]
         case "/api/v1/briefs/ui-fixture-brief/ask":
@@ -109,6 +111,9 @@ private final class UITestTransport: HTTPTransporting, @unchecked Sendable {
     private static let channel: [String: Any] = [
         "id": "ui-fixture-channel", "name": "离线测试频道", "prompt": "固定测试数据",
         "enabled": true, "owner": "creator", "kind": "channel", "schedule": [:],
+        "collectorSkillIds": ["ui-fixture-skill"],
+        "collectorSkills": [["id": "ui-fixture-skill", "name": "离线采集方法", "available": true, "version": "test-v1", "iconUrl": NSNull()]],
+        "collectionStatus": ["available": true, "pausedReason": NSNull()],
         "createdAt": "2026-11-20T00:00:00.000Z"
     ]
 

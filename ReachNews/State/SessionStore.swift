@@ -449,6 +449,12 @@ extension APIError {
         case .ownChannel: return "error.ownChannel"
         case .subscriberReadOnly: return "error.subscriberReadOnly"
         case .channelQuotaExceeded: return "error.channelQuotaExceeded"
+        case .collectorConfiguration(let code, _):
+            switch code {
+            case .collectorMigrationRequired: return "error.collectorMigrationRequired"
+            case .collectorSkillRequired: return "error.collectorSkillRequired"
+            default: return "error.invalidCollectorSkill"
+            }
         }
     }
 
@@ -458,7 +464,7 @@ extension APIError {
         case .invalidConnector(let message), .invalidInput(let message), .busy(let message),
              .badRequest(let message), .server(let message), .removed(let message),
              .notPublished(let message), .ownChannel(let message), .subscriberReadOnly(let message),
-             .channelQuotaExceeded(let message):
+             .channelQuotaExceeded(let message), .collectorConfiguration(_, let message):
             return message.isEmpty ? nil : message
         case .transport(let message):
             return message.isEmpty ? nil : message
